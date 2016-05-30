@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Central Config - Multi-Machine .net Configuration Manager</a></h1>
+
+            <div class="info">
+    Posted on December 15, 2015
+    
+</div>
+
+<p>CentralConfig is available on NuGet, source at <a href="https://github.com/andrevdm/CentralConfig" class="uri">https://github.com/andrevdm/CentralConfig</a></p>
+<h2 id="overview">Overview</h2>
+<p>CentralConfig is a replacement for the built in .net ConfigurationManager. It makes managing multi-machine configurations simple while, from a usability point of view, looking very similar to ConfigurationManager.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li>All config must be able to be stored in version control</li>
+<li>A way to have config centralised. I.e. you should not have to update the same setting on multiple machines.</li>
+<li>Support for multiple environments (dev, build, test, prod etc)</li>
+<li>A sane and simple way of having default values. You should not have to specify the same settings for each machine if a default will work.</li>
+<li>Override a setting for a particular machine. e.g. one machine in an environment must have a slightly different config.</li>
+<li>Simple and light weight</li>
+<li>Support for simple values as well as more complex object types</li>
+<li>A full replacement for ConfigManager</li>
+</ul>
+<h2 id="what-about-the-.net-config-transformer">What about the .net config transformer</h2>
+<p>The .net transformer does a reasonable job but did not quite do everything I required. The examples below should show some of the differences</p>
+<h2 id="using-centralconfig">Using CentralConfig</h2>
+<p>Install “CentralConfig” from nuget Unless you have created a custom persistor use the mongo settings persistor Set the central config mongo settings Setup DI</p>
+<h3 id="app.settings-for-the-mongo-persistor">app.settings for the mongo persistor</h3>
+<div class="sourceCode"><pre class="sourceCode xml"><code class="sourceCode xml">   <span class="kw">&lt;appSettings&gt;</span>
+     <span class="kw">&lt;add</span><span class="ot"> key=</span><span class="st">&quot;MongoDB.Server&quot;</span><span class="ot"> value=</span><span class="st">&quot;mongodb://localhost:27017&quot;</span> <span class="kw">/&gt;</span>
+     <span class="kw">&lt;add</span><span class="ot"> key=</span><span class="st">&quot;CentralConfig.MongoDatabase&quot;</span><span class="ot"> value=</span><span class="st">&quot;TestConfig&quot;</span> <span class="kw">/&gt;</span>
+   <span class="kw">&lt;/appSettings&gt;</span></code></pre></div>
+<h3 id="di-setup">DI setup</h3>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">       ObjectFactory.<span class="fu">Configure</span>( x =&gt;
+       {
+           x.<span class="fu">For</span>().<span class="fu">Use</span>();
+           x.<span class="fu">For</span>().<span class="fu">Use</span>();
+       } );</code></pre></div>
+<h3 id="configure-settings-in-mongo">Configure settings in Mongo</h3>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">       {
+           <span class="st">&quot;key&quot;</span> : <span class="st">&quot;TestSetting&quot;</span>,
+           <span class="st">&quot;machine&quot;</span> : <span class="kw">null</span>,
+           <span class="st">&quot;value&quot;</span> : <span class="st">&quot;some value&quot;</span>
+       }</code></pre></div>
+<h3 id="use-the-setting-from-code">Use the setting from code</h3>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">       Console.<span class="fu">WriteLine</span>( <span class="st">&quot;test: {0}&quot;</span>, ConfigManager.<span class="fu">AppSettings</span>[<span class="st">&quot;TestSetting&quot;</span>] );</code></pre></div>
+<h2 id="different-persistors">Different Persistors</h2>
+<p>I’ve always used the mongo persistor but you can easily create new persistors as required. To do so implement the IPersistor interface</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">        <span class="kw">public</span> <span class="kw">interface</span> IConfigPersistor
+        {
+            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">string</span> machine, <span class="dt">long</span> version );
+            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">string</span> machine );
+            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">long</span> version );
+            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key );
+
+            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">string</span> machine, <span class="dt">long</span> version );
+            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">string</span> machine );
+            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">long</span> version );
+            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName );
+        }</code></pre></div>
+<h2 id="order-of-matching">Order of matching</h2>
+<p>When you request a value, CentralConfig will try find the most specific value it can. So it will first look for the setting match both the key and the current machine name, if that does not match then it looks for a value matching on key only</p>
+<div class="sourceCode"><pre class="sourceCode json"><code class="sourceCode json">       <span class="fu">{</span>
+           <span class="dt">&quot;key&quot;</span> <span class="fu">:</span> <span class="st">&quot;TestSetting&quot;</span><span class="fu">,</span>
+           <span class="dt">&quot;machine&quot;</span> <span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span>
+           <span class="dt">&quot;value&quot;</span> <span class="fu">:</span> <span class="st">&quot;some value&quot;</span>
+       <span class="fu">}</span><span class="er">,</span>
+       <span class="fu">{</span>
+           <span class="dt">&quot;key&quot;</span> <span class="fu">:</span> <span class="st">&quot;TestSetting&quot;</span><span class="fu">,</span>
+           <span class="dt">&quot;machine&quot;</span> <span class="fu">:</span> <span class="st">&quot;MYPC&quot;</span><span class="fu">,</span>
+           <span class="dt">&quot;value&quot;</span> <span class="fu">:</span> <span class="st">&quot;another value&quot;</span>
+       <span class="fu">}</span></code></pre></div>
+<p>Given the mongo settings above when you request “TestSetting” you will get “another value” if your machine name is MYPC or “some value otherwise”</p>
+
+<hr />
+<div id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+    this.page.url = "http://www.andrevdm.com/posts/2015-12-15-central-config.html"; 
+    this.page.identifier = "/posts/2015-12-15-central-config.html"; 
+    this.page.title = "Central Config - Multi-Machine .net Configuration Manager";
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//andrevdm.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
