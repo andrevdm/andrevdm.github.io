@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Parsing s-expressions in Clojure</a></h1>
+
+            <div class="info">
+    Posted on February 17, 2014
+    
+</div>
+
+<h2 id="introduction">Introduction</h2>
+<p>This is a quick look at parsing in clojure. First using instaparse and then writing the lexer and parser by hand. The comparison should illustrate how great instaparse is but also show that writing a simple lexer &amp; parser is not as complex as some would think.</p>
+<p>BTW this is my first clojure project so I may have got some of the idioms in the code incorrect. I’ll update the code samples based on feedback here and on the project</p>
+<h2 id="the-demo-project">The demo project</h2>
+<p>To demonstrate instaparse I’ll be implementing a simple external DSL. The DSL should have the following characteristics</p>
+<ol style="list-style-type: decimal">
+<li>Expressions written as sexprs</li>
+<li>External DSL - I’m not interested in using the clojure reader to read the sexpr for this demo</li>
+<li>Constrained - functions can only be defined in clojure not in the DSL itself. The functions available to the DSL must be strictly controlled.</li>
+</ol>
+<p>All code is in the <a href="https://github.com/andrevdm/blog-clojure-sexpr-parse">github repository</a></p>
+<h3 id="instaparse">Instaparse</h3>
+<h3 id="using-instaparse">Using instaparse</h3>
+<p><a href="https://github.com/Engelberg/instaparse">Instaparse</a> is a clojure library for generating a parser (and lexer) from a EBNF/ABNF. It is one of the easiest parser generators I’ve used, I highly recommend giving it a try.</p>
+<h3 id="the-grammar">The grammar</h3>
+<p>The instaparse page has a nice introduction to the grammar syntax. Start there if you are not familiar with EBNF.</p>
+<p>Here is the grammar that I’ll be parsing</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">   S <span class="kw">=</span> (expression )<span class="kw">*</span>  
+    expression <span class="kw">=</span> <span class="kw">list</span> | <span class="kw">vector</span> | <span class="kw">atom</span>  
+    <span class="kw">list</span> <span class="kw">=</span> &lt;'('&gt; (expression )<span class="kw">*</span> &lt;')'&gt;  
+    <span class="kw">vector</span> <span class="kw">=</span> &lt;'['&gt; (expression )<span class="kw">*</span> &lt;']'&gt;  
+    <span class="kw">atom</span> <span class="kw">=</span> number | string | <span class="kw">name</span>  
+    number <span class="kw">=</span> <span class="kw">#'</span>d+'  
+    string <span class="kw">=</span> &lt;'<span class="st">&quot;'&gt; #'[^&quot;</span>]+' &lt;'<span class="st">&quot;'&gt;  </span>
+<span class="st">    name = #'[a-zA-Z+-]([0-9a-zA-Z+-]*)'  </span>
+<span class="st">    ws = #'s+'</span></code></pre></div>
+<p>This is pretty standard EBNF. Some things to note</p>
+<ol style="list-style-type: decimal">
+<li>Wrap an element in angle brackets to remove it from the output e.g.</li>
+<li>Match literal characters with single quotes. e.g. ‘(’</li>
+<li>Regular expressions using #‘regex’</li>
+<li>Remember to escape regex characters correctly. See the code example for the correct escaping</li>
+</ol>
+<p>Again the instaparse page has a nice introduction that covers all of this.</p>
+<h3 id="the-output-parse-tree">The output parse tree</h3>
+<p>The output parse tree from instaparse can be in hiccup or enliven format. I’ll be using the default hiccup format.</p>
+<p>As an example here is the output for “(+ 1 2 3) 4”</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">   [<span class="kw">:S</span>  
+    [<span class="kw">:expression</span>  
+     [<span class="kw">:list</span>  
+      [<span class="kw">:expression</span> [<span class="kw">:atom</span> [<span class="kw">:name</span> <span class="st">&quot;+&quot;</span>]]]  
+      [<span class="kw">:expression</span> [<span class="kw">:atom</span> [<span class="kw">:number</span> <span class="st">&quot;1&quot;</span>]]]  
+      [<span class="kw">:expression</span> [<span class="kw">:atom</span> [<span class="kw">:number</span> <span class="st">&quot;2&quot;</span>]]]  
+      [<span class="kw">:expression</span> [<span class="kw">:atom</span> [<span class="kw">:number</span> <span class="st">&quot;3&quot;</span>]]]]]  
+    [<span class="kw">:expression</span> [<span class="kw">:atom</span> [<span class="kw">:number</span> <span class="st">&quot;4&quot;</span>]]]]</code></pre></div>
+<p>Instaparse can visualise a parse tree using graphviz and rhizome (see <a href="https://github.com/Engelberg/instaparse#visualizing-the-tree" class="uri">https://github.com/Engelberg/instaparse#visualizing-the-tree</a>). E.g. for the parse tree above you get this</p>
+<div class="figure">
+<img src="../images/sexprParsing_parseTree.png" alt="sexpr" />
+<p class="caption">sexpr</p>
+</div>
+<h3 id="interpreting-the-parse-tree">Interpreting the parse tree</h3>
+<p>There are several ways to interpret the output from instaparse, e.g. using zippers or using the built in instaparse transformation function. However I chose to use simple recursive functions since it is so simple.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">       (<span class="kw">defmulti</span><span class="fu"> run </span>(<span class="kw">fn</span> [s] (<span class="kw">nth</span> s <span class="dv">0</span>)))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:S</span> [[s &amp; es]] (<span class="kw">last</span> (<span class="kw">doall</span> (<span class="kw">map</span> run es))))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:expression</span> [[<span class="kw">e</span> t]] (run t))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:atom</span> [[a t]] (run t))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:number</span> [[n <span class="kw">val</span>]] (<span class="kw">read-string</span> <span class="kw">val</span>))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:string</span> [[s <span class="kw">val</span>]] <span class="kw">val</span>)
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:vector</span> [[v &amp; vs]] (<span class="kw">vec</span> (<span class="kw">map</span> run vs)))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:name</span> [[n &amp; nn]] (<span class="kw">first</span> nn))
+       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:list</span> [[l n &amp; ls]] (<span class="kw">let</span> [args (<span class="kw">map</span> run ls)]
+                                            (<span class="kw">apply</span> (<span class="kw">methods</span> (run n)) args)))</code></pre></div>
+<p>The multimethod’s dispatch function gets the first item from each vector. Look at the parse tree above, you’ll see that this will always be the type of the current element (:S or :expression or :number etc)</p>
+<p>Each method then is responsible for destructuring its element type. E.g. the :number method must parse the number and return a string. The :vector method must return a vector. Each method calls the run multimethod recursively to get the lowest level atom</p>
+<p>Notice that the :S method calls last on doall, which is called to force evaluation of the whole lazy seq. last is called to get the last value. I.e. the parser will return the last value evaluated just as clojure would.</p>
+<p>The :list method is where the interpreter actually “runs” functions called by the DSL.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">       (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:list</span> [[l n &amp; ls]] (<span class="kw">let</span> [args (<span class="kw">map</span> run ls)]
+                                             (<span class="kw">apply</span> (<span class="kw">methods</span> (run n)) args)))</code></pre></div>
+<p>The parameters [ [l n &amp; ls] ] destructure the incoming element into</p>
+<ol style="list-style-type: decimal">
+<li>l = the :list</li>
+<li>n = the name of the function as a :name element</li>
+<li>s = the method arguments</li>
+</ol>
+<p>Remember that a list is executed by treating the first expression as the function and the rest as the arguments to that function.</p>
+<p>Once we have the arguments they must be evaluated by calling run for each argument</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">   (<span class="kw">map</span> run ls)</code></pre></div>
+<p>We get the name of the function to run</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">   (run n)</code></pre></div>
+<p>We look up the actual function to call in the methods map. It is this map that lets us control exactly which functions can be called. All together it looks like this<br />
+(let [args (map run ls) (apply (methods (run n)) args)))</p>
+<h3 id="full-sample-code">Full sample code</h3>
+<p>Here is the full code for the DSL parser and interpreter using instaparse</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">ns</span> cljsexp-instaparse.core
+     (<span class="kw">:require</span> [instaparse.core <span class="kw">:as</span> insta]))
+
+    (<span class="kw">def</span><span class="fu"> parse</span>
+     (insta/parser
+     <span class="st">&quot;S = (expression )*</span>
+<span class="st">     expression = list | vector | atom</span>
+<span class="st">     list = &lt;'('&gt;  (expression )* &lt;')'&gt;</span>
+<span class="st">     vector = &lt;'['&gt; (expression )* &lt;']'&gt;</span>
+<span class="st">     atom = number | string | name</span>
+<span class="st">     number = #'\d+'</span>
+<span class="st">     string = &lt;'&quot;</span>'&gt; <span class="kw">#'</span>[^<span class="ch">\&quot;</span>]+' &lt;'<span class="st">&quot;'&gt;</span>
+<span class="st">     name = #'[a-zA-Z\+-]([0-9a-zA-Z\+-]*)'</span>
+<span class="st">     ws = #'\s+'&quot;</span>))
+
+    (<span class="kw">def</span><span class="fu"> methods</span>
+     {<span class="st">&quot;+&quot;</span> <span class="kw">+</span>
+     <span class="st">&quot;-&quot;</span> <span class="kw">-</span>
+     <span class="st">&quot;*&quot;</span> <span class="kw">*</span>
+     <span class="st">&quot;/&quot;</span> <span class="kw">/</span>
+     <span class="st">&quot;++&quot;</span> <span class="kw">inc</span>
+     <span class="st">&quot;--&quot;</span> <span class="kw">dec</span>
+     <span class="st">&quot;prn&quot;</span> <span class="kw">println</span>})
+
+    (<span class="kw">defmulti</span><span class="fu"> run </span>(<span class="kw">fn</span> [s] (<span class="kw">nth</span> s <span class="dv">0</span>)))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:S</span> [[s &amp; es]] (<span class="kw">last</span> (<span class="kw">doall</span> (<span class="kw">map</span> run es))))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:expression</span> [[<span class="kw">e</span> t]] (run t))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:atom</span> [[a t]] (run t))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:number</span> [[n <span class="kw">val</span>]] (<span class="kw">read-string</span> <span class="kw">val</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:string</span> [[s <span class="kw">val</span>]] <span class="kw">val</span>)
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:vector</span> [[v &amp; vs]] (<span class="kw">vec</span> (<span class="kw">map</span> run vs)))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:name</span> [[n &amp; nn]] (<span class="kw">first</span> nn))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:list</span> [[l n &amp; ls]] (<span class="kw">let</span> [args (<span class="kw">map</span> run ls)]
+                                           (<span class="kw">apply</span> (<span class="kw">methods</span> (run n)) args)))</code></pre></div>
+<h3 id="conclusion---instaparse">Conclusion - instaparse</h3>
+<p>Instaparse is amazing. It makes writing a parser very easy indeed. A simple sexp parser and interpreter in less that 40 lines of clojure is a great result.</p>
+<h2 id="a-simple-recursive-descent-parser">A simple recursive descent parser</h2>
+<p>Writing the lexer and parser by hand is an interesting exercise as it shows that its not too hard to do. However in my opinion it also shows how much simpler instaparse makes things even for simple projects.</p>
+<p>For what it is worth note that there is no mutable state in this code. All the functions are pure. This made testing very easy.</p>
+<h3 id="lexing">Lexing</h3>
+<p>Lexing or tokenising a string is the process of converting the characters from the source code into higher level tokens (equivalent to taking individual letters and making words).</p>
+<p>E.g. taking this character stream</p>
+<div class="sourceCode"><pre class="sourceCode email"><code class="sourceCode email"> |   |   |   |   |   |   |   |   |   |   |   |   |  
+ | ( | i | f |   | ( | a | n | d | ( | a | b | c |  
+ |   |   |   |   |   |   |   |   |   |   |   |   |  </code></pre></div>
+<p>And creating these tokens</p>
+<p>left-paren, if, left-paren, and, left-paren, abc</p>
+<p>Each token has meta-data associated with it. Such as the line and column in the source file and the type of token (string vs name vs paren etc).</p>
+<p>Tokenising the input means that the parser does not need to deal with individual characters but rather can work with higher level tokens. This greatly simplifies the design as the concerns of lexing the input and parsing the resulting tokens can be separated. In a recursive descent parser you could lex the next token on demand rather than lex everything first as I have here.</p>
+<p>NB remember that the output of the tokeniser is a flat list of tokens. No meaning has yet been inferred from the source code</p>
+<p>In the code above each token has the following clojure structure</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    {<span class="kw">:type</span> <span class="kw">:xxx</span>,
+     <span class="kw">:val</span> xxx,
+     <span class="kw">:line</span> xxx,
+     <span class="kw">:col</span> xxx,
+     <span class="kw">:expressions</span> []}</code></pre></div>
+<p>Each token has a</p>
+<ol style="list-style-type: decimal">
+<li>Type (e.g. name/string/list)</li>
+<li>Value (e.g. the numeric or string value of the text)</li>
+<li>The line and column number that the token started in the source file</li>
+<li>A place holder for nested expressions</li>
+</ol>
+<h4 id="matching-the-next-token">Matching the next token</h4>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">def</span><span class="fu"> tokenMap </span>{<span class="kw">:byChar</span> { ( <span class="kw">:lparen</span>
+                             ) <span class="kw">:rparen</span>,
+                             [ <span class="kw">:lbracket</span>,
+                             ] <span class="kw">:rbracket</span>}
+                   <span class="kw">:byRegex</span> { <span class="st">#&quot;'&quot;</span> parseString
+                              <span class="st">#&quot;d+&quot;</span> parseNumber
+                              <span class="st">#&quot;[a-zA-Z+-*\/?_$&lt;&gt;=]&quot;</span> parseName
+                              <span class="st">#&quot;;&quot;</span> parseComment }})</code></pre></div>
+<p>Here there are two maps. The first identifies single character tokens such as brackets or parentheses. The second uses a regular expression to match the first letter of a token and defines the function that gets called to tokenise it.</p>
+<p>For example if the tokeniser gets a semi-colon it calls the parseComment function which calls the parseRegex helper function. Below you can see these two methods. When a semi-colon is found the regex will match to the end of the line and the current position will be moved (moveRight) by the number of matched characters.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">defn</span><span class="fu"> parseRegex </span>[state, typeName, token, re]
+      (<span class="kw">let</span> [s (<span class="kw">subs</span> (currentLine state) (<span class="kw">:col</span> state))
+            <span class="kw">val</span> (<span class="kw">re-find</span> re s)]
+        <span class="co">;Does the remainder of the line match the regex - it should!</span>
+        (<span class="kw">if</span> <span class="kw">val</span>
+
+          (<span class="kw">assoc</span>
+              (moveRight state (<span class="kw">count</span> <span class="kw">val</span>))
+            <span class="kw">:token</span> token
+            <span class="kw">:val</span> <span class="kw">val</span>)
+
+          (<span class="kw">throw</span> (Exception. (<span class="kw">str</span> <span class="st">&quot;Failed to parse &quot;</span> typeName))))))
+
+    (<span class="kw">defn</span><span class="fu"> parseComment </span>[state]
+      (parseRegex state <span class="st">&quot;comment&quot;</span> <span class="kw">:comment</span> <span class="st">#&quot;;.*&quot;</span>))</code></pre></div>
+<h4 id="moving-in-the-input-stream">Moving in the input stream</h4>
+<p>Below is the moveRight function which moves right in the input stream. Notice that this takes the current position in a state argument and returns a new state as a result. I.e. nothing is mutated.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">defn</span><span class="fu"> moveRight </span>[state by]
+      <span class="st">&quot;Move current position  1 char to the right, roll over to next line if required&quot;</span>
+      (<span class="kw">let</span> [updated (<span class="kw">assoc</span> state <span class="kw">:col</span> (<span class="kw">+</span> (<span class="kw">:col</span> state) by) )]
+        (<span class="kw">let</span> [line (currentLine state)]
+          (<span class="kw">if</span> (<span class="kw">&lt;</span> (<span class="kw">:col</span> updated) (<span class="kw">count</span> line))
+
+            <span class="co">;Still space on current line, return it</span>
+            updated
+
+            <span class="co">;Move to next line</span>
+            (<span class="kw">assoc</span>
+              state
+              <span class="kw">:col</span> <span class="dv">0</span>
+              <span class="kw">:line</span> (<span class="kw">inc</span> (<span class="kw">:line</span> state)))))))</code></pre></div>
+<h4 id="running-the-tokeniser">Running the tokeniser</h4>
+<p>Finally here are the two functions that control the tokenising</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">defn-</span><span class="fu"> nextToken </span>[state]
+      <span class="st">&quot;Gets the next token&quot;</span>
+      (<span class="kw">let</span> [c (currentChar state)]
+        (<span class="kw">cond</span>
+
+         (<span class="kw">nil?</span> c) (clearToken state)
+
+         <span class="co">;Ignore white space</span>
+         (Character/isSpaceChar c) (<span class="kw">recur</span> (moveRight state <span class="dv">1</span>))
+
+         <span class="co">;Check if a token can be found in the token map by character</span>
+         <span class="kw">:else</span>  (<span class="kw">if-let</span> [token ((<span class="kw">:byChar</span> tokenMap) c)]
+                  (<span class="kw">assoc</span> (moveRight state <span class="dv">1</span>) <span class="kw">:token</span> token <span class="kw">:val</span> c)
+
+                  <span class="co">;Nothing found so now search by regex</span>
+                  <span class="co">; Get the function associated with the first regex that matches and call that</span>
+                  (<span class="kw">if-let</span> [r (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="kw">re-matches</span> (% <span class="dv">0</span>) (<span class="kw">str</span> c)) (<span class="kw">:byRegex</span> tokenMap)))]
+                    ((r <span class="dv">1</span>) state)
+                    (<span class="kw">throw</span> (Exception. (<span class="kw">str</span> <span class="st">&quot;dont understand next token - &quot;</span> c state))))))))
+
+    (<span class="kw">defn-</span><span class="fu"> tokenise </span>[state]
+      (<span class="kw">loop</span> [nextState (nextToken state), tokens []]
+        (<span class="kw">if</span> (<span class="kw">=</span> <span class="kw">:none</span> (<span class="kw">:token</span> nextState))
+          tokens
+          (<span class="kw">recur</span>
+           (nextToken nextState)
+           (<span class="kw">conj</span> tokens {<span class="kw">:line</span> (<span class="kw">:line</span> nextState),
+                         <span class="kw">:col</span> (<span class="kw">:col</span> nextState),
+                         <span class="kw">:val</span> (<span class="kw">:val</span> nextState),<span class="kw">:type</span> (<span class="kw">:token</span> nextState)})))))</code></pre></div>
+<p>nextToken gets 1 next token<br />
+tokenise repeatedly calls nextToken until the whole input stream has been tokenised</p>
+<h3 id="parsing">Parsing</h3>
+<p>At this point the lexer has lexed the entire file and the parser can now parse the token stream.</p>
+<p>The function that runs the parser is parseAll</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">defn-</span><span class="fu"> parseAll </span>[allTokens]
+      (<span class="kw">loop</span> [expressions [], tokens allTokens]
+        (<span class="kw">let</span> [r (parseExpression (<span class="kw">first</span> tokens) (<span class="kw">rest</span> tokens))]
+          (<span class="kw">if</span> (<span class="kw">=</span> <span class="dv">0</span> (<span class="kw">count</span> (<span class="kw">:expr</span> r)))
+            expressions
+            (<span class="kw">recur</span> (<span class="kw">conj</span> expressions (<span class="kw">:expr</span> r)) (<span class="kw">:tokens</span> r))))))</code></pre></div>
+<p>But all the work is actually done in parseExpression. This is quite a long function that is just a large case statement. Not pretty but reasonably clear, hopefully.</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">defn-</span><span class="fu"> parseExpression </span>[token tokens]
+        (<span class="kw">case</span> (<span class="kw">:type</span> token)
+          (nil '()) [nil tokens]
+
+          <span class="kw">:name</span> {<span class="kw">:expr</span> {<span class="kw">:type</span> <span class="kw">:name</span>,
+                        <span class="kw">:val</span> (<span class="kw">:val</span> token),
+                        <span class="kw">:line</span> (<span class="kw">:line</span> token),
+                        <span class="kw">:col</span> (<span class="kw">:col</span> token),
+                        <span class="kw">:expressions</span> []}
+                 <span class="kw">:tokens</span> tokens}
+
+          <span class="kw">:string</span> {<span class="kw">:expr</span> {<span class="kw">:type</span> <span class="kw">:string</span>,
+                          <span class="kw">:val</span> (<span class="kw">:val</span> token),
+                          <span class="kw">:line</span> (<span class="kw">:line</span> token),
+                          <span class="kw">:col</span> (<span class="kw">:col</span> token),
+                          <span class="kw">:expressions</span> []}
+                   <span class="kw">:tokens</span> tokens}
+
+          <span class="kw">:number</span> {<span class="kw">:expr</span> {<span class="kw">:type</span> <span class="kw">:number</span>,
+                          <span class="kw">:val</span> (<span class="kw">read-string</span> (<span class="kw">:val</span> token)),
+                          <span class="kw">:line</span> (<span class="kw">:line</span> token),
+                          <span class="kw">:col</span> (<span class="kw">:col</span> token),
+                          <span class="kw">:expressions</span> []}
+                   <span class="kw">:tokens</span> tokens}
+
+          (<span class="kw">:lparen</span> <span class="kw">:lbracket</span>) (<span class="kw">let</span> [grp (<span class="kw">if</span> (<span class="kw">=</span> <span class="kw">:lparen</span> (<span class="kw">:type</span> token))
+                                          {<span class="kw">:start</span> <span class="kw">:lparen</span>, <span class="kw">:end</span> <span class="kw">:rparen</span>, <span class="kw">:type</span> <span class="kw">:list</span>}
+                                          {<span class="kw">:start</span> <span class="kw">:lbracket</span>, <span class="kw">:end</span> <span class="kw">:rbracket</span>, <span class="kw">:type</span> <span class="kw">:vector</span>})]
+                                (<span class="kw">loop</span> [expressions []
+                                       [loopToken &amp; loopTokens] tokens]
+
+                                  (<span class="kw">let</span> [<span class="kw">type</span> (<span class="kw">:type</span> loopToken)]
+                                    (<span class="kw">cond</span>
+                                     (<span class="kw">or</span> (<span class="kw">nil?</span> token) (<span class="kw">=</span> '() token)) (<span class="kw">throw</span> (Exception. (<span class="kw">str</span> <span class="st">&quot;EOF waiting for :rparen&quot;</span>)))
+
+                                     (<span class="kw">=</span> (<span class="kw">:end</span> grp) <span class="kw">type</span>) {<span class="kw">:expr</span> {<span class="kw">:type</span> (<span class="kw">:type</span> grp)
+                                                                 <span class="kw">:val</span> (<span class="kw">:type</span> grp)
+                                                                 <span class="kw">:line</span> (<span class="kw">:line</span> token)
+                                                                 <span class="kw">:col</span> (<span class="kw">:col</span> token)
+                                                                 <span class="kw">:expressions</span> expressions}
+                                                          <span class="kw">:tokens</span> loopTokens}
+
+                                     <span class="kw">:else</span> (<span class="kw">let</span> [r (parseExpression loopToken loopTokens)]
+                                             (<span class="kw">recur</span> (<span class="kw">conj</span> expressions (<span class="kw">:expr</span> r)) (<span class="kw">:tokens</span> r)))))))))</code></pre></div>
+<p>This function is switching on the first token and returning the matched token and the remaining tokens. For example when it gets a :name it returns an :expr of type :name and returns the rest of the tokens.</p>
+<p>When parseExpression gets lparen or lbracket it will recursively loop through the tokens until the end of the list or vector, returning the tokens that have not been consumed.</p>
+<h3 id="interpreting-the-syntax-tree">Interpreting the syntax tree</h3>
+<p>Evaluating the syntax tree is similar to the code in the instaparse Version</p>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">declare</span> <span class="kw">eval</span>)
+
+    (<span class="kw">defmulti</span><span class="fu"> run </span>(<span class="kw">fn</span> [x] (<span class="kw">:type</span> x)))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:string</span> [<span class="kw">e</span>] (<span class="kw">:val</span> <span class="kw">e</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:number</span> [<span class="kw">e</span>] (<span class="kw">:val</span> <span class="kw">e</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:name</span> [<span class="kw">e</span>] (<span class="kw">:val</span> <span class="kw">e</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:vector</span> [<span class="kw">e</span>] (<span class="kw">vec</span> (<span class="kw">map</span> run (<span class="kw">:expressions</span> <span class="kw">e</span>))))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:list</span> [<span class="kw">e</span>] (<span class="kw">do</span>
+                               (<span class="kw">let</span> [f (run (<span class="kw">first</span> (<span class="kw">:expressions</span> <span class="kw">e</span>)))
+                                     args (<span class="kw">map</span> run (<span class="kw">rest</span> (<span class="kw">:expressions</span> <span class="kw">e</span>)))]
+                                 (<span class="kw">apply</span> (<span class="kw">get</span> funcs f) args))))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:default</span> [<span class="kw">e</span>] (<span class="kw">println</span> <span class="st">&quot;unknown: &quot;</span> <span class="kw">e</span>))
+
+    (<span class="kw">defn</span><span class="fu"> eval </span>[[car &amp; cdr]]
+      (<span class="kw">let</span> [r (run car)]
+        (<span class="kw">if</span> (<span class="kw">empty?</span> cdr)
+          r
+          (<span class="kw">recur</span> cdr))))</code></pre></div>
+<p>Again a multimethod is used to recursively evaluate the syntax tree and as with the instaparse code only functions defined in the ‘funcs’ map may be executed.</p>
+<h3 id="conclusion---hand-written">Conclusion - hand written</h3>
+<p>The hand written lexer and parser are a lot longer than just using instaparse. However it is not that complicated to do manually. Personally I’ll be using instaparse for 99% of my Clojure DSL needs but it is always good to know how to do it manually.</p>
+<h3 id="the-full-source-code">The full source code</h3>
+<div class="sourceCode"><pre class="sourceCode clojure"><code class="sourceCode clojure">    (<span class="kw">ns</span> cljsexp-simple.core
+
+    (<span class="kw">def</span><span class="fu"> funcs </span>{<span class="st">&quot;prn&quot;</span> <span class="kw">println</span>
+                <span class="st">&quot;+&quot;</span> <span class="kw">+</span>})
+
+    <span class="co">;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;</span>
+
+    (<span class="kw">defn</span><span class="fu"> currentLine </span>[state]
+      <span class="st">&quot;Gets the current line&quot;</span>
+      (<span class="kw">get</span> (<span class="kw">:code</span> state) (<span class="kw">:line</span> state)))
+
+    (<span class="kw">defn</span><span class="fu"> currentChar </span>[state]
+      <span class="st">&quot;Gets the current charater&quot;</span>
+      (<span class="kw">get</span> (currentLine state) (<span class="kw">:col</span> state)))
+
+    (<span class="kw">defn</span><span class="fu"> moveRight </span>[state by]
+      <span class="st">&quot;Move current position  1 char to the right, roll over to next line if required&quot;</span>
+      (<span class="kw">let</span> [updated (<span class="kw">assoc</span> state <span class="kw">:col</span> (<span class="kw">+</span> (<span class="kw">:col</span> state) by) )]
+        (<span class="kw">let</span> [line (currentLine state)]
+          (<span class="kw">if</span> (<span class="kw">&lt;</span> (<span class="kw">:col</span> updated) (<span class="kw">count</span> line))
+
+            <span class="co">;Still space on current line, return it</span>
+            updated
+
+            <span class="co">;Move to next line</span>
+            (<span class="kw">assoc</span>
+                state
+              <span class="kw">:col</span> <span class="dv">0</span>
+              <span class="kw">:line</span> (<span class="kw">inc</span> (<span class="kw">:line</span> state)))))))
+
+    (<span class="kw">defn</span><span class="fu"> parseRegex </span>[state, typeName, token, re]
+      (<span class="kw">let</span> [s (<span class="kw">subs</span> (currentLine state) (<span class="kw">:col</span> state))
+            <span class="kw">val</span> (<span class="kw">re-find</span> re s)]
+        <span class="co">;Does the remainder of the line match the regex - it should!</span>
+        (<span class="kw">if</span> <span class="kw">val</span>
+
+          (<span class="kw">assoc</span>
+              (moveRight state (<span class="kw">count</span> <span class="kw">val</span>))
+            <span class="kw">:token</span> token
+            <span class="kw">:val</span> <span class="kw">val</span>)
+
+          (<span class="kw">throw</span> (Exception. (<span class="kw">str</span> <span class="st">&quot;Failed to parse &quot;</span> typeName))))))
+
+    (<span class="kw">defn</span><span class="fu"> parseName </span>[state]
+      (parseRegex state <span class="st">&quot;name&quot;</span> <span class="kw">:name</span> <span class="st">#&quot;[a-zA-Z+-*\/?_$&lt;&gt;=]+&quot;</span>))
+
+    (<span class="kw">defn</span><span class="fu"> parseComment </span>[state]
+      (parseRegex state <span class="st">&quot;comment&quot;</span> <span class="kw">:comment</span> <span class="st">#&quot;;.*&quot;</span>))
+
+    (<span class="kw">defn</span><span class="fu"> parseString </span>[state]
+      (parseRegex state <span class="st">&quot;string&quot;</span> <span class="kw">:string</span> <span class="st">#&quot;'[^']+'&quot;</span>))
+
+    (<span class="kw">defn</span><span class="fu"> parseNumber </span>[state]
+      (parseRegex state <span class="st">&quot;number&quot;</span> <span class="kw">:number</span> <span class="st">#&quot;d+&quot;</span>))
+
+    (<span class="kw">def</span><span class="fu"> tokenMap </span>{<span class="kw">:byChar</span> { ( <span class="kw">:lparen</span>
+                             ) <span class="kw">:rparen</span>,
+                             [ <span class="kw">:lbracket</span>,
+                             ] <span class="kw">:rbracket</span>}
+                   <span class="kw">:byRegex</span> { <span class="st">#&quot;'&quot;</span> parseString
+                              <span class="st">#&quot;d+&quot;</span> parseNumber
+                              <span class="st">#&quot;[a-zA-Z+-*\/?_$&lt;&gt;=]&quot;</span> parseName
+                              <span class="st">#&quot;;&quot;</span> parseComment }})
+
+    (<span class="kw">defn</span><span class="fu"> clearToken </span>[state]
+      (<span class="kw">assoc</span> state
+        <span class="kw">:token</span> <span class="kw">:none</span>
+        <span class="kw">:val</span> <span class="kw">:none</span>))
+
+    (<span class="kw">defn-</span><span class="fu"> nextToken </span>[state]
+      <span class="st">&quot;Gets the next token&quot;</span>
+      (<span class="kw">let</span> [c (currentChar state)]
+        (<span class="kw">cond</span>
+
+         (<span class="kw">nil?</span> c) (clearToken state)
+
+         <span class="co">;Ignore white space</span>
+         (Character/isSpaceChar c) (<span class="kw">recur</span> (moveRight state <span class="dv">1</span>))
+
+         <span class="co">;Check if a token can be found in the token map by character</span>
+         <span class="kw">:else</span>  (<span class="kw">if-let</span> [token ((<span class="kw">:byChar</span> tokenMap) c)]
+                  (<span class="kw">assoc</span> (moveRight state <span class="dv">1</span>) <span class="kw">:token</span> token <span class="kw">:val</span> c)
+
+                  <span class="co">;Nothing found so now search by regex</span>
+                  <span class="co">; Get the function associated with the first regex that matches and call that</span>
+                  (<span class="kw">if-let</span> [r (<span class="kw">first</span> (<span class="kw">filter</span> #(<span class="kw">re-matches</span> (% <span class="dv">0</span>) (<span class="kw">str</span> c)) (<span class="kw">:byRegex</span> tokenMap)))]
+                    ((r <span class="dv">1</span>) state)
+                    (<span class="kw">throw</span> (Exception. (<span class="kw">str</span> <span class="st">&quot;dont understand next token - &quot;</span> c state))))))))
+
+    (<span class="kw">defn-</span><span class="fu"> tokenise </span>[state]
+      (<span class="kw">loop</span> [nextState (nextToken state), tokens []]
+        (<span class="kw">if</span> (<span class="kw">=</span> <span class="kw">:none</span> (<span class="kw">:token</span> nextState))
+          tokens
+          (<span class="kw">recur</span>
+           (nextToken nextState)
+           (<span class="kw">conj</span> tokens {<span class="kw">:line</span> (<span class="kw">:line</span> nextState),
+                         <span class="kw">:col</span> (<span class="kw">:col</span> nextState),
+                         <span class="kw">:val</span> (<span class="kw">:val</span> nextState),<span class="kw">:type</span> (<span class="kw">:token</span> nextState)})))))
+
+    (<span class="kw">defn-</span><span class="fu"> parseExpression </span>[token tokens]
+        (<span class="kw">case</span> (<span class="kw">:type</span> token)
+          (nil '()) [nil tokens]
+
+          <span class="kw">:name</span> {<span class="kw">:expr</span> {<span class="kw">:type</span> <span class="kw">:name</span>,
+                        <span class="kw">:val</span> (<span class="kw">:val</span> token),
+                        <span class="kw">:line</span> (<span class="kw">:line</span> token),
+                        <span class="kw">:col</span> (<span class="kw">:col</span> token),
+                        <span class="kw">:expressions</span> []}
+                 <span class="kw">:tokens</span> tokens}
+
+          <span class="kw">:string</span> {<span class="kw">:expr</span> {<span class="kw">:type</span> <span class="kw">:string</span>,
+                          <span class="kw">:val</span> (<span class="kw">:val</span> token),
+                          <span class="kw">:line</span> (<span class="kw">:line</span> token),
+                          <span class="kw">:col</span> (<span class="kw">:col</span> token),
+                          <span class="kw">:expressions</span> []}
+                   <span class="kw">:tokens</span> tokens}
+
+          <span class="kw">:number</span> {<span class="kw">:expr</span> {<span class="kw">:type</span> <span class="kw">:number</span>,
+                          <span class="kw">:val</span> (<span class="kw">read-string</span> (<span class="kw">:val</span> token)),
+                          <span class="kw">:line</span> (<span class="kw">:line</span> token),
+                          <span class="kw">:col</span> (<span class="kw">:col</span> token),
+                          <span class="kw">:expressions</span> []}
+                   <span class="kw">:tokens</span> tokens}
+
+          (<span class="kw">:lparen</span> <span class="kw">:lbracket</span>) (<span class="kw">let</span> [grp (<span class="kw">if</span> (<span class="kw">=</span> <span class="kw">:lparen</span> (<span class="kw">:type</span> token))
+                                          {<span class="kw">:start</span> <span class="kw">:lparen</span>, <span class="kw">:end</span> <span class="kw">:rparen</span>, <span class="kw">:type</span> <span class="kw">:list</span>}
+                                          {<span class="kw">:start</span> <span class="kw">:lbracket</span>, <span class="kw">:end</span> <span class="kw">:rbracket</span>, <span class="kw">:type</span> <span class="kw">:vector</span>})]
+                                (<span class="kw">loop</span> [expressions []
+                                       [loopToken &amp; loopTokens] tokens]
+
+                                  (<span class="kw">let</span> [<span class="kw">type</span> (<span class="kw">:type</span> loopToken)]
+                                    (<span class="kw">cond</span>
+                                     (<span class="kw">or</span> (<span class="kw">nil?</span> token) (<span class="kw">=</span> '() token)) (<span class="kw">throw</span> (Exception. (<span class="kw">str</span> <span class="st">&quot;EOF waiting for :rparen&quot;</span>)))
+
+                                     (<span class="kw">=</span> (<span class="kw">:end</span> grp) <span class="kw">type</span>) {<span class="kw">:expr</span> {<span class="kw">:type</span> (<span class="kw">:type</span> grp)
+                                                                 <span class="kw">:val</span> (<span class="kw">:type</span> grp)
+                                                                 <span class="kw">:line</span> (<span class="kw">:line</span> token)
+                                                                 <span class="kw">:col</span> (<span class="kw">:col</span> token)
+                                                                 <span class="kw">:expressions</span> expressions}
+                                                          <span class="kw">:tokens</span> loopTokens}
+
+                                     <span class="kw">:else</span> (<span class="kw">let</span> [r (parseExpression loopToken loopTokens)]
+                                             (<span class="kw">recur</span> (<span class="kw">conj</span> expressions (<span class="kw">:expr</span> r)) (<span class="kw">:tokens</span> r)))))))))
+
+    (<span class="kw">defn-</span><span class="fu"> parseAll </span>[allTokens]
+      (<span class="kw">loop</span> [expressions [], tokens allTokens]
+        (<span class="kw">let</span> [r (parseExpression (<span class="kw">first</span> tokens) (<span class="kw">rest</span> tokens))]
+          (<span class="kw">if</span> (<span class="kw">=</span> <span class="dv">0</span> (<span class="kw">count</span> (<span class="kw">:expr</span> r)))
+            expressions
+            (<span class="kw">recur</span> (<span class="kw">conj</span> expressions (<span class="kw">:expr</span> r)) (<span class="kw">:tokens</span> r))))))
+
+    (<span class="kw">defn</span><span class="fu"> parse </span>[code]
+      (<span class="kw">let</span> [tokens (tokenise {<span class="kw">:code</span> code, <span class="kw">:line</span> <span class="dv">0</span>, <span class="kw">:col</span> <span class="dv">0</span>, <span class="kw">:val</span> <span class="kw">:none</span>, <span class="kw">:token</span> <span class="kw">:none</span>})
+            result (parseAll tokens)]
+        result))
+
+    <span class="co">;;;;;;;;;;;;;;;;;;;;;;;</span>
+
+    (<span class="kw">declare</span> <span class="kw">eval</span>)
+
+    (<span class="kw">defmulti</span><span class="fu"> run </span>(<span class="kw">fn</span> [x] (<span class="kw">:type</span> x)))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:string</span> [<span class="kw">e</span>] (<span class="kw">:val</span> <span class="kw">e</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:number</span> [<span class="kw">e</span>] (<span class="kw">:val</span> <span class="kw">e</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:name</span> [<span class="kw">e</span>] (<span class="kw">:val</span> <span class="kw">e</span>))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:vector</span> [<span class="kw">e</span>] (<span class="kw">vec</span> (<span class="kw">map</span> run (<span class="kw">:expressions</span> <span class="kw">e</span>))))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:list</span> [<span class="kw">e</span>] (<span class="kw">do</span>
+                               (<span class="kw">let</span> [f (run (<span class="kw">first</span> (<span class="kw">:expressions</span> <span class="kw">e</span>)))
+                                     args (<span class="kw">map</span> run (<span class="kw">rest</span> (<span class="kw">:expressions</span> <span class="kw">e</span>)))]
+                                 (<span class="kw">apply</span> (<span class="kw">get</span> funcs f) args))))
+    (<span class="kw">defmethod</span><span class="fu"> run </span><span class="kw">:default</span> [<span class="kw">e</span>] (<span class="kw">println</span> <span class="st">&quot;unknown: &quot;</span> <span class="kw">e</span>))
+
+    (<span class="kw">defn</span><span class="fu"> eval </span>[[car &amp; cdr]]
+      (<span class="kw">let</span> [r (run car)]
+        (<span class="kw">if</span> (<span class="kw">empty?</span> cdr)
+          r
+          (<span class="kw">recur</span> cdr))))</code></pre></div>
+
+<hr />
+<div id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+    this.page.url = "http://www.andrevdm.com/posts/2014-02-17-clojure-sexpr-parse.html"; 
+    this.page.identifier = "/posts/2014-02-17-clojure-sexpr-parse.html"; 
+    this.page.title = "Parsing s-expressions in Clojure";
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//andrevdm.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
