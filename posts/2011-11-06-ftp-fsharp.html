@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Building a simple FTP server in F#</a></h1>
+
+            <div class="info">
+    Posted on November  6, 2011
+    
+</div>
+
+<h2 id="why-build-a-ftp-server">Why build a FTP server</h2>
+<p>I’ve just started learning F# and the application I decided to build needs a way of exposing a read-only directory structure/file system. I initially looked at WebDAV but it seemed unnecessarily complex for what I was trying to do, there also is apparently a compatibility issue between the windows implementation and the standard. FTP on the other hand is well documented, well supported and cross platform.</p>
+<p>As it turns out building a FTP server that supports the minimum number of features is actually pretty simple. By implementing only ten of the many possible FTP commands I was able to build a FTP server that windows explorer and a number of FTP clients could happily use.</p>
+<p>I was very surprised how easy building the server was. I’m sure I’ll use this approach for a number of different applications in the future. Hopefully I can convince you to do the same :)</p>
+<p>Two things to note however; firstly this is obviously not meant to be a production grade server but it could certainly be taken to that extent if required. Secondly this is only my third day of F# so I may well have missed some F# tricks or done some things in a non-idiomatic way.</p>
+<h2 id="the-ftp-protocol">The FTP Protocol</h2>
+<p>FTP is a line based protocol like telnet. This is part of what makes implementing it so easy.</p>
+<p>For example this is what an authentication conversation would look like</p>
+<div class="figure">
+<img src="../images/fsftp.png" />
+
+</div>
+<p>That is it, pretty simple, right?</p>
+<p>For more details on the protocol you can take a look at <a href="http://www.ietf.org/rfc/rfc959.txt">RFC959</a>.</p>
+<p>There are also many sites that explain the protocol in plain English. Here are three sites that I found particularly useful in getting started</p>
+<ol style="list-style-type: decimal">
+<li>An Overview of the File Transfer Protocol <a href="http://www.ncftp.com/libncftp/doc/ftp_overview.html" class="uri">http://www.ncftp.com/libncftp/doc/ftp_overview.html</a></li>
+<li>List of raw FTP commands <a href="http://www.nsftools.com/tips/RawFTP.htm" class="uri">http://www.nsftools.com/tips/RawFTP.htm</a></li>
+<li>FTP, File Transfer Protocol <a href="http://www.networksorcery.com/enp/protocol/ftp.htm" class="uri">http://www.networksorcery.com/enp/protocol/ftp.htm</a></li>
+</ol>
+<h2 id="the-minimal-set-of-ftp-commands">The minimal set of FTP commands</h2>
+<p>To get the FTP server to support a few FTP clients (FileZilla, explorer and ftp.exe command line client) I had to implement the following commands</p>
+<ul>
+<li>USER - User name</li>
+<li>PASS - Password</li>
+<li>CWD - Change working directory</li>
+<li>PWD - Print working directory</li>
+<li>TYPE - Binary/text mode. I just ignored this command</li>
+<li>LIST/NLST - Print a directory listing</li>
+<li>PORT - Set the data port for an active data transfer</li>
+<li>RETR - Retrieve a file</li>
+<li>QUIT - Quit</li>
+</ul>
+<p>Clearly there is a lot that I have not implemented and I may extend what I support (e.g. CDUP, PASSV etc) but for now this is all I need.</p>
+<h2 id="code-structure">Code structure</h2>
+<p>The full source code is available on githib at <a href="https://github.com/andrevdm/FSharpFtpServer" class="uri">https://github.com/andrevdm/FSharpFtpServer</a>.</p>
+<p>The code is structured as follows</p>
+<ul>
+<li>SocketExtensions – contains extension methods for the Socket class. This was copied from<br />
+</li>
+<li>SocketServer - The main server. This accepts new connections and creates a new ISocketHandler derived class to handle the requests.<br />
+</li>
+<li>LineProtocolHandler - Implements ISocketHandler. Reads data off the socket and calls the abstract Handle method after a line is read. NB The way I’m reading one byte at a time is far from optimal but it is simple and works well enough for now.<br />
+</li>
+<li>FtpHandler - inherits from LineProtocolHandler and implements the Handle method to handle each command line as it is received.<br />
+</li>
+<li>IDirectoryProvider. Interface for classes exposing a directory. I.e. responsible for generating the directory listing, keeping track of the current directory and downloading files etc.<br />
+</li>
+<li>FileSystemDirectoryProvider - a directory provider for exposing a real file system. (This still needs work).</li>
+</ul>
+<p>The idea here is that it is easy to plug in different functionality, for example different directory providers. I’m using this server to expose a virtual file system (something like the Git file system, more about that in a future blog) so I’ve not put much effort into the FilySystemDirectoryProvider but it should be pretty simple to get it working correctly.</p>
+<h2 id="code-examples">Code examples</h2>
+<p>The login conversation was show above this is how it looks in the code.</p>
+<p>When a client connects the server sends a 220 “hello” command.</p>
+<div class="sourceCode"><pre class="sourceCode email"><code class="sourceCode email">do! t.Send 220 <span class="st">&quot;Hello&quot;</span> socket</code></pre></div>
+<p>Here Send is a method that takes the code (220), the sting (“Hello”) and the socket to respond to.</p>
+<p>The logged in state is then managed by the loginState mutable state variable. This can have one of the following values</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">type</span> ftpLoginState = 
+  | ExpectUserName 
+  | ExpectPassword 
+  | LoggedIn</code></pre></div>
+<p>The incoming lines are sent to the Handle() method</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">override</span> t.Handle( line, socket ) = 
+async{ 
+   <span class="kw">if</span> line = <span class="st">&quot;QUIT&quot;</span> <span class="kw">then</span>
+    t.Stop() 
+   <span class="kw">else</span>   
+    <span class="kw">match</span> loginState <span class="kw">with</span>
+     | ExpectUserName -&gt; <span class="kw">do</span>! t.HandleLoginUserName( line, socket ) 
+     | ExpectPassword -&gt; <span class="kw">do</span>! t.HandleLoginPassword( line, socket ) 
+     | LoggedIn -&gt; <span class="kw">do</span>! t.HandleCommand( line, socket ) 
+     | _ -&gt; failwith (<span class="st">&quot;unknown ftpLoginState &quot;</span> + loginState.ToString()) 
+}</code></pre></div>
+<p>This method works as follows</p>
+<ol style="list-style-type: decimal">
+<li>If the QUIT command is received then call the Stop() method to terminate the connection</li>
+<li><p>All other commands are then interpreted based on the current login state</p>
+<ol style="list-style-type: decimal">
+<li>If expecting a user name call HandleLoginUserName</li>
+<li>If expecting a password call HandleLoginPassword</li>
+<li>If logged in the call the HandleCommand method which handles the main FTP commands</li>
+<li>Any other state is invalid</li>
+</ol></li>
+</ol>
+<p>The HandleCommand method then responds to the rest of the FTP commands.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">member</span> t.HandleCommand( line, socket ) = 
+  async{ 
+     <span class="kw">let</span> c,r = t.SplitCmd line
+ 
+     <span class="kw">match</span> c <span class="kw">with</span>
+        | <span class="st">&quot;PORT&quot;</span> -&gt; <span class="kw">do</span>! t.SetPort( r, socket ) 
+        | <span class="st">&quot;NLST&quot;</span>
+        | <span class="st">&quot;LIST&quot;</span> -&gt; <span class="kw">do</span>! t.SendList( r, socket )                    
+        | <span class="st">&quot;PWD&quot;</span> -&gt; <span class="kw">do</span>! t.Send <span class="dv">257</span> (<span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st">&quot;</span> + dirProvider.CurrentPath + <span class="st">&quot;</span><span class="ch">\&quot;</span><span class="st"> is the current directory&quot;</span>) socket 
+        | <span class="st">&quot;TYPE&quot;</span> -&gt; <span class="kw">do</span>! t.Send <span class="dv">200</span> <span class="st">&quot;ignored&quot;</span> socket 
+        | <span class="st">&quot;RETR&quot;</span> -&gt; <span class="kw">do</span>! t.RetrieveFile( r, socket ) 
+        | <span class="st">&quot;CWD&quot;</span> -&gt; 
+          <span class="kw">if</span> dirProvider.ChangeDir( r ) <span class="kw">then</span> <span class="kw">do</span>! t.Send <span class="dv">200</span> <span class="st">&quot;directory changed&quot;</span> socket 
+          <span class="kw">else</span> <span class="kw">do</span>! t.Send <span class="dv">552</span> <span class="st">&quot;Invalid directory&quot;</span> socket 
+        | _ -&gt; <span class="kw">do</span>! t.Send <span class="dv">502</span> <span class="st">&quot;Command not implemented&quot;</span> socket
+ 
+  }</code></pre></div>
+<p>The SplitCmd call is a simple method to split the received line.</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">member</span> t.SplitCmd( line ) = 
+
+  <span class="kw">let</span> m = Regex<span class="kw">.</span>Match( line, @<span class="st">&quot;^(?&lt;cmd&gt;[^ ]+)( (?&lt;rest&gt;.*))?&quot;</span> ) 
+
+
+  <span class="kw">if</span> <span class="kw">not</span> m.Success <span class="kw">then</span> failwith (<span class="st">&quot;invalid command: &quot;</span> + line) 
+
+
+  (m.Groups<span class="kw">.</span>[<span class="st">&quot;cmd&quot;</span>].Value, m.Groups<span class="kw">.</span>[<span class="st">&quot;rest&quot;</span>].Value)</code></pre></div>
+<h2 id="list-nlst">LIST / NLST</h2>
+<p>The LIST and NLST commands request the server to send a directory listing. Rather bizarrely there is no actual standard for this format. However most FTP server return the listing matching the standard unix ls format and most FTP clients expect this too.</p>
+<p>Here is how the FileSystemDirectoryProvider returns the files and sub-directories of the current path</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">member</span> t.List() = 
+   <span class="kw">let</span> dir = <span class="kw">new</span> StringBuilder() 
+    
+   <span class="kw">let</span> info = <span class="kw">new</span> DirectoryInfo( physicalDirectory )
+ 
+   info.GetFiles() 
+      |&gt; Array<span class="kw">.</span>iter (<span class="kw">fun</span> f -&gt; 
+        dir.AppendFormat( <span class="st">&quot;-r--r--r--  1   owner   group {1} 1970 01 01  {0}&quot;</span>, f.Name, f.Length ).AppendLine() |&gt; ignore )
+ 
+   info.GetDirectories() 
+      |&gt; Array<span class="kw">.</span>iter (<span class="kw">fun</span> d -&gt; 
+        dir.AppendFormat( <span class="st">&quot;dr--r--r--  1   owner   group {1} 1970 01 01  {0}&quot;</span>, d.Name, <span class="dv">0</span> ).AppendLine() |&gt; ignore )
+ 
+   dir.ToString()</code></pre></div>
+<p>This listing is then sent back to the client by the FtpHandler, see the section on the PORT command below</p>
+<div class="sourceCode"><pre class="sourceCode fsharp"><code class="sourceCode fsharp"><span class="kw">member</span> t.SendList( p, socket ) = 
+  async{ 
+     <span class="kw">do</span>! t.Send <span class="dv">150</span> <span class="st">&quot;Opening ASCII mode data connection for /bin/ls&quot;</span> socket 
+   
+     <span class="kw">use</span> sender = <span class="kw">new</span> Socket(AddressFamily<span class="kw">.</span>InterNetwork, SocketType<span class="kw">.</span>Stream, ProtocolType<span class="kw">.</span>Tcp) 
+     <span class="kw">let</span> endpoint = IPEndPoint(ipAddr, port) 
+     sender.Connect( endpoint ) 
+   
+     <span class="kw">let</span>! sent = sender.AsyncSend( Encoding<span class="kw">.</span>ASCII<span class="kw">.</span>GetBytes( dirProvider.List() ) ) 
+     <span class="kw">do</span>! t.Send <span class="dv">226</span> <span class="st">&quot;Listing completed.&quot;</span> socket 
+  }</code></pre></div>
+<h2 id="port-and-active-mode-data-transfer">PORT and active mode data transfer</h2>
+<p>FTP uses different ports for its command and data communications. The command socket is always on the port that you connect on (typically port 21), data ports are created dynamically as required.</p>
+<p>There are two ways in which ports are assigned</p>
+<ol style="list-style-type: decimal">
+<li>In <strong>active</strong> mode the client creates a socket to listen for data on and tells the server the IP and port number</li>
+<li>In <strong>passive</strong> mode the client requests that server create a listener and return the IP and port. Passive mode is often preferred as it is simpler to support behind a firewall.</li>
+</ol>
+<p>It was marginally simpler for me to implement active mode so for now that is all the server supports.</p>
+<p>In active mode a data transfer like the LIST command described above would look like this</p>
+<div class="figure">
+<img src="../images/fsftp.png" />
+
+</div>
+<p>So the client creates a listening socket and sends the details to the server. The port is split into high,low. The number = high * 256 + low. In this case 4*256+1 = 1026</p>
+<p>The client then requests the list.</p>
+<p>Finally the server then</p>
+<ol style="list-style-type: decimal">
+<li>Tells the client that it is about to send the data</li>
+<li>Sends the data over the new data connection</li>
+<li>Tells the client that the data was sent successfully</li>
+</ol>
+<h2 id="in-summary">In summary</h2>
+<p>I was able to build a simple FTP server in a few hundred lines of F#. I’m sure I’ll be using this code in a number of projects in the future. I hope that it will prove useful to you as well.</p>
+
+<hr />
+<div id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+    this.page.url = "http://www.andrevdm.com/posts/2011-11-06-ftp-fsharp.html"; 
+    this.page.identifier = "/posts/2011-11-06-ftp-fsharp.html"; 
+    this.page.title = "Building a simple FTP server in F#";
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//andrevdm.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

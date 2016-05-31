@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">WPF Layered Drawing</a></h1>
+
+            <div class="info">
+    Posted on August  1, 2012
+    
+</div>
+
+<p>This post demonstrates a simple way to draw in WPF using multiple layers. The layered drawing classes are less than 100 lines in total and fairly simple. Below I’ll describe the demo app, layered drawing and then how the code for the layered drawing works.</p>
+<p><em><strong>Retained mode drawing</strong></em></p>
+<p>Drawing in WPF is very different from drawing in windows forms. Drawing in windows forms is done in <em>immediate mode,</em> drawing in WPF is done in <em>retained mode</em>. What this means is that in WPF once you have drawn a visual that visual knows how to redraw itself. You don’t need to redraw it every time some part of the display changes, WPF does it for you. You should not be doing your drawing in OnRender, the WPF equivalent of OnDraw, rather you should be drawing visuals that are then only redrawn when required.</p>
+<p>As a practical example of how this makes things easier consider an application that draws graphics in multiple layers. In the application shown below there are multiple layers; one for the text, one for the background etc.</p>
+<div class="figure">
+<img src="../images/wpf1.png" />
+
+</div>
+<p>Scrolling moves the text up/down</p>
+<div class="figure">
+<img src="../images/wpf2.png" />
+
+</div>
+<p>Since each element is drawn in a separate layer, to move the the text down all you do is redraw the text layer. All the other layers remain unchanged and thus don’t need to be redrawn manually.</p>
+<p><strong><em>Drawing on the layers</em></strong></p>
+<p>The layered drawing classes presented here make it easy to create a UI like this. Here is an example of creating a layer</p>
+<blockquote>
+<p>1: m_layers.AddLayer( 10, DrawBackground, ChangeType.Resize );</p>
+</blockquote>
+<p>Here a layer is created. Its priority (discussed later) is set to 10. DrawBackground is the method responsible for drawing the layer being registered. Resize is the ChangeType that will cause the layer to be redrawn.</p>
+<p>Here is the DrawBackground method</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">DrawBackground</span>( DrawingContext ctx ) 
+{ 
+    <span class="dt">var</span> pen = <span class="kw">new</span> <span class="fu">Pen</span>( Brushes.<span class="fu">Black</span>, <span class="dv">1</span> ); 
+    <span class="dt">var</span> rect = <span class="kw">new</span> <span class="fu">Rect</span>( <span class="dv">0</span>, <span class="dv">0</span>, m_layers.<span class="fu">ActualWidth</span>, m_layers.<span class="fu">ActualHeight</span> ); 
+    ctx.<span class="fu">DrawRoundedRectangle</span>( Brushes.<span class="fu">Black</span>, pen, rect, <span class="dv">50</span>, <span class="dv">50</span> );</code></pre></div>
+<p>Now that that is in place having the layer redrawn when the window resized is easy</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">protected</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">OnRenderSizeChanged</span>( SizeChangedInfo sizeInfo )
+{
+    <span class="kw">base</span>.<span class="fu">OnRenderSizeChanged</span>( sizeInfo );
+ 
+    <span class="fu">Draw</span>( ChangeType.<span class="fu">Resize</span> );
+}</code></pre></div>
+<p>What you need to do is call the Draw method with the appropriate ChangeType, here ChangeType.Resize.</p>
+<p>The layer registration and change notification scheme allows you to decouple the drawing logic from the events that cause changes to the UI. So should you later want to add another layer that is also redrawn when the window is resized, then you just add a new layer registration. The code in the OnRenderSizeChanged method does not change at all. In a real application you would use this separation to keep the events and drawing logic separate (model vs view or separate layers managed by different classes)</p>
+<p>To complete the discussion of the demo application here is the full layer registration</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnLoaded</span>( <span class="dt">object</span> sender, RoutedEventArgs e )
+{
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">10</span>, DrawBackground, ChangeType.<span class="fu">Resize</span> );
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">11</span>, DrawBackgroundBlock );
+ 
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">20</span>, DrawStaticForeground );
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">21</span>, DrawText, ChangeType.<span class="fu">Scroll</span> );
+ 
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">30</span>, DrawForeground );</code></pre></div>
+<p>And here is the OnScroll handler.</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnScroll</span>( <span class="dt">object</span> sender, ScrollEventArgs e )
+{
+    <span class="fu">Draw</span>( ChangeType.<span class="fu">Scroll</span> );
+}</code></pre></div>
+<p>And that is it. Using layers like this is pretty simple and it is very efficient as is uses <a href="http://msdn.microsoft.com/en-us/library/ms742254.aspx">DrawingVisuals</a>. Drawing in this manner can be used for many purposes, for example to build a text editor control. You could have a layer for the text, one for the gutters &amp; margins and one for the selection highlight.</p>
+<p>The source code for the demo app is attached. Hopefully you will find this method useful.</p>
+<p>Below is a description of how the layered drawing is implemented.</p>
+<p><strong><em>Implementation</em></strong></p>
+<p>The ChangeType enum is used to describe different types of changes. The exact values used would depend on your application.</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">[Flags]
+<span class="kw">public</span> <span class="kw">enum</span> ChangeType
+{
+  Redraw = <span class="dv">1</span>,
+  Resize = <span class="dv">2</span>,
+  Scroll = <span class="dv">4</span>,
+}</code></pre></div>
+<p>The WpfLayerInfo class stores the details for each layer.</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="kw">class</span> WpfLayerInfo
+{
+  <span class="kw">public</span> <span class="fu">WpfLayerInfo</span>( <span class="dt">int</span> priority, Action&lt;DrawingContext&gt; draw, DrawingVisual visual, ChangeType notifyOnChange )
+  {
+        NotifyOnChange = notifyOnChange;
+        Priority = priority;
+        Visual = visual;
+        Draw = draw;
+  }
+ 
+  <span class="kw">public</span> ChangeType NotifyOnChange { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
+  <span class="kw">public</span> <span class="dt">int</span> Priority { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
+  <span class="kw">public</span> DrawingVisual Visual { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
+  <span class="kw">public</span> Action&lt;DrawingContext&gt; Draw { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
+}</code></pre></div>
+<p><strong><em>Layers in WPF</em></strong></p>
+<p>Building the layers in WPF is relatively strait forward. Each layer is a [DrawingVisual][3] and the layers are contained in a FrameworkElement user control. You then override the GetVisualChild() method to return a layer’s visual.</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="kw">class</span> WpfLayers : FrameworkElement
+{
+  <span class="kw">private</span> <span class="kw">readonly</span> VisualCollection m_children;
+  <span class="kw">private</span> <span class="kw">readonly</span> List&lt;WpfLayerInfo&gt; m_layers = <span class="kw">new</span> List&lt;WpfLayerInfo&gt;();
+ 
+  <span class="kw">public</span> <span class="fu">WpfLayers</span>()
+  {
+        m_children = <span class="kw">new</span> <span class="fu">VisualCollection</span>( <span class="kw">this</span> );
+  }
+ 
+  <span class="kw">public</span> <span class="dt">void</span> <span class="fu">AddLayer</span>( ... )
+  {
+        <span class="dt">var</span> drawingVisual = <span class="kw">new</span> <span class="fu">DrawingVisual</span>();
+ 
+        ...
+       
+        m_children.<span class="fu">Add</span>( l.<span class="fu">Visual</span> );
+  }
+ 
+  <span class="kw">protected</span> <span class="kw">override</span> <span class="dt">int</span> VisualChildrenCount
+  {
+        <span class="kw">get</span> { <span class="kw">return</span> m_children.<span class="fu">Count</span>; }
+  }
+ 
+  <span class="kw">protected</span> <span class="kw">override</span> Visual <span class="fu">GetVisualChild</span>( <span class="dt">int</span> index )
+  {
+        <span class="kw">if</span>( index &lt; <span class="dv">0</span> || index &gt;= m_children.<span class="fu">Count</span> )
+        {
+             <span class="kw">throw</span> <span class="kw">new</span> <span class="fu">ArgumentOutOfRangeException</span>( <span class="st">&quot;index&quot;</span> );
+        }
+ 
+        <span class="kw">return</span> m_children[index];
+  }
+}</code></pre></div>
+<p>The code above illustrates the main points, there is a FrameworkElement with a VisualCollection (m_children) containing DrawingVisuals. Each DrawingVisual represents a layer. m_layers is a list of WpfLayerInfo objects each describing a layer.</p>
+<p>Adding a layer is handled by the AddLayer method</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="dt">void</span> <span class="fu">AddLayer</span>( <span class="dt">int</span> priority, Action&lt;DrawingContext&gt; draw, ChangeType notifyOnChange = ChangeType.<span class="fu">Redraw</span> )
+{
+    <span class="dt">var</span> drawingVisual = <span class="kw">new</span> <span class="fu">DrawingVisual</span>();
+ 
+    <span class="dt">var</span> layerInfo = <span class="kw">new</span> <span class="fu">WpfLayerInfo</span>( priority, draw, drawingVisual, notifyOnChange );
+    m_layers.<span class="fu">Add</span>( layerInfo );
+ 
+    <span class="co">//Sort the layers by priority</span>
+    m_layers.<span class="fu">Sort</span>( ( x, y ) =&gt; x.<span class="fu">Priority</span>.<span class="fu">CompareTo</span>( y.<span class="fu">Priority</span> ) );
+ 
+    <span class="co">//Remove all the visual layers and add them in order</span>
+    m_children.<span class="fu">Clear</span>();
+    m_layers.<span class="fu">ForEach</span>( l =&gt; m_children.<span class="fu">Add</span>( l.<span class="fu">Visual</span> ) );
+}</code></pre></div>
+<p>This method creates a new DrawingVisual and a WpfLayerInfo for the new layer. The visuals are then added to the VisualCollection in order of priority. I.e lowest priority at the bottom of the Z-order.</p>
+<p>The Draw method which controls what layers will be redrawn</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Draw</span>( ChangeType change )
+{
+    <span class="dt">var</span> affected = from l <span class="kw">in</span> m_layers
+                        <span class="fu">where</span> ((change &amp; ChangeType.<span class="fu">Redraw</span>) != <span class="dv">0</span>) || ((l.<span class="fu">NotifyOnChange</span> &amp; change) != <span class="dv">0</span>)
+                        orderby l.<span class="fu">Priority</span>
+                        select l;
+ 
+    <span class="kw">foreach</span>( WpfLayerInfo layer <span class="kw">in</span> affected )
+    {
+         DrawingContext ctx = layer.<span class="fu">Visual</span>.<span class="fu">RenderOpen</span>();
+         layer.<span class="fu">Draw</span>( ctx );
+         ctx.<span class="fu">Close</span>();
+    }
+}</code></pre></div>
+<p>This method first gets the layers that need to be redrawn (lines 3 to 6) ordered by priority. ChangeType.Redraw is treated as a special case, if it is selected then all layers are selected (i.e. to be redrawn)</p>
+<p>Next for each selected layer a DrawingContext is created and passed to the layer’s draw method.</p>
+<p><strong><em>The Demo</em></strong></p>
+<p>The XAML for the demo looks like this</p>
+<div class="sourceCode"><pre class="sourceCode xml"><code class="sourceCode xml"><span class="kw">&lt;Window</span><span class="ot"> x:Class=</span><span class="st">&quot;LayeredDrawingDemo.MainWindow&quot;</span>
+<span class="ot">        xmlns=</span><span class="st">&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;</span>
+<span class="ot">        xmlns:x=</span><span class="st">&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;</span>
+<span class="ot">        xmlns:LayeredDrawingDemo=</span><span class="st">&quot;clr-namespace:LayeredDrawingDemo&quot;</span>
+<span class="ot">        Title=</span><span class="st">&quot;Layered Drawing&quot;</span>
+<span class="ot">        Loaded=</span><span class="st">&quot;OnLoaded&quot;</span>
+<span class="ot">        Height=</span><span class="st">&quot;350&quot;</span>
+<span class="ot">        Width=</span><span class="st">&quot;500&quot;</span><span class="kw">&gt;</span>
+    <span class="kw">&lt;DockPanel</span><span class="ot"> LastChildFill=</span><span class="st">&quot;true&quot;</span><span class="kw">&gt;</span>
+        <span class="kw">&lt;TextBlock</span><span class="ot"> Name=</span><span class="st">&quot;m_log&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Right&quot;</span><span class="ot"> Width=</span><span class="st">&quot;150&quot;</span><span class="ot"> Margin=</span><span class="st">&quot;5&quot;</span><span class="kw">/&gt;</span>
+        <span class="kw">&lt;ScrollBar</span><span class="ot"> Name=</span><span class="st">&quot;m_scroll&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Right&quot;</span><span class="ot"> Scroll=</span><span class="st">&quot;OnScroll&quot;</span> <span class="kw">/&gt;</span>
+        <span class="kw">&lt;LayeredDrawingDemo:WpfLayers</span><span class="ot"> x:Name=</span><span class="st">&quot;m_layers&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Left&quot;</span><span class="kw">&gt;&lt;/LayeredDrawingDemo:WpfLayers&gt;</span>
+    <span class="kw">&lt;/DockPanel&gt;</span>
+<span class="kw">&lt;/Window&gt;</span></code></pre></div>
+<p>The layers are added on line 12.</p>
+<p>As shown above the OnLoad handler creates the layers and redraws all layers</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnLoaded</span>( <span class="dt">object</span> sender, RoutedEventArgs e )
+{
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">10</span>, DrawBackground, ChangeType.<span class="fu">Resize</span> );
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">11</span>, DrawBackgroundBlock );
+ 
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">20</span>, DrawStaticForeground );
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">21</span>, DrawText, ChangeType.<span class="fu">Scroll</span> );
+ 
+    m_layers.<span class="fu">AddLayer</span>( <span class="dv">30</span>, DrawForeground );
+ 
+    <span class="fu">Draw</span>( ChangeType.<span class="fu">Redraw</span> );
+}</code></pre></div>
+<p>The window resize handler which causes the DrawBackground method to be called (ChangeType.Resize)</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">protected</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">OnRenderSizeChanged</span>( SizeChangedInfo sizeInfo )
+{
+    <span class="kw">base</span>.<span class="fu">OnRenderSizeChanged</span>( sizeInfo );
+ 
+    m_scroll.<span class="fu">Minimum</span> = <span class="dv">0</span>;
+    m_scroll.<span class="fu">Maximum</span> = m_layers.<span class="fu">ActualHeight</span> - <span class="dv">70</span>;
+    <span class="fu">Draw</span>( ChangeType.<span class="fu">Resize</span> );
+}</code></pre></div>
+<p>The scroll handler</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnScroll</span>( <span class="dt">object</span> sender, ScrollEventArgs e )
+{
+    <span class="fu">Draw</span>( ChangeType.<span class="fu">Scroll</span> );
+}</code></pre></div>
+<p>The Draw() method</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">Draw</span>( ChangeType change )
+{
+    m_layers.<span class="fu">Draw</span>( change );
+}</code></pre></div>
+<p>One of he draw methods</p>
+<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">DrawForeground</span>( DrawingContext ctx )
+{
+    <span class="dt">var</span> pen = <span class="kw">new</span> <span class="fu">Pen</span>( Brushes.<span class="fu">Black</span>, <span class="dv">1</span> );
+    <span class="dt">var</span> rect = <span class="kw">new</span> <span class="fu">Rect</span>( <span class="dv">20</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">55</span> );
+    ctx.<span class="fu">DrawRectangle</span>( Brushes.<span class="fu">Red</span>, pen, rect );
+ 
+    <span class="fu">Log</span>( <span class="st">&quot;foreground&quot;</span> );
+}</code></pre></div>
+<p>Notice that each of the draw methods in this example log that they have been called. This makes it easy to see from the demo UI which layers are being changes. E.g. when you resize the window you will see that the text is not redrawn etc.</p>
+<p>The source code for the example is available <a href="https://github.com/andrevdm/WpfLayeredDrawingDemo">on github</a>. Hopefully you will find this method of drawing in WPF as useful as I have.</p>
+
+<hr />
+<div id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+    this.page.url = "http://www.andrevdm.com/posts/2012-08-01-wpf-layers.html"; 
+    this.page.identifier = "/posts/2012-08-01-wpf-layers.html"; 
+    this.page.title = "WPF Layered Drawing";
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//andrevdm.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
