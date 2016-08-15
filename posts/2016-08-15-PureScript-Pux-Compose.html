@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Composing components with PureScript Pux</a></h1>
+
+            <div class="info">
+    Posted on August 15, 2016
+    
+</div>
+
+<h2 id="purescript-pux">PureScript Pux</h2>
+<p>Pux is a PureScript interface to React. The tutorial at <a href="http://www.alexmingoia.com/purescript-pux/index.html" class="uri">http://www.alexmingoia.com/purescript-pux/index.html</a> gives a good introduction to the library. The section titled <strong>Multiple components</strong> shows how you can easily compose simple components. What it does not show however is how to compose components that have effects (eff or aff).</p>
+<p>I battled with this for a bit and so decided to document the solution in the hopes it helps other beginners. The explanation below shows how to compose components in the framework of the <a href="https://github.com/alexmingoia/pux-starter-app">starter app</a>.</p>
+<p>I’m assuming that you have read the pux tutorial at least up to the fetching data section so I wont be covering the same detail here.</p>
+<h2 id="the-starter-app">The starter app</h2>
+<p>The starter app has a counter component that is rendered in the Laout.purs file</p>
+<h3 id="the-original-counter">The original counter</h3>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span> <span class="fu">=</span> <span class="dt">Increment</span> <span class="fu">|</span> <span class="dt">Decrement</span>
+
+<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span> <span class="dt">Int</span>
+
+init<span class="ot"> ::</span> <span class="dt">State</span>
+init <span class="fu">=</span> <span class="dv">0</span>
+
+<span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span>
+update <span class="dt">Increment</span> state <span class="fu">=</span> state <span class="fu">+</span> <span class="dv">1</span>
+update <span class="dt">Decrement</span> state <span class="fu">=</span> state <span class="fu">-</span> <span class="dv">1</span></code></pre></div>
+<h3 id="the-original-layout">The original layout</h3>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span>
+  <span class="fu">=</span> <span class="dt">Child</span> (<span class="dt">Counter.Action</span>)
+  <span class="fu">|</span> <span class="dt">PageView</span> <span class="dt">Route</span>
+
+<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span>
+  {<span class="ot"> route ::</span> <span class="dt">Route</span>
+  ,<span class="ot"> count ::</span> <span class="dt">Counter.State</span> }
+
+init<span class="ot"> ::</span> <span class="dt">State</span>
+init <span class="fu">=</span>
+  { route<span class="fu">:</span> <span class="dt">NotFound</span>
+  , count<span class="fu">:</span> Counter.init }
+
+<span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span>
+update (<span class="dt">PageView</span> route) state <span class="fu">=</span> state { route <span class="fu">=</span> route }
+update (<span class="dt">Child</span> action) state <span class="fu">=</span> state { count <span class="fu">=</span> Counter.update action state<span class="fu">.</span>count }</code></pre></div>
+<h2 id="making-the-counter-effectful">Making the counter effectful</h2>
+<h3 id="effmodel">EffModel</h3>
+<p>The type of an update function with no effects (as above) is</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span></code></pre></div>
+<p>For it to be effectful it should return an EffModel. The EffModel looks like this</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">EffModel</span> state action eff <span class="fu">=</span> 
+    {<span class="ot"> state ::</span> state
+    ,<span class="ot"> effects ::</span> <span class="dt">Array</span> (<span class="dt">Aff</span> (<span class="ot">channel ::</span> <span class="dt">CHANNEL</span> <span class="fu">|</span> eff) action) 
+    }</code></pre></div>
+<p>The update type will then be</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)</code></pre></div>
+<h3 id="changing-the-counter">Changing the counter</h3>
+<p>To keep things simple I’ll make the counter component act as if its effectual without doing any actual IO. To perform effects the component returns a list of effects that should be performed in the EffModel’s effects. The counter needs to do three things</p>
+<ol style="list-style-type: decimal">
+<li>Increment</li>
+<li>Decrement</li>
+<li>Apply the effects</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)
+update (<span class="dt">ReceiveInc</span> i) state<span class="fu">=</span> 
+  noEffects <span class="fu">$</span> state <span class="fu">+</span> i
+update <span class="dt">Increment</span> state <span class="fu">=</span>
+  { state<span class="fu">:</span> state
+  , effects<span class="fu">:</span> [ <span class="kw">do</span>
+                  pure <span class="fu">$</span> <span class="dt">ReceiveInc</span> <span class="dv">1</span>
+             ]
+  }
+update <span class="dt">Decrement</span> state <span class="fu">=</span>
+  { state<span class="fu">:</span> state
+  , effects<span class="fu">:</span> [ <span class="kw">do</span>
+                  pure <span class="fu">$</span> <span class="dt">ReceiveInc</span> (<span class="fu">-</span><span class="dv">1</span>)
+             ]
+  }
+
+<span class="ot">view ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Html</span> <span class="dt">Action</span>
+view state <span class="fu">=</span>
+  div
+    []
+    [ button [ onClick (const <span class="dt">Increment</span>) ] [ text <span class="st">&quot;Increment&quot;</span> ]
+    , span [] [ text (show state) ]
+    , button [ onClick (const <span class="dt">Decrement</span>) ] [ text <span class="st">&quot;Decrement&quot;</span> ]
+    ]</code></pre></div>
+<p>The increment and decrement cases return a ReceiveInc effect that will then be passed to the component and applied by the ReceiveInc case. In a real world component there would be an actual IO action e.g. using AJAX with affjax etc. But ultimately you are returning the effect in the array to be applied.</p>
+<h3 id="changing-the-layout">Changing the layout</h3>
+<p>The layout’s update function must also be changed to use an EffModel</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)
+update (<span class="dt">PageView</span> route) state <span class="fu">=</span> noEffects <span class="fu">$</span> state { route <span class="fu">=</span> route }
+update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span></code></pre></div>
+<p>The problem is that the counter’s EffModel does not have the same type as the layout’s EffModel, so you can’t simply use the result from the child components. Rather you need to map both the state and the effects using the mapState and mapEffects functions.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span>
+  <span class="kw">let</span> efm <span class="fu">=</span> Counter.update action state<span class="fu">.</span>count <span class="kw">in</span>
+  <span class="kw">let</span> st <span class="fu">=</span> mapState (\s <span class="ot">-&gt;</span> state {count <span class="fu">=</span> s}) efm <span class="kw">in</span>
+  <span class="kw">let</span> ef <span class="fu">=</span> mapEffects (\e <span class="ot">-&gt;</span> <span class="dt">PostCounter</span> e) st <span class="kw">in</span>
+  ef</code></pre></div>
+<p>So first the Counter’s update function is called. Then the state is mapped to change the state. Finally the effects are mapped by creating a PostCounter instance for each event. This can be cleaned up a bit, e.g. using the <strong><em>#</em></strong> operator</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span>
+  Counter.update action state<span class="fu">.</span>count
+  <span class="fu">#</span> mapState (state {count <span class="fu">=</span> _}) 
+  <span class="fu">#</span> mapEffects <span class="dt">PostCounter</span> </code></pre></div>
+<p>The final layout code looks like this</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span>
+  <span class="fu">=</span> <span class="dt">PostCounter</span> (<span class="dt">Counter.Action</span>)
+  <span class="fu">|</span> <span class="dt">PostCounter2</span> (<span class="dt">Counter.Action</span>)
+  <span class="fu">|</span> <span class="dt">PageView</span> <span class="dt">Route</span>
+
+<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span>
+  {<span class="ot"> route ::</span> <span class="dt">Route</span>
+  ,<span class="ot"> count ::</span> <span class="dt">Counter.State</span>
+  ,<span class="ot"> count2 ::</span> <span class="dt">Counter.State</span>
+  }
+
+init<span class="ot"> ::</span> <span class="dt">State</span>
+init <span class="fu">=</span>
+  {
+    route<span class="fu">:</span> <span class="dt">NotFound</span>
+  , count<span class="fu">:</span> Counter.init
+  , count2<span class="fu">:</span> Counter.init
+  }
+
+<span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)
+update (<span class="dt">PageView</span> route) state <span class="fu">=</span> noEffects <span class="fu">$</span> state { route <span class="fu">=</span> route }
+update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span>
+  Counter.update action state<span class="fu">.</span>count
+  <span class="fu">#</span> mapState (state {count <span class="fu">=</span> _}) 
+  <span class="fu">#</span> mapEffects <span class="dt">PostCounter</span> 
+update (<span class="dt">PostCounter2</span> action) state <span class="fu">=</span>
+  Counter.update action state<span class="fu">.</span>count2
+  <span class="fu">#</span> mapState (state {count2 <span class="fu">=</span> _}) 
+  <span class="fu">#</span> mapEffects <span class="dt">PostCounter2</span> 
+
+<span class="ot">view ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Html</span> <span class="dt">Action</span>
+view state <span class="fu">=</span>
+  div
+    []
+    [ h1 [] [ text <span class="st">&quot;Pux Starter App&quot;</span> ]
+    , p [] [ text <span class="st">&quot;Change src/Layout.purs and watch me hot-reload.&quot;</span> ]
+    , <span class="kw">case</span> state<span class="fu">.</span>route <span class="kw">of</span>
+        <span class="dt">Home</span> <span class="ot">-&gt;</span>
+          div
+            []
+            [
+              map <span class="dt">PostCounter</span> <span class="fu">$</span> Counter.view state<span class="fu">.</span>count
+            , hr [] [] 
+            , map <span class="dt">PostCounter2</span> <span class="fu">$</span> Counter.view state<span class="fu">.</span>count2
+            ]
+        <span class="dt">NotFound</span> <span class="ot">-&gt;</span> NotFound.view state
+    ]</code></pre></div>
+<h3 id="changing-main">Changing main</h3>
+<p>The only remaining changes are a few minor modifications to Main.purs</p>
+<ol style="list-style-type: decimal">
+<li>Import <code>Network.HTTP.Affjax (AJAX)</code></li>
+<li><p>Add AJAX to the AppEfects type</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">AppEffects</span> <span class="fu">=</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX0</span>)</code></pre></div></li>
+<li><p>The update function no longer needs the <code>fromSimple</code></p></li>
+</ol>
+<h2 id="summary">Summary</h2>
+<p>The full code for this example is available in this fork of the start app <a href="https://github.com/andrevdm/pux-starter-app-with-effects" class="uri">https://github.com/andrevdm/pux-starter-app-with-effects</a></p>
+<h2 id="links">Links</h2>
+<ol style="list-style-type: decimal">
+<li><a href="https://leanpub.com/purescript">PureScript By Example</a>. The PureScript book</li>
+<li><a href="http://www.alexmingoia.com/purescript-pux/index.html">Pux Tutorial</a></li>
+<li><a href="https://github.com/dariooddenino/pux-blog">Pux blog sample project</a>. Shows this and more in a real world project. This helped clear up some of the confusion for me, definitely worth taking a look at</li>
+<li><a href="http://haskellbook.com/">Haskell Programming from first principles</a>. Invaluable if you are new to PureScript/Haskell</li>
+<li><a href="https://github.com/andrevdm/pux-starter-app-with-effects">Source code for this example</a>. Diff on d621094abb4cb3a9bea2b1a831d50fbc5ef014a6 will show changes made for this post.</li>
+</ol>
+
+<hr />
+<div id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+    this.page.url = "http://www.andrevdm.com/posts/2016-08-15-PureScript-Pux-Compose.html"; 
+    this.page.identifier = "/posts/2016-08-15-PureScript-Pux-Compose.html"; 
+    this.page.title = "Composing components with PureScript Pux";
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//andrevdm.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
