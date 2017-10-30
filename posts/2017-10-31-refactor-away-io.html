@@ -20,7 +20,7 @@
         </div>
 
         <div id="content">
-            <h1><a href="#top">Refactoring to pure code.</a></h1>
+            <h1><a href="#top">Refactoring to pure code and dealing with exceptions.</a></h1>
 
             <div class="info">
     Posted on October 31, 2017
@@ -28,7 +28,7 @@
 </div>
 
 <h1 id="overview">Overview</h1>
-<p><em>(TL;DR: Use a record of functions &amp; a record of wrapper functions that catch all sync exceptions and convert to ExcepT for the pure code) </em></p>
+<p><em>(TL;DR: I use a record of functions &amp; a record of wrapper functions that catch all sync exceptions and convert to ExceptT for the pure code) </em></p>
 <p>This is a quick overview of how I refactored one of my first production haskell application that had a majority of IO code to be more pure. I’ve seen several approaches with different trade offs but none that fit exactly what I was doing 100%.</p>
 <p>The design I needed was a pipeline of actions that needs to be performed, where each job in the pipeline is considered user code (think plugin)</p>
 <p>Some design notes</p>
@@ -110,11 +110,11 @@ readFileOp <span class="fu">=</span> Txt.readFile
 writeFileOp <span class="fu">=</span> Txt.writeFile
 
 
-<span class="ot">mkFileOps ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">I.Operations</span>
+<span class="ot">mkFileOps ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">I.Operations</span>
 mkFileOps p <span class="fu">=</span>
-  pure <span class="dt">I.Operations</span> { I.opRead <span class="fu">=</span> readFileOp p
-                    , I.opWrite <span class="fu">=</span> writeFileOp p
-                    }</code></pre></div>
+  <span class="dt">I.Operations</span> { I.opRead <span class="fu">=</span> readFileOp p
+               , I.opWrite <span class="fu">=</span> writeFileOp p
+               }</code></pre></div>
 <p>Here the operations are implemented by reading and writing to a file, using Data.Text.IO. The <a href="https://github.com/andrevdm/refactorAwayIO">example code</a> in github also has a STM backed storage implementation</p>
 <h2 id="example-jobs">Example jobs</h2>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">job1 ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span>
@@ -154,7 +154,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
              , <span class="dt">I1.Job</span> <span class="st">&quot;j3&quot;</span> job3
              ]
   
-  ops <span class="ot">&lt;-</span> S1.mkMemOps
+  <span class="kw">let</span> ops <span class="fu">=</span> S1.mkFileOps
   r <span class="ot">&lt;-</span> I1.runPipeline ops <span class="st">&quot;0&quot;</span> jobs
   putText r</code></pre></div>
 <p>When run this will fail with an exception in job 2 and result in the application terminating</p>
@@ -243,12 +243,12 @@ readFileOp <span class="fu">=</span> Txt.readFile
 <span class="ot">writeFileOp ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()
 writeFileOp <span class="fu">=</span> Txt.writeFile
 
-<span class="ot">mkFileOps ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Operations</span> <span class="dt">IO</span>)
+<span class="ot">mkFileOps ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">Operations</span> <span class="dt">IO</span>
 mkFileOps p <span class="fu">=</span>
-  pure <span class="dt">Operations</span> { opRead <span class="fu">=</span> readFileOp p
-                  , opWrite <span class="fu">=</span> writeFileOp p
-                  , opLog <span class="fu">=</span> putText
-                  }</code></pre></div>
+  <span class="dt">Operations</span> { opRead <span class="fu">=</span> readFileOp p
+             , opWrite <span class="fu">=</span> writeFileOp p
+             , opLog <span class="fu">=</span> putText
+             }</code></pre></div>
 <p>Notice that I added <strong>opLog</strong>. It is used for logging rather than calling putText etc which can not be done since there is no IO (or MonadIO constraint)</p>
 <h2 id="running-1">Running</h2>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import           </span><span class="dt">Protolude</span> <span class="kw">hiding</span> (catch, throwIO)
@@ -264,7 +264,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
              , <span class="dt">I2.Job</span> <span class="st">&quot;j3&quot;</span> job3
              ]
   
-  ops <span class="ot">&lt;-</span> S2.mkMemOps
+  <span class="kw">let</span> ops <span class="fu">=</span> S2.mkFileOps
   r <span class="ot">&lt;-</span> I2.runPipeline ops <span class="st">&quot;0&quot;</span> jobs
   putText r</code></pre></div>
 <p>Note that we can use the same jobs as we did in step 1 (job1, job2 and job3).</p>
@@ -300,8 +300,8 @@ main <span class="fu">=</span> <span class="kw">do</span>
                                              ,<span class="ot"> opLog ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m ()
                                              ,<span class="ot"> opRun ::</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> m <span class="dt">Text</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m <span class="dt">Text</span>
                                              }</code></pre></div>
-<p>OperationsWrapper is a record with a wrapper function for each function from the Operations record. Each function will run the corresponding Operation function, catch any exception and covert it into an ExceptT transformer type</p>
-<p>The code for the wrapper is not terribly pretty, but I feel its a fair price to pay for separating the two concerns without resorting to any higher level magic (that I’m not comfortable with yet :)</p>
+<p>OperationsWrapper is a record with a wrapper function for each function from the Operations record. Each function will run the corresponding Operation function, catch any sync exception and covert it into an ExceptT transformer type. (See the section on catching all exceptions below)</p>
+<p>The code for the wrapper is not terribly pretty, but I feel its a fair price to pay for separating the two concerns without resorting to any higher level magic (that I’m not comfortable with yet)</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mkOpsWrapper ::</span> (<span class="dt">MonadCatch</span> m) <span class="ot">=&gt;</span> <span class="dt">I2.Operations</span> m <span class="ot">-&gt;</span> <span class="dt">OperationsWrapper</span> m
 mkOpsWrapper o <span class="fu">=</span>
   <span class="dt">OperationsWrapper</span> { opRead <span class="fu">=</span> <span class="dt">E.ExceptT</span> ((<span class="dt">Right</span> <span class="fu">&lt;$&gt;</span> I2.opRead o) <span class="ot">`catch`</span> readError)
@@ -376,7 +376,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
              , <span class="dt">I2.Job</span> <span class="st">&quot;j3&quot;</span> job3
              ]
   
-  ops <span class="ot">&lt;-</span> S2.mkMemOps
+  <span class="kw">let</span> ops <span class="fu">=</span> S2.mkFileOps
 
   r <span class="ot">&lt;-</span> I3.runPipeline (I3.mkOpsWrapper ops) <span class="st">&quot;0&quot;</span> jobs
 
@@ -393,6 +393,7 @@ in job1
 running job: j2
 in job2
 Exception: ErrLogging &quot;Error logging: oops&quot;</code></pre>
+<hr />
 <h1 id="testing">Testing</h1>
 <p>For completeness here is an example of how the pipeline can be tested using only pure code. I’m using the State monad (which you may not want to use in production but for my test and this example its just fine). Skip this the section if you are not interested in the tests</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span>
@@ -446,6 +447,29 @@ job1 v <span class="fu">=</span> pure <span class="fu">$</span> <span class="st"
 
 <span class="ot">job2 ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> (<span class="dt">S.State</span> <span class="dt">Text</span>) <span class="dt">Text</span>
 job2 v <span class="fu">=</span> pure <span class="fu">$</span> <span class="st">&quot;2:&quot;</span> <span class="fu">&lt;&gt;</span> v</code></pre></div>
+<hr />
+<h1 id="notes-on-exceptions">Notes on exceptions</h1>
+<h2 id="catching-all-exceptions">Catching all exceptions</h2>
+<p>Catching all exceptions is generally considered to be a bad idea. See for example the <a href="https://hackage.haskell.org/package/base-4.10.0.0/docs/Control-Exception.html#g:4">docs for Control.Exception</a>.</p>
+<p>For a thorough discussion of alternatives see <a href="https://www.schoolofhaskell.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions">Catching all exceptions</a> from www.schoolofhaskell.com</p>
+<h2 id="safe-exceptions">Safe-exceptions</h2>
+<p>In this example I am using the <a href="https://hackage.haskell.org/package/safe-exceptions-0.1.6.0/docs/Control-Exception-Safe.html">safe-exceptions package</a>. The catch function comes from Control.Exception.Safe not Control.Exception so only synchronous exceptions are caught. Take a look at the <a href="https://github.com/andrevdm/refactorAwayIO">source code’s</a> to see the cabal file and the explicit imports from Control.Exception.Safe</p>
+<h2 id="using-async">Using async</h2>
+<p>Another approach that <a href="https://twitter.com/thumphriees">@thumphriees</a> pointed out to me on twitter (and is discussed in the “Catching All Exceptions” article) is to use the async library to help with exceptions. This is the approach I’ll probably be using with the production version of this code as it for almost no extra cost gives me simple timeout and cancellation control.</p>
+<p>As you can see from the code below this is a pretty simple to use</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">demoAsyncCatch ::</span> <span class="dt">IO</span> ()
+demoAsyncCatch <span class="fu">=</span> <span class="kw">do</span>
+  r <span class="ot">&lt;-</span> async jobBad <span class="fu">&gt;&gt;=</span> waitCatch
+
+  <span class="kw">case</span> r <span class="kw">of</span>
+    <span class="dt">Right</span> _ <span class="ot">-&gt;</span> putText <span class="st">&quot;demo async - Right&quot;</span>
+    <span class="dt">Left</span> e <span class="ot">-&gt;</span> putText <span class="fu">$</span> <span class="st">&quot;demo async - Left: &quot;</span> <span class="fu">&lt;&gt;</span> show e
+
+  <span class="kw">where</span>
+    jobBad <span class="fu">=</span> <span class="kw">do</span>
+      putText <span class="st">&quot;in jobBad&quot;</span>
+      void <span class="fu">.</span> throwIO <span class="fu">$</span> <span class="dt">DemoException</span> <span class="st">&quot;oops&quot;</span></code></pre></div>
+<hr />
 <h1 id="conclusion">Conclusion</h1>
 <ul>
 <li>The wrapper record separates the pure and effectful worlds and converts all synchronous IO exceptions into Eithers.</li>
@@ -453,7 +477,6 @@ job2 v <span class="fu">=</span> pure <span class="fu">$</span> <span class="st"
 <li>It is not that hard to refactor much of the impure code from a codebase</li>
 </ul>
 <p>The obvious downside to this method is that you end up with boilerplate code for the wrapper. You’ll have to decide on if this is a problem for you or not. For me this is working really well so far.</p>
-<p>Let me know what you think of the approach below or on twitter (<span class="citation">@andrevdm</span>)</p>
 <hr />
 <h1 id="links">Links</h1>
 <ul>
@@ -462,6 +485,9 @@ job2 v <span class="fu">=</span> pure <span class="fu">$</span> <span class="st"
 <li><a href="https://www.fpcomplete.com/blog/2017/06/readert-design-pattern">ReaderT design pattern</a></li>
 <li><a href="https://github.com/lexi-lambda/mtl-style-example">mtl-style-example: A small, self-contained example of using mtl style to unit test effectful code in a pure way</a></li>
 <li><a href="https://chris-martin.org/2017/interfaces-and-records">Java interfaces map to Haskell records</a></li>
+<li><a href="https://hackage.haskell.org/package/base-4.10.0.0/docs/Control-Exception.html#g:4">docs for Control.Exception</a></li>
+<li><a href="https://www.schoolofhaskell.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions">Catching all exceptions</a></li>
+<li><a href="https://hackage.haskell.org/package/safe-exceptions-0.1.6.0/docs/Control-Exception-Safe.html">safe-exceptions package</a></li>
 </ul>
 
 <hr />
@@ -471,7 +497,7 @@ job2 v <span class="fu">=</span> pure <span class="fu">$</span> <span class="st"
     var disqus_config = function () {
     this.page.url = "http://www.andrevdm.com/posts/2017-10-31-refactor-away-io.html"; 
     this.page.identifier = "/posts/2017-10-31-refactor-away-io.html"; 
-    this.page.title = "Refactoring to pure code.";
+    this.page.title = "Refactoring to pure code and dealing with exceptions.";
     };
 
     (function() { // DON'T EDIT BELOW THIS LINE
