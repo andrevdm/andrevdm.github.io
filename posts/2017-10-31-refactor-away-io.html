@@ -157,16 +157,16 @@ main <span class="fu">=</span> <span class="kw">do</span>
   r <span class="ot">&lt;-</span> I1.runPipeline ops <span class="st">&quot;0&quot;</span> jobs
   putText r</code></pre></div>
 <p>When run this will fail with an exception in job 2 and result in the application terminating</p>
-<pre><code>---------
+<div class="sourceCode"><pre class="sourceCode email"><code class="sourceCode email"><span class="al">---------</span>
  Demo1: in memory
----------
+<span class="al">---------</span>
 running job: j1
 in job1
   = 1:0
   ----
 running job: j2
 in job2
-Exception: oops</code></pre>
+Exception: oops</code></pre></div>
 <h1 id="step-2---monad-m">Step 2 - (Monad m)</h1>
 <p>So far the example has a working pipeline but everything is in IO and it does nothing about exceptions.</p>
 <p>Lets remove some IO constraints.</p>
