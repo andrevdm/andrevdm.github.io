@@ -236,7 +236,7 @@ runPipeline ops init jobs <span class="fu">=</span> <span class="kw">do</span>
 <p>And we use the <strong>Operations m</strong> and <strong>Job m</strong> types</p>
 <h2 id="storage-1">Storage</h2>
 <p>These changes mean that the pipeline and its types no longer require IO</p>
-<p>The storage implementations, however, need IO so you specialize the m to IO. Apart from that nothing changes I.e.</p>
+<p>The storage implementations need IO so you specialize the m to IO. Apart from that nothing changes I.e.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">readFileOp ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span>
 readFileOp <span class="fu">=</span> Txt.readFile
 
@@ -300,7 +300,7 @@ main <span class="fu">=</span> <span class="kw">do</span>
                                              ,<span class="ot"> opLog ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m ()
                                              ,<span class="ot"> opRun ::</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> m <span class="dt">Text</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m <span class="dt">Text</span>
                                              }</code></pre></div>
-<p>OperationsWrapper is a record with a wrapper function for each function from the Operations record. Each function will run the corresponding Operation function, catch any sync exception and covert it into an ExceptT transformer type. (See the section on catching all exceptions below)</p>
+<p>OperationsWrapper is a record with a wrapper function for each function from the Operations record. Each function will run the corresponding Operation function, catch any synchronous exception and covert it into an ExceptT transformer type. (See the section on catching all exceptions below)</p>
 <p>The code for the wrapper is not terribly pretty, but I feel its a fair price to pay for separating the two concerns without resorting to any higher level magic (that I’m not comfortable with yet)</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">mkOpsWrapper ::</span> (<span class="dt">MonadCatch</span> m) <span class="ot">=&gt;</span> <span class="dt">I2.Operations</span> m <span class="ot">-&gt;</span> <span class="dt">OperationsWrapper</span> m
 mkOpsWrapper o <span class="fu">=</span>
@@ -453,7 +453,7 @@ job2 v <span class="fu">=</span> pure <span class="fu">$</span> <span class="st"
 <p>Catching all exceptions is generally considered to be a bad idea. See for example the <a href="https://hackage.haskell.org/package/base-4.10.0.0/docs/Control-Exception.html#g:4">docs for Control.Exception</a>.</p>
 <p>For a thorough discussion of alternatives see <a href="https://www.schoolofhaskell.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions">Catching all exceptions</a> from www.schoolofhaskell.com</p>
 <h2 id="safe-exceptions">Safe-exceptions</h2>
-<p>In this example I am using the <a href="https://hackage.haskell.org/package/safe-exceptions-0.1.6.0/docs/Control-Exception-Safe.html">safe-exceptions package</a>. The catch function comes from Control.Exception.Safe not Control.Exception so only synchronous exceptions are caught. Take a look at the <a href="https://github.com/andrevdm/refactorAwayIO">source code’s</a> to see the cabal file and the explicit imports from Control.Exception.Safe</p>
+<p>In this example I am using the <a href="https://hackage.haskell.org/package/safe-exceptions-0.1.6.0/docs/Control-Exception-Safe.html">safe-exceptions package</a>. The catch function comes from Control.Exception.Safe not Control.Exception so only synchronous exceptions are caught. Take a look at the <a href="https://github.com/andrevdm/refactorAwayIO">source code</a> to see the cabal file and the explicit imports from Control.Exception.Safe</p>
 <h2 id="using-async">Using async</h2>
 <p>Another approach that <a href="https://twitter.com/thumphriees">@thumphriees</a> pointed out to me on twitter (and is discussed in the “Catching All Exceptions” article) is to use the async library to help with exceptions. This is the approach I’ll probably be using with the production version of this code as it for almost no extra cost gives me simple timeout and cancellation control.</p>
 <p>As you can see from the code below this is a pretty simple to use</p>
