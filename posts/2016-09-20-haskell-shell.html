@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell shell applications techniques</a></h1>
+
+            <div class="info">
+    Posted on September 20, 2016
+    
+</div>
+
+<h1 id="haskell-terminal-applications">Haskell terminal applications</h1>
+<p>This is part one in a two part blog series about haskell terminal applications. In this blog I’ll cover some techniques for writing a haskell application that behaves well as a shell application. In <a href="2016-09-21-haskell-tfidf.html">part two</a> I’ll show a simple text classification implementation using these techniques.</p>
+<h1 id="interacting-with-the-terminal">Interacting with the terminal</h1>
+<h2 id="parsing-command-line-arguments">Parsing command line arguments</h2>
+<p><a href="https://hackage.haskell.org/package/optparse-generic">OptParse-generic</a> makes parsing command line arguments easy. Doing this manually is tedious and not terribly interesting so its great to have a simple library that handles this well.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span>
+<span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
+<span class="ot">{-# LANGUAGE DeriveGeneric #-}</span>
+<span class="ot">{-# LANGUAGE DataKinds #-}</span>
+<span class="ot">{-# LANGUAGE TypeOperators #-}</span>
+
+<span class="kw">data</span> <span class="dt">Arguments</span> <span class="fu">=</span> <span class="dt">Arguments</span> {<span class="ot">train ::</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Path to training data&quot;</span>
+                           ,<span class="ot">input ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Input file to categorise. If missing stdin will be used&quot;</span>
+                           ,<span class="ot">parser ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser type, defaults to lines. Options are lines/detail/csv&quot;</span>
+                           ,<span class="ot">popts ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser options&quot;</span>
+                           ,<span class="ot">clean ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Options name of text cleaner - see docs&quot;</span>
+                           } <span class="kw">deriving</span> (<span class="dt">Generic</span>, <span class="dt">Show</span>)
+
+<span class="kw">instance</span> <span class="dt">ParseRecord</span> <span class="dt">Arguments</span>
+
+<span class="ot">getArgs ::</span> <span class="dt">IO</span> <span class="dt">Arguments</span>
+getArgs <span class="fu">=</span> <span class="kw">do</span>
+  args <span class="ot">&lt;-</span> getRecord <span class="st">&quot;Your app name here.&quot;</span>
+  pure (<span class="ot">args ::</span> <span class="dt">Arguments</span>)</code></pre></div>
+<p>The <code>&lt;?&gt;</code> operator here lets you specify help text for each argument. Running your app with –help will print the help message using this text</p>
+<div class="sourceCode"><pre class="sourceCode email"><code class="sourceCode email">  Usage: appName --train STRING [--input STRING] [--parser TEXT] [--popts TEXT]
+                [--clean TEXT]
+  
+  Available options:
+    -h,--help                Show this help text
+    --train TEXT             Path to training data
+    --input TEXT             Input file to categorise. If missing stdin will be
+                             used
+    --parser TEXT            Parser type, defaults to lines. Options are
+                             lines/detail/csv
+    --popts TEXT             Parser options
+    --clean TEXT             Options name of text cleaner - see docs</code></pre></div>
+<h2 id="input-from-stdin-or-a-file">Input from stdin or a file</h2>
+<p>It is often useful to allow terminal apps to get their input data either from an input file or have it piped to the app (stdin). <code>System.IO</code> defines a set of functions for reading and writing IO that all take an explicit handle. For example hGetLine</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">hGetLine ::</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></code></pre></div>
+<p>System.IO also defines the stdin, stdout and stderr standard IO handles.</p>
+<p>This means that you can pass either stdin or a file handle to hGetLine and it will work the same.</p>
+<p>In the example arguments above I’ve allowed the user to specify an input file by using the –input option. If that is missing stdin is used.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">handle <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span>
+            <span class="dt">Just</span> t <span class="ot">-&gt;</span> 
+              openFile (Txt.unpack t) <span class="dt">ReadMode</span>
+            <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
+               pure stdin</code></pre></div>
+<p>Notice that <code>unHelpful</code> is called to get the value from a record field with a description</p>
+<p>While you could use the parsed data directly I chose to rather create another record populated from the parsed command line arguments. This allows me to have names tailored for command line in one record and for my code in another. In this interpreted record I also store the handle to use for input</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span>
+getOptions <span class="fu">=</span> <span class="kw">do</span>
+  args <span class="ot">&lt;-</span> getRecord <span class="st">&quot;Your app name here.&quot;</span>
+  hin_ <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span>
+             <span class="dt">Just</span> t <span class="ot">-&gt;</span> 
+               openFile (Txt.unpack t) <span class="dt">ReadMode</span>
+             <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
+                pure stdin
+
+  pure <span class="dt">Options</span> {trainingPath <span class="fu">=</span> unHelpful (train args)
+               ,parserType <span class="fu">=</span> fromMaybe <span class="st">&quot;lines&quot;</span> <span class="fu">$</span> unHelpful (parser args)
+               ,parserOptions <span class="fu">=</span> unHelpful (popts args)
+               ,hout <span class="fu">=</span> stdout
+               ,hin <span class="fu">=</span> hin_
+               }</code></pre></div>
+<h2 id="processing-a-line-at-a-time">Processing a line at a time</h2>
+<p>It is often desirable to allow terminal applications to process and respond to a single line of data at a time (e.g. sed). There are several ways to do this in haskell. One of the simplest it to use <code>whileM_</code> and check for EOF.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">System.IO</span>
+
+<span class="co">--where inputH is the input handle stdin or a file as above</span>
+hSetBuffering inputH <span class="dt">LineBuffering</span>
+
+whileM_ (not <span class="fu">&lt;$&gt;</span> hIsEOF inputH) <span class="fu">$</span> <span class="kw">do</span>
+  line <span class="ot">&lt;-</span> hGetLine inputH
+  <span class="fu">--</span></code></pre></div>
+<h2 id="using-another-terminal-app-for-processing">Using another terminal app for processing</h2>
+<p>Using an existing terminal application is a quick way to leverage existing functionality. For example you may want to use sed to manipulate some text. This is fairly strait-forward in haskell.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">System.IO</span>
+<span class="kw">import </span><span class="dt">System.Process</span>
+
+(<span class="dt">Just</span> inp, <span class="dt">Just</span> outp, _, phandle) <span class="ot">&lt;-</span> createProcess (proc <span class="st">&quot;command_name_here&quot;</span> []) { std_out <span class="fu">=</span> <span class="dt">CreatePipe</span>, std_in <span class="fu">=</span> <span class="dt">CreatePipe</span> }
+hSetBuffering outp <span class="dt">NoBuffering</span>
+hSetBuffering inp <span class="dt">LineBuffering</span></code></pre></div>
+<p>You now have and an input (inp) and output (outp) handle for the application. If the application supports line at a time input from stdin you can simply write your data and read the result back. Alternatively you may need to write the entire contents and wait for a result.</p>
+<p>See <a href="2016-09-21-haskell-tfidf">part two</a> to see these techniques in use in a text classification application</p>
+<h1 id="links">Links</h1>
+<ol style="list-style-type: decimal">
+<li><a href="https://hackage.haskell.org/package/optparse-generic">OptParse-generic</a></li>
+<li><a href="https://www.haskellstack.org/">Stack</a>.</li>
+<li><a href="https://github.com/sdiehl/protolude">Protolude</a></li>
+<li><a href="http://haskellbook.com/">Haskell Programming from first principles</a>.</li>
+</ol>
+
+<hr />
+<div id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+    var disqus_config = function () {
+    this.page.url = "http://www.andrevdm.com/posts/2016-09-20-haskell-shell.html"; 
+    this.page.identifier = "/posts/2016-09-20-haskell-shell.html"; 
+    this.page.title = "Haskell shell applications techniques";
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    
+    s.src = '//andrevdm.disqus.com/embed.js';
+    
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+</div>
+
+<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
