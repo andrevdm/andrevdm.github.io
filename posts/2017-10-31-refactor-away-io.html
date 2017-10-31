@@ -28,7 +28,7 @@
 </div>
 
 <h1 id="overview">Overview</h1>
-<p><em>(TL;DR: I use a record of functions &amp; a record of wrapper functions that catch all sync exceptions and convert to ExceptT for the pure code) </em></p>
+<p><em>(TL;DR: I use a record of functions &amp; a record of wrapper functions that catch all synchronous exceptions and convert to ExceptT for the pure code) </em></p>
 <p>This is a quick overview of how I refactored one of my first production haskell application that had a majority of IO code to be more pure. I’ve seen several approaches with different trade offs but none that fit exactly what I was doing 100%.</p>
 <p>The design I needed was a pipeline of actions that needs to be performed, where each job in the pipeline is considered user code (think plugin)</p>
 <p>Some design notes</p>
@@ -482,6 +482,10 @@ demoAsyncCatch <span class="fu">=</span> <span class="kw">do</span>
 <li><a href="https://www.schoolofhaskell.com/user/snoyberg/general-haskell/exceptions/catching-all-exceptions">Catching all exceptions</a></li>
 <li><a href="https://hackage.haskell.org/package/safe-exceptions-0.1.6.0/docs/Control-Exception-Safe.html">safe-exceptions package</a></li>
 </ul>
+<div class="figure">
+<img src="../images/pumpkin.png" />
+
+</div>
 
 <hr />
 <div id="comments">
