@@ -23,7 +23,7 @@
             <h1><a href="#top">Refactoring using a free monad</a></h1>
 
             <div class="info">
-    Posted on December  6, 2017
+    Posted on January  3, 2018
     
 </div>
 
@@ -224,8 +224,46 @@ testPipeline jobs initial <span class="fu">=</span> <span class="kw">do</span>
 <h1 id="church-encoding">Church encoding</h1>
 <p>The <a href="https://hackage.haskell.org/package/free-4.12.4/docs/Control-Monad-Free-Church.html">Control.Monad.Free.Church</a> package handles church encoding of a free monad. This can be important to do because, as it says in <a href="https://hackage.haskell.org/package/free-4.12.4/docs/Control-Monad-Free-Church.html">Control.Monad.Free.Church</a>:</p>
 <p><em><code>Even if the Haskell runtime optimizes some of the overhead through laziness and generational garbage collection, the asymptotic runtime is still quadratic. On the other hand, if the Church encoding is used, the tree only needs to be constructed once.</code></em></p>
-<p>Given how easy this makes church encoding, and how bad O(n^2) performance can be, it is almost always a good idea.</p>
-<p>I did originally find getting the types correct for Church encoding a bit tricky. This <a href="https://github.com/queertypes/free-tutorial">Free monad and church encoding example</a> helped clear up a lot of the confusion for me. Be sure to look at it as well if my explanation below does not help you.</p>
+<p>Given how easy this makes church encoding, and how bad O(n^2) performance can be, it is almost always a good idea to do the encoding.</p>
+<p>I originally found getting the types correct for Church encoding a bit tricky. This <a href="https://github.com/queertypes/free-tutorial">Free monad and church encoding example</a> helped clear up a lot of the confusion for me. Be sure to look at it as well if my explanation below does not help you.</p>
+<p>The only real requirement is that you use a MonadFree constraint rather than your more specific data type for the function that generates the DSL.</p>
+<p>In the example above createDsl looked like this.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> (<span class="dt">Ops</span> m) <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span></code></pre></div>
+<p>The problem is that I’ve used the “<code>Ops m</code>” type, rather than MonadFree.</p>
+<p>Here is what it should look like</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m, <span class="dt">MonadFree</span> (<span class="dt">OpsF</span> m) a) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Job</span> m] <span class="ot">-&gt;</span> a <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span></code></pre></div>
+<p>The important parts being</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m, <span class="dt">MonadFree</span> (<span class="dt">OpsF</span> m) a) <span class="ot">=&gt;</span> <span class="fu">...............</span> <span class="ot">-&gt;</span> a <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span></code></pre></div>
+<ul>
+<li>Change from Ops to OpsF</li>
+<li>Add “<code>MonadFree (...) a</code>”</li>
+</ul>
+<p>This is how it would be run without Church encoding</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">  <span class="fu">--------------------------------------------------</span>
+  <span class="co">-- Example in IO with exception</span>
+  <span class="fu">--------------------------------------------------</span>
+  <span class="kw">let</span> ioJobs <span class="fu">=</span> [ <span class="dt">Job</span> <span class="st">&quot;j1&quot;</span> ioJob1
+               , <span class="dt">Job</span> <span class="st">&quot;j2&quot;</span> ioJob2
+               , <span class="dt">Job</span> <span class="st">&quot;j3&quot;</span> ioJob3
+               ]
+  
+  a <span class="ot">&lt;-</span> runExceptT <span class="fu">$</span> interpreterFile <span class="fu">$</span> createDsl <span class="st">&quot;test1&quot;</span> ioJobs
+  print a</code></pre></div>
+<p>And this is how its run with Church encoding using <code>improve</code> from Control.Monad.Free.Church</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">  <span class="fu">--------------------------------------------------</span>
+  <span class="co">-- Example in IO with exception</span>
+  <span class="fu">--------------------------------------------------</span>
+  <span class="kw">let</span> ioJobs <span class="fu">=</span> [ <span class="dt">Job</span> <span class="st">&quot;j1&quot;</span> ioJob1
+               , <span class="dt">Job</span> <span class="st">&quot;j2&quot;</span> ioJob2
+               , <span class="dt">Job</span> <span class="st">&quot;j3&quot;</span> ioJob3
+               ]
+  
+  ai <span class="ot">&lt;-</span> runExceptT <span class="fu">$</span> interpreterFile (C.improve <span class="fu">$</span> createDsl <span class="st">&quot;test1&quot;</span> ioJobs)
+  print ai</code></pre></div>
+<p>That is all it takes, we can now use free without O(n^2) concerns</p>
 <h1 id="conclusion">Conclusion</h1>
 <p>Free monads give us a nice way to separate pure and impure code while also handling exceptions. Overall I think this approach is more flexible and easier to read that the record of functions approach.</p>
 <h1 id="links">Links</h1>
@@ -242,7 +280,7 @@ testPipeline jobs initial <span class="fu">=</span> <span class="kw">do</span>
 <li><a href="https://markkarpov.com/post/free-monad-considered-harmful.html">Free monad considered harmful</a></li>
 <li><a href="https://github.com/queertypes/free-tutorial">Free monad and church encoding example</a></li>
 <li><p><a href="https://www.fpcomplete.com/blog/2016/11/exceptions-best-practices-haskell">Exceptions best practices in Haskell</a></p></li>
-<li><p><span class="citation">[Port of example code to use operational monad by @brandonhamilton]</span>(https://gist.github.com/brandonhamilton/2a87b8d66aa6bd7872c3848cd99318e1)</p></li>
+<li><p><a href="https://gist.github.com/brandonhamilton/2a87b8d66aa6bd7872c3848cd99318e1">Port of example code to use operational monad by @brandonhamilton</a></p></li>
 </ul>
 
 <hr />
@@ -250,8 +288,8 @@ testPipeline jobs initial <span class="fu">=</span> <span class="kw">do</span>
   <div id="disqus_thread"></div>
   <script>
     var disqus_config = function () {
-    this.page.url = "http://www.andrevdm.com/posts/2017-12-06-refactor-free.html"; 
-    this.page.identifier = "/posts/2017-12-06-refactor-free.html"; 
+    this.page.url = "http://www.andrevdm.com/posts/2018-01-03-refactor-free.html"; 
+    this.page.identifier = "/posts/2018-01-03-refactor-free.html"; 
     this.page.title = "Refactoring using a free monad";
     };
 
