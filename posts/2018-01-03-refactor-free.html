@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Refactoring using a free monad</a></h1>
+
+            <div class="info">
+    Posted on January  3, 2018
+    
+</div>
+
+<h1 id="overview">Overview</h1>
+<p>In my <a href="http://www.andrevdm.com/posts/2017-10-31-refactor-away-io.html">previous post</a> I showed how I was managing exceptions by using a “wrapper” around a record of functions. In this post I’ll show how a free monad approach can be used and compare the two techniques.</p>
+<h1 id="recap">Recap</h1>
+<h2 id="requirements">Requirements</h2>
+<p>This is the requirement for the example app, which is a pipeline of jobs</p>
+<ol style="list-style-type: decimal">
+<li>Job
+<ol style="list-style-type: decimal">
+<li>Can run any IO action and as a result these actions can fail with exceptions</li>
+<li>This is custom code and can fail for any number of reasons, network errors, disk permissions etc</li>
+</ol></li>
+<li>Pipeline
+<ol style="list-style-type: decimal">
+<li>Must run impure jobs but be as pure as possible itself</li>
+<li>Must be able to handle job failure (exceptions)</li>
+<li>Supports different storage mechanisms, e.g. on disk for local dev vs cloud for production</li>
+</ol></li>
+<li>Both jobs and the pipeline should be testable</li>
+</ol>
+<h2 id="intent">Intent</h2>
+<p>The idea was to have a record of operations, different implementations of this record are possible (e.g. run locally vs run in cloud). Then a function is called to create a wrapper function for each record field and a wrapper record is created. The functions in the wrapper record catch all synchronous exceptions and convert them to ExceptT.</p>
+<p>The benefit of this approach was that more of the code could be written with pure functions without losing the ability to deal with exceptions that could occur at any point if the operations were specialized to IO.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Operations</span> m <span class="fu">=</span> <span class="dt">Operations</span> {<span class="ot"> opRead ::</span> m <span class="dt">Text</span>
+                               ,<span class="ot"> opWrite ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()
+                               }
+
+<span class="kw">data</span> <span class="dt">OperationsWrapper</span> m <span class="fu">=</span> <span class="dt">OperationsWrapper</span> {<span class="ot"> opRead ::</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m <span class="dt">Text</span>
+                                             ,<span class="ot"> opWrite ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m ()
+                                             }
+                                             
+<span class="ot">mkOpsWrapper ::</span> (<span class="dt">MonadCatch</span> m) <span class="ot">=&gt;</span> <span class="dt">I2.Operations</span> m <span class="ot">-&gt;</span> <span class="dt">OperationsWrapper</span> m
+mkOpsWrapper o <span class="fu">=</span> <span class="dt">OperationsWrapper</span> { opRead <span class="fu">=</span> <span class="dt">E.ExceptT</span> ((<span class="dt">Right</span> <span class="fu">&lt;$&gt;</span> I2.opRead o) <span class="ot">`catch`</span> readError)
+                                   , <span class="fu">...</span>
+                                   }
+  <span class="kw">where</span>
+<span class="ot">    readError ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">SomeException</span> <span class="ot">-&gt;</span> m (<span class="dt">Either</span> <span class="dt">OpsError</span> b)
+    readError e <span class="fu">=</span> pure <span class="fu">.</span> <span class="dt">Left</span> <span class="fu">.</span> <span class="dt">ErrRead</span> <span class="fu">$</span> <span class="st">&quot;Error reading: &quot;</span> <span class="fu">&lt;&gt;</span> show e
+      
+    <span class="fu">...</span></code></pre></div>
+<h2 id="observations">Observations</h2>
+<p>Here is roughly how it fits together</p>
+<div class="figure">
+<img src="../images/free_wrapper.png" />
+
+</div>
+<ul>
+<li>It seem like a fair amount of code is required to add the exception handling and the wrapper record.</li>
+<li>The wrapper is specialized to ExceptT. E.g. The test’s are pure, so using the IO exception handling -&gt; ExceptT pattern seems unnecessary</li>
+<li>Not only is it a lot of code, but the mkOpsWrapper is also a little messy</li>
+</ul>
+<h1 id="a-quick-overview-of-free-monads">A quick overview of free monads</h1>
+<p>There are many great articles on what free monads are and how they are implemented, see the links below for some of them. So I wont be going into detail about how they work, rather I’ll show how they can be used. But even if you’ve never used a free monad, you may well be able to follow along with how I use them here.</p>
+<h2 id="what-are-they">What are they?</h2>
+<p>A free monad way to build a monad from any functor. The rest of the article demonstrates why you might want to use them.</p>
+<h2 id="how-will-this-help">How will this help?</h2>
+<p>With a free monad you have a function that builds the free monad structure and one or more functions that interpret/run the AST.</p>
+<div class="figure">
+<img src="../images/free_free.png" />
+
+</div>
+<p>As the image above illustrates createDsl generates the AST. The AST can then be passed to different interpreters that run the AST. With the record based approach you varied the implementation by choosing which record of functions to pass in. Here you use a different interpreter over the same free monad output to vary the implementation. This results in a clean separation of concerns.</p>
+<p>Note that you don’t need to use free monads to implement this pattern. You could create an AST using sum types and have interpreters that run that. The advantage of using free is that since it is monadic you get to use Haskell’s <code>do</code> notation. This makes the code that generates the AST feel “natural”, it is a simple embedded domain specific language</p>
+<h1 id="the-free-operations">The free operations</h1>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE FlexibleContexts #-}</span>
+<span class="ot">{-# LANGUAGE TemplateHaskell #-}</span>
+<span class="ot">{-# LANGUAGE DeriveFunctor #-}</span>
+
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import           </span><span class="dt">Control.Monad.Free</span>
+<span class="kw">import           </span><span class="dt">Control.Monad.Free.TH</span>
+
+<span class="kw">data</span> <span class="dt">OpsF</span> m next <span class="fu">=</span> <span class="dt">OpRead</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> next)
+                 <span class="fu">|</span> <span class="dt">OpWrite</span> <span class="dt">Text</span> next
+                 <span class="fu">|</span> <span class="dt">OpLog</span> <span class="dt">Text</span> next
+                 <span class="fu">|</span> <span class="dt">OpRun</span> <span class="dt">Text</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> m <span class="dt">Text</span>) <span class="dt">Text</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> next)
+                 <span class="kw">deriving</span> (<span class="dt">Functor</span>)
+
+makeFree <span class="ch">''</span><span class="dt">OpsF</span>
+<span class="kw">type</span> <span class="dt">Ops</span> m <span class="fu">=</span> <span class="dt">Free</span> (<span class="dt">OpsF</span> m)</code></pre></div>
+<p>I’m using template haskell and DeriveFunctor to do all the heavy lifting. I.e. it creates all the types that lift your operations into the Free monad. Not having to manually do this makes creating free monads pretty simple. If you have not used free before I’d suggest reading some of the articles I’ve linked to below to understand the detail, or you can just follow this pattern for now</p>
+<ol style="list-style-type: decimal">
+<li>The last type in the data constructor is the “return type”</li>
+<li><code>next</code> is what enables the chaining</li>
+<li>If the last type is a function returning next, that means that you can bind the value</li>
+</ol>
+<p>E.g. for OpWrite</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- OpWrite Text next</span>
+<span class="kw">do</span>
+  opWrite <span class="st">&quot;param1&quot;</span>
+  opWrite <span class="st">&quot;param2&quot;</span></code></pre></div>
+<ol style="list-style-type: decimal">
+<li><strong>opWrite</strong> is the function created by Type Haskell that constructs a <strong>OpWrite</strong>.</li>
+<li><strong>opWrite</strong> takes a single param, the <strong>Text</strong> from “OpWrite Text next”</li>
+<li>Since there is a <strong>next</strong> you can have multiple statements in the <strong>do</strong> block</li>
+</ol>
+<p>E.g. for OpRead</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- OpRead (Text -&gt; next)</span>
+<span class="kw">do</span>
+  r <span class="ot">&lt;-</span> opRead </code></pre></div>
+<ol style="list-style-type: decimal">
+<li><strong>opRead</strong> is the function created by Type Haskell that constructs a <strong>OpRead</strong>.</li>
+<li><strong>opRead</strong> takes no parameters</li>
+<li>We can bind to the Text result the <strong>(Text -&gt; next)</strong> from “OpRead (Text -&gt; next)”</li>
+</ol>
+<p>And here is an example using several of the DSL operations together</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> (<span class="dt">Ops</span> m) <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span>
+  opLog <span class="fu">$</span> <span class="st">&quot;starting: &quot;</span> <span class="fu">&lt;&gt;</span> x
+  r <span class="ot">&lt;-</span> opRead
+  opWrite <span class="fu">$</span> r <span class="fu">&lt;&gt;</span> x</code></pre></div>
+<h2 id="interpreting">Interpreting</h2>
+<p>After running the <strong>createDsl</strong> function what you have is an AST. opRead etc do nothing on their own. This is the magic of using free with do notation. We go to write normal, pure, code and we end up with an AST.</p>
+<p>Given this AST it is possible to write different interpreters that act in different ways. E.g. one for testing, one for local, one for running in the cloud etc.</p>
+<h1 id="was-this-not-about-exceptions">Was this not about exceptions?</h1>
+<p>Yes, lets write an interpreter that, similar to the record wrapper approach, catches exceptions.</p>
+<p>However before starting its worth reiterating a few points about exceptions from my previous post. Remember that it is usually a bad idea to catch all exceptions as you may end up catching exceptions that you ought not to catch. See <a href="https://www.fpcomplete.com/blog/2016/11/exceptions-best-practices-haskell">Exceptions best practices in Haskell</a> for a good overview. There are several ways to ensure that you are only catch asynchronous exceptions. In these examples I’m going to be using the <a href="https://hackage.haskell.org/package/safe-exceptions">safe exceptions</a> package which does exactly that.</p>
+<p>Right, back to the code. In this example a file is being used to store/load the state</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Make sure that the SafeException functions are used</span>
+<span class="kw">import </span><span class="dt">Protolude</span> <span class="kw">hiding</span> (catch, throwIO)
+<span class="kw">import </span><span class="dt">Control.Exception.Safe</span> (catch, throwIO)
+
+
+<span class="ot">interpreterFile ::</span> (<span class="dt">Ops</span> <span class="dt">IO</span>) <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> <span class="dt">IO</span> <span class="dt">Text</span>
+interpreterFile o <span class="fu">=</span>
+  <span class="kw">case</span> o <span class="kw">of</span>
+    <span class="dt">Pure</span> a <span class="ot">-&gt;</span> pure a   <span class="co">-- no next action</span>
+
+    (<span class="dt">Free</span> (<span class="dt">OpRead</span> n)) <span class="ot">-&gt;</span>
+      <span class="kw">do</span>
+        r <span class="ot">&lt;-</span> liftIO <span class="fu">$</span> Txt.readFile <span class="st">&quot;data.txt&quot;</span>
+        interpreterFile <span class="fu">$</span> n r  <span class="co">-- run next</span>
+      <span class="ot">`catch`</span>
+        handler <span class="dt">ErrRead</span>
+
+    (<span class="dt">Free</span> (<span class="dt">OpWrite</span> t n)) <span class="ot">-&gt;</span>
+      <span class="kw">do</span>
+        liftIO <span class="fu">$</span> Txt.writeFile <span class="st">&quot;data.txt&quot;</span> t
+        interpreterFile n  <span class="co">-- run next</span>
+      <span class="ot">`catch`</span>
+        handler <span class="dt">ErrWrite</span>
+      
+    (<span class="dt">Free</span> (<span class="dt">OpRun</span> name fn t n)) <span class="ot">-&gt;</span>
+      <span class="kw">do</span>
+        r <span class="ot">&lt;-</span> lift <span class="fu">$</span> fn t
+        interpreterFile <span class="fu">$</span> n r  <span class="co">-- run next</span>
+      <span class="ot">`catch`</span>
+        handler (<span class="dt">ErrRunning</span> name)
+      
+    (<span class="dt">Free</span> (<span class="dt">OpLog</span> t n)) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      putText <span class="fu">$</span> <span class="st">&quot;log: &quot;</span> <span class="fu">&lt;&gt;</span> t
+      interpreterFile n  <span class="co">-- run next</span>
+
+  <span class="kw">where</span>
+<span class="ot">    handler ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">OpsError</span>) <span class="ot">-&gt;</span> <span class="dt">SomeException</span> <span class="ot">-&gt;</span> <span class="dt">ExceptT</span> <span class="dt">OpsError</span> m <span class="dt">Text</span>
+    handler ope e <span class="fu">=</span> throwE <span class="fu">.</span> ope <span class="fu">$</span> show e  <span class="co">-- catch exception and use ExceptT's throwE</span></code></pre></div>
+<p>The operations are run and any synchronous exception is caught and handled in the ExceptT. This looks pretty similar to the record based approach but I think is simpler.</p>
+<h2 id="testing">Testing</h2>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">TestState</span> <span class="fu">=</span> <span class="dt">TestState</span> {<span class="ot"> tstValue ::</span> <span class="dt">Text</span>
+                           ,<span class="ot"> tstLog ::</span> [<span class="dt">Text</span>]
+                           } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)
+
+<span class="ot">interpreterState ::</span> (<span class="dt">Ops</span> (<span class="dt">S.State</span> <span class="dt">TestState</span>)) <span class="dt">Text</span> <span class="ot">-&gt;</span> (<span class="dt">S.State</span> <span class="dt">TestState</span>) <span class="dt">Text</span>
+interpreterState o <span class="fu">=</span>
+  <span class="kw">case</span> o <span class="kw">of</span>
+    <span class="dt">Pure</span> a <span class="ot">-&gt;</span> <span class="kw">do</span>
+      modify (\s <span class="ot">-&gt;</span> s { tstValue <span class="fu">=</span> a })
+      tstValue <span class="fu">&lt;$&gt;</span> get
+
+    (<span class="dt">Free</span> (<span class="dt">OpRead</span> n)) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      st <span class="ot">&lt;-</span> S.get 
+      interpreterState <span class="fu">$</span> n (tstValue st)
+
+    (<span class="dt">Free</span> (<span class="dt">OpWrite</span> t n)) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      S.modify (\s <span class="ot">-&gt;</span> s { tstValue <span class="fu">=</span> t } )
+      interpreterState n
+      
+    (<span class="dt">Free</span> (<span class="dt">OpRun</span> _ fn t n)) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      r <span class="ot">&lt;-</span> fn t
+      interpreterState <span class="fu">$</span> n r
+      
+    (<span class="dt">Free</span> (<span class="dt">OpLog</span> t n)) <span class="ot">-&gt;</span> <span class="kw">do</span>
+      S.modify (\(<span class="dt">TestState</span> s ls) <span class="ot">-&gt;</span> <span class="dt">TestState</span> s <span class="fu">$</span> ls <span class="fu">&lt;&gt;</span> [t])
+      interpreterState n</code></pre></div>
+<p>Compare that to the previous approach’s tests</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">testPipeline ::</span> [<span class="dt">I2.Job</span> (<span class="dt">S.State</span> <span class="dt">Text</span>)] <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">S.State</span> <span class="dt">Text</span> (<span class="dt">Either</span> <span class="dt">I3.OpsError</span> <span class="dt">Text</span>)
+testPipeline jobs initial <span class="fu">=</span> <span class="kw">do</span>
+  <span class="kw">let</span> ops <span class="fu">=</span> <span class="dt">I3.OperationsWrapper</span> { I3.opRead <span class="fu">=</span> <span class="dt">E.ExceptT</span> <span class="fu">$</span> <span class="kw">do</span>
+                                     r <span class="ot">&lt;-</span> get
+                                     pure <span class="fu">.</span> <span class="dt">Right</span> <span class="fu">$</span> r</code></pre></div>
+<p>The big advantage here is that the tests are no longer forced to use ExceptT. Each interpreter, for testing or otherwise, can use whatever stack is appropriate</p>
+<h1 id="problems">Problems</h1>
+<p>As always there are trade offs, see the <a href="https://markkarpov.com/post/free-monad-considered-harmful.html">Free monad considered harmful</a> article for example. While some of these issues can be address to some extent (e.g. see church encoding below) it is worth considering alternatives.</p>
+<p>Personally, so far, I’ve found free to be a great fit for what I need (e.g. selecting implementation not based on type), but its definitely worth deciding on a case by case basis</p>
+<h1 id="church-encoding">Church encoding</h1>
+<p>The <a href="https://hackage.haskell.org/package/free-4.12.4/docs/Control-Monad-Free-Church.html">Control.Monad.Free.Church</a> package handles church encoding of a free monad. This can be important to do because, as it says in <a href="https://hackage.haskell.org/package/free-4.12.4/docs/Control-Monad-Free-Church.html">Control.Monad.Free.Church</a>:</p>
+<p><em><code>Even if the Haskell runtime optimizes some of the overhead through laziness and generational garbage collection, the asymptotic runtime is still quadratic. On the other hand, if the Church encoding is used, the tree only needs to be constructed once.</code></em></p>
+<p>Given how easy this makes church encoding, and how bad O(n^2) performance can be, it is almost always a good idea to do the encoding.</p>
+<p>I originally found getting the types correct for Church encoding a bit tricky. This <a href="https://github.com/queertypes/free-tutorial">Free monad and church encoding example</a> helped clear up a lot of the confusion for me. Be sure to look at it as well if my explanation below does not help you.</p>
+<p>The only real requirement is that you use a MonadFree constraint rather than your more specific data type for the function that generates the DSL.</p>
+<p>In the example above createDsl looked like this.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> (<span class="dt">Ops</span> m) <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span></code></pre></div>
+<p>The problem is that I’ve used the “<code>Ops m</code>” type, rather than MonadFree.</p>
+<p>Here is what it should look like</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m, <span class="dt">MonadFree</span> (<span class="dt">OpsF</span> m) a) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Job</span> m] <span class="ot">-&gt;</span> a <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span></code></pre></div>
+<p>The important parts being</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">createDsl ::</span> (<span class="dt">Monad</span> m, <span class="dt">MonadFree</span> (<span class="dt">OpsF</span> m) a) <span class="ot">=&gt;</span> <span class="fu">...............</span> <span class="ot">-&gt;</span> a <span class="dt">Text</span>
+createDsl x <span class="fu">=</span> <span class="kw">do</span></code></pre></div>
+<ul>
+<li>Change from Ops to OpsF</li>
+<li>Add “<code>MonadFree (...) a</code>”</li>
+</ul>
+<p>This is how it would be run without Church encoding</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">  <span class="fu">--------------------------------------------------</span>
+  <span class="co">-- Example in IO with exception</span>
+  <span class="fu">--------------------------------------------------</span>
+  <span class="kw">let</span> ioJobs <span class="fu">=</span> [ <span class="dt">Job</span> <span class="st">&quot;j1&quot;</span> ioJob1
+               , <span class="dt">Job</span> <span class="st">&quot;j2&quot;</span> ioJob2
+               , <span class="dt">Job</span> <span class="st">&quot;j3&quot;</span> ioJob3
+               ]
+  
+  a <span class="ot">&lt;-</span> runExceptT <span class="fu">$</span> interpreterFile <span class="fu">$</span> createDsl <span class="st">&quot;test1&quot;</span> ioJobs
+  print a</code></pre></div>
+<p>And this is how its run with Church encoding using <code>improve</code> from Control.Monad.Free.Church</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">  <span class="fu">--------------------------------------------------</span>
+  <span class="co">-- Example in IO with exception</span>
+  <span class="fu">--------------------------------------------------</span>
+  <span class="kw">let</span> ioJobs <span class="fu">=</span> [ <span class="dt">Job</span> <span class="st">&quot;j1&quot;</span> ioJob1
+               , <span class="dt">Job</span> <span class="st">&quot;j2&quot;</span> ioJob2
+               , <span class="dt">Job</span> <span class="st">&quot;j3&quot;</span> ioJob3
+               ]
+  
+  ai <span class="ot">&lt;-</span> runExceptT <span class="fu">$</span> interpreterFile (C.improve <span class="fu">$</span> createDsl <span class="st">&quot;test1&quot;</span> ioJobs)
+  print ai</code></pre></div>
+<p>That is all it takes, we can now use free without O(n^2) concerns</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>Free monads give us a nice way to separate pure and impure code while also handling exceptions. Overall I think this approach is more flexible and easier to read that the record of functions approach.</p>
+<h1 id="links">Links</h1>
+<ul>
+<li><p><a href="https://gist.github.com/andrevdm/4d1625e6504e3f1fef9ee9fbc1298b34">Code on github (gist)</a></p></li>
+<li>Free monad tutorials
+<ul>
+<li><a href="http://www.haskellforall.com/2012/07/purify-code-using-free-monads.html">Purify code using free monads</a></li>
+<li><a href="http://www.haskellforall.com/2012/06/you-could-have-invented-free-monads.html">Why free monads matter</a></li>
+<li><a href="http://www.parsonsmatt.org/2017/09/22/what_does_free_buy_us.html">What does Free buy us?</a></li>
+</ul></li>
+<li><a href="https://hackage.haskell.org/package/free">Control.Monad.Free</a></li>
+<li><a href="https://hackage.haskell.org/package/free-4.12.4/docs/Control-Monad-Free-Church.html">Control.Monad.Free.Church</a></li>
+<li><a href="https://markkarpov.com/post/free-monad-considered-harmful.html">Free monad considered harmful</a></li>
+<li><a href="https://github.com/queertypes/free-tutorial">Free monad and church encoding example</a></li>
+<li><p><a href="https://www.fpcomplete.com/blog/2016/11/exceptions-best-practices-haskell">Exceptions best practices in Haskell</a></p></li>
+<li><p><a href="https://gist.github.com/brandonhamilton/2a87b8d66aa6bd7872c3848cd99318e1">Port of example code to use operational monad by @brandonhamilton</a></p></li>
+</ul>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
