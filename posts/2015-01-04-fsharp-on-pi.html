@@ -101,29 +101,6 @@ To build and copy the code to the pi I use the following bash script, which assu
 <p>Make sure you pi a running SSHd. Configuring SSH to allow login using your private key is also a good idea as it means you don’t need to type your password each time you build the code. The sample also contains a Visual Studio solution should you be using Visual Studio or MonoDevelop etc. Make sure you copy FSharp.Core.dll and the two .so shared wiringPi libraries discussed above across to the pi in the same directory as the compiled .exe before your first run.<br />
 Overall getting F# working was pretty simple. The performance is great, startup time is fantastic (the JVM was terrible :( ). I hope this helps get you started. Overall I’m really impressed with how well it all works The full code for this demo can be found here:</p>
 
-<hr />
-<div id="comments">
-  <div id="disqus_thread"></div>
-  <script>
-    var disqus_config = function () {
-    this.page.url = "http://www.andrevdm.com/posts/2015-01-04-fsharp-on-pi.html"; 
-    this.page.identifier = "/posts/2015-01-04-fsharp-on-pi.html"; 
-    this.page.title = "Using F# on a Raspberry Pi";
-    };
-
-    (function() { // DON'T EDIT BELOW THIS LINE
-    var d = document, s = d.createElement('script');
-    
-    s.src = '//andrevdm.disqus.com/embed.js';
-    
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-    })();
-  </script>
-  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
-</div>
-
-<script id="dsq-count-scr" src="//andrevdm.disqus.com/count.js" async></script>
 
         </div>
         <div id="footer">
