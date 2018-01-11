@@ -29,6 +29,7 @@
 
 <h1 id="overview">Overview</h1>
 <p><em>(TL;DR: I use a record of functions &amp; a record of wrapper functions that catch all synchronous exceptions and convert to ExceptT for the pure code) </em></p>
+<p>See also the followup post on <a href="2018-01-08-refactor-free.html">using Free as an alternative</a></p>
 <p>This is a quick overview of how I refactored one of my first production haskell application that had a majority of IO code to be more pure. I’ve seen several approaches with different trade offs but none that fit exactly what I was doing 100%.</p>
 <p>The design I needed was a pipeline of actions that needs to be performed, where each job in the pipeline is considered user code (think plugin)</p>
 <p>Some design notes</p>
