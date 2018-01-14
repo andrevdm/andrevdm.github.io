@@ -1,0 +1,498 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">bhoogle - Building a simple hoogle GUI with brick</a></h1>
+
+            <div class="info">
+    Posted on January 15, 2018
+    
+</div>
+
+<h1 id="overview">Overview</h1>
+<p>bhoogle is a simple hoogle terminal GUI written using <a href="https://hackage.haskell.org/package/brick">brick</a>. This post is the annotated source code that should give you an idea of how to use brick and how easy brick makes building terminal UIs.</p>
+<h2 id="bhoogle">bhoogle</h2>
+<div class="figure">
+<img src="../images/bhoogle.png" alt="gui" />
+<p class="caption">gui</p>
+</div>
+<p>bhoogle is possibly useful as a local hoogle UI as well as a demo app. You can get the full code from <a href="https://github.com/andrevdm/bhoogle">github</a>.</p>
+<h3 id="setup">Setup</h3>
+<p>You will need an existing local hoogle database. If you do not already have one or are unsure, then do this</p>
+<ol style="list-style-type: decimal">
+<li>Install hoogle (e.g. <code>stack install hoogle</code>)</li>
+<li>Generate the default database (<code>hoogle generate</code>)</li>
+</ol>
+<h3 id="build">Build</h3>
+<p>You can then <a href="https://github.com/andrevdm/bhoogle">clone the code</a>, or download one of the pre-build <a href="https://github.com/andrevdm/bhoogle/releases">linux releases</a></p>
+<h3 id="usage">Usage</h3>
+<ol style="list-style-type: decimal">
+<li>Enter a type search in the “type” edit box</li>
+<li>Press <strong>enter</strong> to search: focus goes directly to the results list</li>
+<li>Or press <strong>tab</strong> to search and focus will go to the “text” edit box</li>
+<li>You can then filter the results by typing in the “text” edit box, any result containing the sub-string typed will be shown</li>
+<li>Navigate the results by using <strong>arrow</strong> or vi (<strong>hjkl</strong>) keys</li>
+<li>Pressing <strong>‘s’</strong> in the results list will toggle the sort order</li>
+<li><strong>Escape</strong> to exit</li>
+<li>Search-ahead is enable for any type search longer than three characters</li>
+</ol>
+<h1 id="brick">Brick</h1>
+<p>Building a brick UI is straightforward, there are a few conventions to get used to but it should not take you too long to get the hang of things.</p>
+<p>The <a href="https://github.com/jtdaugherty/brick/blob/master/docs/guide.rst">brick user guide</a> and documentation are fantastic. Brick also comes with multiple example apps that show controls and features being used. There are also third party tutorials e.g. <a href="https://github.com/jtdaugherty/brick/blob/master/docs/samtay-tutorial.md">Samuel Tay’s brick tutorial</a></p>
+<h1 id="bhoogle-0.1.1.0-source">bhoogle 0.1.1.0 source</h1>
+<p>If you have looked at the user guide or Samuel Tay’s tutorial you’ll already have some idea of the fundamental concepts. Below is the annotated source for bhoogle. As always feel free to email or contact me on <a href="https://twitter.com/andrevdm">twitter</a> if anything is unclear and I’ll do my best to assist.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span>
+<span class="ot">{-# LANGUAGE OverloadedStrings #-}</span>
+<span class="ot">{-# LANGUAGE TemplateHaskell #-}</span>
+
+<span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span>
+
+<span class="kw">import           </span><span class="dt">Protolude</span>
+<span class="kw">import           </span><span class="dt">Control.Lens</span> ((^.), (.~), (%~))
+<span class="kw">import           </span><span class="dt">Control.Lens.TH</span> (makeLenses)
+<span class="kw">import qualified</span> <span class="dt">Data.List</span> <span class="kw">as</span> <span class="dt">Lst</span>
+<span class="kw">import qualified</span> <span class="dt">Data.Time</span> <span class="kw">as</span> <span class="dt">Tm</span>
+<span class="kw">import qualified</span> <span class="dt">Data.Text</span> <span class="kw">as</span> <span class="dt">Txt</span>
+<span class="kw">import qualified</span> <span class="dt">Data.Vector</span> <span class="kw">as</span> <span class="dt">Vec</span>
+<span class="kw">import           </span><span class="dt">Brick</span> ((&lt;+&gt;), (&lt;=&gt;))
+<span class="kw">import qualified</span> <span class="dt">Brick</span> <span class="kw">as</span> <span class="dt">B</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.BChan</span> <span class="kw">as</span> <span class="dt">BCh</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.Focus</span> <span class="kw">as</span> <span class="dt">BF</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.AttrMap</span> <span class="kw">as</span> <span class="dt">BA</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.Widgets.List</span> <span class="kw">as</span> <span class="dt">BL</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.Widgets.Edit</span> <span class="kw">as</span> <span class="dt">BE</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.Widgets.Border</span> <span class="kw">as</span> <span class="dt">BB</span>
+<span class="kw">import qualified</span> <span class="dt">Brick.Widgets.Border.Style</span> <span class="kw">as</span> <span class="dt">BBS</span>
+<span class="kw">import           </span><span class="dt">Control.Concurrent</span> (threadDelay, forkIO)
+<span class="kw">import qualified</span> <span class="dt">Graphics.Vty</span> <span class="kw">as</span> <span class="dt">V</span>
+<span class="kw">import qualified</span> <span class="dt">Graphics.Vty.Input.Events</span> <span class="kw">as</span> <span class="dt">K</span>
+
+<span class="kw">import qualified</span> <span class="dt">Hoogle</span> <span class="kw">as</span> <span class="dt">H</span></code></pre></div>
+<p>Import all the modules we’ll need. I’m using <a href="https://github.com/sdiehl/protolude">protolude</a> as my custom prelude, changing to one of the others e.g. <a href="https://hackage.haskell.org/package/classy-prelude">classy</a> should be pretty simple if you prefer that.</p>
+<p>I’m also using lens. The brick examples use lens so its worth getting used to. However I’m only using three of the simpler lenses, so if you don’t like lens or template haskell it should be easy enough to remote them.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Events that can be sent</span>
+<span class="co">-- | Here there is just one event for updating the time</span>
+<span class="kw">newtype</span> <span class="dt">Event</span> <span class="fu">=</span> <span class="dt">EventUpdateTime</span> <span class="dt">Tm.LocalTime</span>
+
+<span class="co">-- | Names use to identify each of the controls</span>
+<span class="kw">data</span> <span class="dt">Name</span> <span class="fu">=</span> <span class="dt">TypeSearch</span>
+          <span class="fu">|</span> <span class="dt">TextSearch</span>
+          <span class="fu">|</span> <span class="dt">ListResults</span>
+          <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</code></pre></div>
+<p>Next we need to define the type of custom events that our brick application can handle and a sum type defining the “name” for each control we want to use.</p>
+<p>In this example there is only a single event <strong>EventUpdateTime</strong>. It is sent once a second with the current time. This gets displayed by brick in the top right corner</p>
+<p>There are three controls 1. The edit box for the type to search for 1. The edit box for the substring search 1. The results listbox</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Sort order</span>
+<span class="kw">data</span> <span class="dt">SortBy</span> <span class="fu">=</span> <span class="dt">SortNone</span>
+            <span class="fu">|</span> <span class="dt">SortAsc</span>
+            <span class="fu">|</span> <span class="dt">SortDec</span>
+            <span class="kw">deriving</span> (<span class="dt">Eq</span>)
+
+
+<span class="co">-- | State of the brick app. Contains the controls and any other required state</span>
+<span class="kw">data</span> <span class="dt">BrickState</span> <span class="fu">=</span> <span class="dt">BrickState</span> 
+     { _<span class="ot">stEditType ::</span> <span class="fu">!</span>(<span class="dt">BE.Editor</span> <span class="dt">Text</span> <span class="dt">Name</span>)      <span class="co">-- ^ Editor for the type to search for</span>
+     , _<span class="ot">stEditText ::</span> <span class="fu">!</span>(<span class="dt">BE.Editor</span> <span class="dt">Text</span> <span class="dt">Name</span>)      <span class="co">-- ^ Editor for a text search in the results</span>
+     , _<span class="ot">stResultsList ::</span> <span class="fu">!</span>(<span class="dt">BL.List</span> <span class="dt">Name</span> <span class="dt">H.Target</span>) <span class="co">-- ^ List for the search results</span>
+     , _<span class="ot">stFocus ::</span> <span class="fu">!</span>(<span class="dt">BF.FocusRing</span> <span class="dt">Name</span>)           <span class="co">-- ^ Focus ring - a circular list of focusable controls</span>
+     , _<span class="ot">stTime ::</span> <span class="fu">!</span><span class="dt">Tm.LocalTime</span>                   <span class="co">-- ^ The current time</span>
+     , _<span class="ot">stResults ::</span> [<span class="dt">H.Target</span>]                   <span class="co">-- ^ The last set of search results from hoohle</span>
+     , _<span class="ot">stSortResults ::</span> <span class="dt">SortBy</span>                   <span class="co">-- ^ Current sort order for the results</span>
+     }
+
+makeLenses <span class="ch">''</span><span class="dt">BrickState</span></code></pre></div>
+<p><strong>BrickState</strong> contains the current state of the brick application. Any event e.g. the custom update time event, or any key press event can result in the state being updated. There is a separate draw function that renders the state.</p>
+<p>I.e. one part of the code deals with events, roughly <code>state -&gt; event -&gt; state</code> and another handles the drawing <code>state -&gt; GUI</code></p>
+<p>Here the state contains</p>
+<ol style="list-style-type: decimal">
+<li>The three controls mentioned above (two edit + one listbox)</li>
+<li>A focus ring</li>
+<li>The last updated current time</li>
+<li>The last search result</li>
+<li>The current sort order, so that it can be toggled between ascending and descending</li>
+</ol>
+<p>A <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Focus.html">focus ring</a> is a circular list of control names that helps your code keep track of which control has the current focus.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Defines how the brick application will work / handle events</span>
+<span class="ot">app ::</span> <span class="dt">B.App</span> <span class="dt">BrickState</span> <span class="dt">Event</span> <span class="dt">Name</span>
+app <span class="fu">=</span> <span class="dt">B.App</span> { B.appDraw <span class="fu">=</span> drawUI
+            , B.appChooseCursor <span class="fu">=</span> B.showFirstCursor
+            , B.appHandleEvent <span class="fu">=</span> handleEvent
+            , B.appStartEvent <span class="fu">=</span> pure
+            , B.appAttrMap <span class="fu">=</span> const theMap
+            }</code></pre></div>
+<p>The <strong>App</strong> type defines how the brick app operates, but defining how events are handled (<code>appHandleEvent</code>) and how the GUI is drawn (<code>appDraw</code>)</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">main ::</span> <span class="dt">IO</span> ()
+main <span class="fu">=</span> <span class="kw">do</span>
+  chan <span class="ot">&lt;-</span> BCh.newBChan <span class="dv">5</span> <span class="co">-- ^ create a bounded channel for events</span>
+
+  <span class="co">-- Send a tick event every 1 seconds with the current time</span>
+  <span class="co">-- Brick will send this to our event handler which can then update the stTime field</span>
+  void <span class="fu">.</span> forkIO <span class="fu">$</span> forever <span class="fu">$</span> <span class="kw">do</span>
+    t <span class="ot">&lt;-</span> getTime 
+    BCh.writeBChan chan <span class="fu">$</span> <span class="dt">EventUpdateTime</span> t
+    threadDelay <span class="fu">$</span> <span class="dv">1</span> <span class="fu">*</span> <span class="dv">1000000</span>
+
+  <span class="co">-- Initial current time value</span>
+  t <span class="ot">&lt;-</span> getTime
+
+  <span class="co">-- Construct the initial state values</span>
+  <span class="kw">let</span> st <span class="fu">=</span> <span class="dt">BrickState</span> { _stEditType <span class="fu">=</span> BE.editor <span class="dt">TypeSearch</span> (<span class="dt">Just</span> <span class="dv">1</span>) <span class="st">&quot;&quot;</span>
+                      , _stEditText <span class="fu">=</span> BE.editor <span class="dt">TextSearch</span> (<span class="dt">Just</span> <span class="dv">1</span>) <span class="st">&quot;&quot;</span>
+                      , _stResultsList <span class="fu">=</span> BL.list <span class="dt">ListResults</span> Vec.empty <span class="dv">1</span>
+                      , _stTime <span class="fu">=</span> t
+                      , _stFocus <span class="fu">=</span> BF.focusRing [<span class="dt">TypeSearch</span>, <span class="dt">TextSearch</span>, <span class="dt">ListResults</span>]
+                      , _stResults <span class="fu">=</span> []
+                      , _stSortResults <span class="fu">=</span> <span class="dt">SortNone</span>
+                      }
+          
+  <span class="co">-- Run brick</span>
+  void <span class="fu">$</span> B.customMain (V.mkVty V.defaultConfig) (<span class="dt">Just</span> chan) app st
+
+  <span class="kw">where</span>
+    <span class="co">-- | Get the local time</span>
+    getTime <span class="fu">=</span> <span class="kw">do</span>
+      t <span class="ot">&lt;-</span> Tm.getCurrentTime
+      tz <span class="ot">&lt;-</span> Tm.getCurrentTimeZone
+      pure <span class="fu">$</span> Tm.utcToLocalTime tz t</code></pre></div>
+<p>In <strong>main</strong> some setup is preformed and then brick is started by calling <code>customMain</code>.</p>
+<p>For bhoogle the steps are</p>
+<ol style="list-style-type: decimal">
+<li>Construct the channel for brick events (passed to <code>customMain</code>)</li>
+<li>Create a new thread to send the current time every second</li>
+<li>Construct an initial state, with empty controls and search results</li>
+<li><code>B.customMain</code> to run brick</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Main even handler for brick events</span>
+<span class="ot">handleEvent ::</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">B.BrickEvent</span> <span class="dt">Name</span> <span class="dt">Event</span> <span class="ot">-&gt;</span> <span class="dt">B.EventM</span> <span class="dt">Name</span> (<span class="dt">B.Next</span> <span class="dt">BrickState</span>)
+handleEvent st ev <span class="fu">=</span>
+  <span class="kw">case</span> ev <span class="kw">of</span>
+    (<span class="dt">B.AppEvent</span> (<span class="dt">EventUpdateTime</span> time)) <span class="ot">-&gt;</span>
+      <span class="co">-- Update the time in the state</span>
+      B.continue <span class="fu">$</span> st <span class="fu">&amp;</span> stTime <span class="fu">.~</span> time</code></pre></div>
+<p><strong>handleEvent</strong> gets all the brick events, updates the state and decides how to continue.</p>
+<p>Here the code matches the custom (<strong>B.AppEvent</strong>) event looking for our update time event (<strong>EventUpdateTime</strong>) and then updates the state with the current time. <code>B.continue</code> means that brick continues after updating the state. Note that the UI is not changed in any way here, we are just altering the current state.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">    <span class="co">-- Handle keyboard events</span>
+    <span class="co">--   k is the key</span>
+    <span class="co">--   ms are the modifier keys</span>
+    (<span class="dt">B.VtyEvent</span> ve<span class="fu">@</span>(<span class="dt">V.EvKey</span> k ms)) <span class="ot">-&gt;</span>
+      <span class="kw">case</span> (k, ms) <span class="kw">of</span>
+        <span class="co">-- Escape quits the app, no matter what control has focus</span>
+        (<span class="dt">K.KEsc</span>, []) <span class="ot">-&gt;</span> B.halt st</code></pre></div>
+<p>Then the code matches any keyboard event (<strong>B.VtyEvent</strong>) here matching on the escape key (<strong>K.KEsc</strong>). So when the user clicks the escape key this handler will call <code>B.halt</code> which will terminate the app. As this is done at the top level, this means that no matter which control has the focus, escape will exit.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">        _ <span class="ot">-&gt;</span>
+          <span class="co">-- How to interpret the key press depends on which control is focused</span>
+          <span class="kw">case</span> BF.focusGetCurrent <span class="fu">$</span> st <span class="fu">^.</span> stFocus <span class="kw">of</span></code></pre></div>
+<p>For the rest of the key press logic, what bhoogle does depends on which control has the focus. <code>BF.focusGetCurrent</code> is used to get that from the state’s focus ring.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">            <span class="dt">Just</span> <span class="dt">TypeSearch</span> <span class="ot">-&gt;</span>
+              <span class="kw">case</span> k <span class="kw">of</span>
+                <span class="dt">K.KChar</span> <span class="ch">'\t'</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+                  <span class="co">-- Search, clear sort order, focus next</span>
+                  found <span class="ot">&lt;-</span> doSearch st
+                  B.continue <span class="fu">.</span> filterResults <span class="fu">$</span> st <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusNext
+                                                  <span class="fu">&amp;</span> stResults <span class="fu">.~</span> found
+                                                  <span class="fu">&amp;</span> stSortResults <span class="fu">.~</span> <span class="dt">SortNone</span>
+
+                <span class="dt">K.KBackTab</span> <span class="ot">-&gt;</span><span class="kw">do</span>
+                  <span class="co">-- Search, clear sort order, focus prev</span>
+                  found <span class="ot">&lt;-</span> doSearch st
+                  B.continue  <span class="fu">.</span> filterResults <span class="fu">$</span> st <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusPrev
+                                                   <span class="fu">&amp;</span> stResults <span class="fu">.~</span> found
+                                                   <span class="fu">&amp;</span> stSortResults <span class="fu">.~</span> <span class="dt">SortNone</span></code></pre></div>
+<p>If the user is typing in the “type” edit box and tabs out (either tab or shift-tab) then</p>
+<ol style="list-style-type: decimal">
+<li>Perform the search (see <strong>doSearch</strong> below)</li>
+<li>Update the current set of results</li>
+<li>Reset the sort order, default to the order that hoogle uses</li>
+<li>Move the focus to the next/previous control</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">                <span class="dt">K.KEnter</span> <span class="ot">-&gt;</span> <span class="kw">do</span>
+                  <span class="co">-- Search, clear sort order, focus on results</span>
+                  <span class="co">--  This makes it faster if you want to search and navigate </span>
+                  <span class="co">--  results without tabing through the text search box</span>
+                  found <span class="ot">&lt;-</span> doSearch st
+                  B.continue <span class="fu">.</span> filterResults <span class="fu">$</span> st <span class="fu">&amp;</span> stResults <span class="fu">.~</span> found
+                                                  <span class="fu">&amp;</span> stSortResults <span class="fu">.~</span> <span class="dt">SortNone</span>
+                                                  <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusSetCurrent <span class="dt">ListResults</span></code></pre></div>
+<p>If the user presses <strong>enter</strong> while in the type search edit box, then</p>
+<ol style="list-style-type: decimal">
+<li>Perform the search (see <strong>doSearch</strong> below)</li>
+<li>Update the current set of results</li>
+<li>Reset the sort order, default to the order that hoogle uses</li>
+<li>Move the focus directly to the results lisbox so they can navigate and see the current item’s details &amp; help text</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">                _ <span class="ot">-&gt;</span> <span class="kw">do</span>
+                  <span class="co">-- Let the editor handle all other events</span>
+                  r <span class="ot">&lt;-</span> BE.handleEditorEvent ve <span class="fu">$</span> st <span class="fu">^.</span> stEditType
+                  next <span class="ot">&lt;-</span> liftIO <span class="fu">.</span> searchAhead doSearch <span class="fu">$</span> st <span class="fu">&amp;</span> stEditType <span class="fu">.~</span> r 
+                  B.continue next</code></pre></div>
+<p>For all other key events for the type search, let the editor control handle the key press. This gives us editing, navigation etc for free.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">            <span class="dt">Just</span> <span class="dt">TextSearch</span> <span class="ot">-&gt;</span>
+              <span class="kw">case</span> k <span class="kw">of</span>
+                <span class="dt">K.KChar</span> <span class="ch">'\t'</span> <span class="ot">-&gt;</span> B.continue <span class="fu">$</span> st <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusNext <span class="co">-- Focus next</span>
+                <span class="dt">K.KBackTab</span> <span class="ot">-&gt;</span> B.continue <span class="fu">$</span> st <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusPrev   <span class="co">-- Focus previous</span>
+                _ <span class="ot">-&gt;</span> <span class="kw">do</span>
+                  <span class="co">-- Let the editor handle all other events</span>
+                  r <span class="ot">&lt;-</span> BE.handleEditorEvent ve <span class="fu">$</span> st <span class="fu">^.</span> stEditText
+                  B.continue <span class="fu">.</span> filterResults <span class="fu">$</span> st <span class="fu">&amp;</span> stEditText <span class="fu">.~</span> r</code></pre></div>
+<p>For the text edit box</p>
+<ol style="list-style-type: decimal">
+<li>Change focus on tab / shift-tab</li>
+<li>For all other keys
+<ol style="list-style-type: decimal">
+<li>Let the editor handle the key press</li>
+<li>Filter the hoogle results</li>
+</ol></li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">            <span class="dt">Just</span> <span class="dt">ListResults</span> <span class="ot">-&gt;</span>
+              <span class="kw">case</span> k <span class="kw">of</span>
+                <span class="dt">K.KChar</span> <span class="ch">'\t'</span> <span class="ot">-&gt;</span> B.continue <span class="fu">$</span> st <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusNext <span class="co">-- Focus next</span>
+                <span class="dt">K.KBackTab</span> <span class="ot">-&gt;</span> B.continue <span class="fu">$</span> st <span class="fu">&amp;</span> stFocus <span class="fu">%~</span> BF.focusPrev   <span class="co">-- Focus previous</span>
+                <span class="dt">K.KChar</span> <span class="ch">'s'</span> <span class="ot">-&gt;</span>
+                  <span class="co">-- Toggle the search order between ascending and descending,</span>
+                  <span class="co">--  use asc if sort order was 'none'</span>
+                  <span class="kw">let</span> sortDir <span class="fu">=</span> <span class="kw">if</span> (st <span class="fu">^.</span> stSortResults) <span class="fu">==</span> <span class="dt">SortAsc</span> 
+                                  <span class="kw">then</span> <span class="dt">SortDec</span> 
+                                  <span class="kw">else</span> <span class="dt">SortAsc</span> 
+                  <span class="kw">in</span>
+                  <span class="kw">let</span> sorter <span class="fu">=</span> <span class="kw">if</span> sortDir <span class="fu">==</span> <span class="dt">SortDec</span> 
+                                 <span class="kw">then</span> (Lst.sortBy <span class="fu">$</span> flip compareType) 
+                                 <span class="kw">else</span> (Lst.sortBy compareType) 
+                  <span class="kw">in</span>
+                  B.continue <span class="fu">.</span> filterResults <span class="fu">$</span> st <span class="fu">&amp;</span> stResults <span class="fu">%~</span> sorter
+                                                  <span class="fu">&amp;</span> stSortResults <span class="fu">.~</span> sortDir
+
+                _ <span class="ot">-&gt;</span> <span class="kw">do</span>
+                  <span class="co">-- Let the list handle all other events</span>
+                  <span class="co">-- Using handleListEventVi which adds vi-style keybindings for navigation</span>
+                  <span class="co">--  and the standard handleListEvent as a fallback for all other events</span>
+                  r <span class="ot">&lt;-</span> BL.handleListEventVi BL.handleListEvent ve <span class="fu">$</span> st <span class="fu">^.</span> stResultsList
+                  B.continue <span class="fu">$</span> st <span class="fu">&amp;</span> stResultsList <span class="fu">.~</span> r
+
+            _ <span class="ot">-&gt;</span> B.continue st
+
+    _ <span class="ot">-&gt;</span> B.continue st</code></pre></div>
+<p>For the results listbox</p>
+<ul>
+<li>Handle tab / shift-tab</li>
+<li>Pressing the <strong>‘s’</strong> key will sort the results. Pressing it again toggles the direction, so keep track of which order was used last.</li>
+<li>For all other keys use <code>BL.handleListEventVi BL.handleListEvent</code> which gives us vi style navigation and uses the standard <strong>handleListEvent</strong> as the fallback, so that all the normal navigation (arrows) also work.</li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">  <span class="kw">where</span>
+    doSearch st' <span class="fu">=</span> 
+      liftIO <span class="fu">$</span> searchHoogle (Txt.strip <span class="fu">.</span> Txt.concat <span class="fu">$</span> BE.getEditContents (st' <span class="fu">^.</span> stEditType))</code></pre></div>
+<p>And finally for <strong>handleEvent</strong> the <strong>doSearch</strong> function which calls the <strong>searchHoogle</strong> function (below) to search on the text from the type editbox.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Search ahead for type strings longer than 3 chars.</span>
+<span class="ot">searchAhead ::</span> (<span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">H.Target</span>]) <span class="ot">-&gt;</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">BrickState</span>
+searchAhead search st <span class="fu">=</span>
+  <span class="kw">let</span> searchText <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.concat <span class="fu">.</span> BE.getEditContents <span class="fu">$</span> st <span class="fu">^.</span> stEditType <span class="kw">in</span>
+
+  <span class="kw">if</span> Txt.length searchText <span class="fu">&gt;</span> <span class="dv">3</span>
+  <span class="kw">then</span> <span class="kw">do</span>
+    <span class="co">-- Search</span>
+    found <span class="ot">&lt;-</span> search st
+    pure <span class="fu">.</span> filterResults <span class="fu">$</span> st <span class="fu">&amp;</span> stResults <span class="fu">.~</span> found
+                              <span class="fu">&amp;</span> stSortResults <span class="fu">.~</span> <span class="dt">SortNone</span>
+  <span class="kw">else</span>
+    <span class="co">-- Just clear</span>
+    pure <span class="fu">$</span> st <span class="fu">&amp;</span> stResults <span class="fu">.~</span> []
+              <span class="fu">&amp;</span> stResultsList <span class="fu">%~</span> BL.listClear</code></pre></div>
+<p><strong>searchAhead</strong> is a helper function that searches hoogle as the user types. As long as there are more than three characters being searched for. Without this limit hoogle seems a bit slow on my machine because of the large number of results.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Filter the results from hoogle using the search text</span>
+<span class="ot">filterResults ::</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">BrickState</span>
+filterResults st <span class="fu">=</span>
+  <span class="kw">let</span> allResults <span class="fu">=</span> st <span class="fu">^.</span> stResults <span class="kw">in</span>
+  <span class="kw">let</span> filterText <span class="fu">=</span> Txt.toLower <span class="fu">.</span> Txt.strip <span class="fu">.</span> Txt.concat <span class="fu">.</span> BE.getEditContents <span class="fu">$</span> st <span class="fu">^.</span> stEditText <span class="kw">in</span>
+
+  <span class="kw">let</span> results <span class="fu">=</span>
+        <span class="kw">if</span> Txt.null filterText
+        <span class="kw">then</span> allResults
+        <span class="kw">else</span> filter (\t <span class="ot">-&gt;</span> Txt.isInfixOf filterText <span class="fu">.</span> Txt.toLower <span class="fu">$</span> formatResult t) allResults
+  <span class="kw">in</span>
+  st <span class="fu">&amp;</span> stResultsList <span class="fu">.~</span> BL.list <span class="dt">ListResults</span> (Vec.fromList results) <span class="dv">1</span></code></pre></div>
+<p>Filter the hoogle results by doing a sub-string search if the user has entered one</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Draw the UI</span>
+<span class="ot">drawUI ::</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> [<span class="dt">B.Widget</span> <span class="dt">Name</span>]
+drawUI st <span class="fu">=</span>
+  [B.padAll <span class="dv">1</span> contentBlock] 
+
+  <span class="kw">where</span>
+    contentBlock <span class="fu">=</span>
+      (B.withBorderStyle BBS.unicode <span class="fu">$</span> BB.border searchBlock)
+      <span class="fu">&lt;=&gt;</span>
+      B.padTop (<span class="dt">B.Pad</span> <span class="dv">1</span>) resultsBlock
+      
+    resultsBlock <span class="fu">=</span>
+      <span class="kw">let</span> total <span class="fu">=</span> show <span class="fu">.</span> length <span class="fu">$</span> st <span class="fu">^.</span> stResults <span class="kw">in</span>
+      <span class="kw">let</span> showing <span class="fu">=</span> show <span class="fu">.</span> length <span class="fu">$</span> st <span class="fu">^.</span> stResultsList <span class="fu">^.</span> BL.listElementsL <span class="kw">in</span>
+      (B.withAttr <span class="st">&quot;infoTitle&quot;</span> <span class="fu">$</span> B.txt <span class="st">&quot;Results: &quot;</span>) <span class="fu">&lt;+&gt;</span> B.txt (showing <span class="fu">&lt;&gt;</span> <span class="st">&quot;/&quot;</span> <span class="fu">&lt;&gt;</span> total)
+      <span class="fu">&lt;=&gt;</span>
+      (B.padTop (<span class="dt">B.Pad</span> <span class="dv">1</span>) <span class="fu">$</span>
+       resultsContent <span class="fu">&lt;+&gt;</span> resultsDetail
+      )
+
+    resultsContent <span class="fu">=</span>
+      BL.renderList (\_ e <span class="ot">-&gt;</span> B.txt <span class="fu">$</span> formatResult e) <span class="dt">False</span> (st <span class="fu">^.</span> stResultsList)
+
+    resultsDetail <span class="fu">=</span>
+      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">1</span>) <span class="fu">$</span>
+      B.hLimit <span class="dv">60</span> <span class="fu">$</span>
+      vtitle <span class="st">&quot;package:&quot;</span>
+      <span class="fu">&lt;=&gt;</span>
+      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">2</span>) (B.txt <span class="fu">$</span> getSelectedDetail (\t <span class="ot">-&gt;</span> maybe <span class="st">&quot;&quot;</span> (Txt.pack <span class="fu">.</span> fst) (H.targetPackage t)))
+      <span class="fu">&lt;=&gt;</span>
+      vtitle <span class="st">&quot;module:&quot;</span>
+      <span class="fu">&lt;=&gt;</span>
+      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">2</span>) (B.txt <span class="fu">$</span> getSelectedDetail (\t <span class="ot">-&gt;</span> maybe <span class="st">&quot;&quot;</span> (Txt.pack <span class="fu">.</span> fst) (H.targetModule t)))
+      <span class="fu">&lt;=&gt;</span>
+      vtitle <span class="st">&quot;docs:&quot;</span>
+      <span class="fu">&lt;=&gt;</span>
+      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">2</span>) (B.txt <span class="fu">$</span> getSelectedDetail (Txt.pack <span class="fu">.</span> clean <span class="fu">.</span> H.targetDocs))
+      <span class="fu">&lt;=&gt;</span>
+      B.fill <span class="ch">' '</span>
+  
+    searchBlock <span class="fu">=</span>
+      ((htitle <span class="st">&quot;Type: &quot;</span> <span class="fu">&lt;+&gt;</span> editor <span class="dt">TypeSearch</span> (st <span class="fu">^.</span> stEditType)) <span class="fu">&lt;+&gt;</span> time (st <span class="fu">^.</span> stTime))
+      <span class="fu">&lt;=&gt;</span>
+      (htitle <span class="st">&quot;Text: &quot;</span> <span class="fu">&lt;+&gt;</span> editor <span class="dt">TextSearch</span> (st <span class="fu">^.</span> stEditText))
+
+    htitle t <span class="fu">=</span>
+      B.hLimit <span class="dv">20</span> <span class="fu">$</span>
+      B.withAttr <span class="st">&quot;infoTitle&quot;</span> <span class="fu">$</span>
+      B.txt t
+      
+    vtitle t <span class="fu">=</span>
+      B.withAttr <span class="st">&quot;infoTitle&quot;</span> <span class="fu">$</span>
+      B.txt t
+
+    editor n e <span class="fu">=</span>
+      B.vLimit <span class="dv">1</span> <span class="fu">$</span>
+      BE.renderEditor (B.txt <span class="fu">.</span> Txt.unlines) (BF.focusGetCurrent (st <span class="fu">^.</span> stFocus) <span class="fu">==</span> <span class="dt">Just</span> n) e
+
+    time t <span class="fu">=</span>
+      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">1</span>) <span class="fu">$</span>
+      B.hLimit <span class="dv">20</span> <span class="fu">$</span>
+      B.withAttr <span class="st">&quot;time&quot;</span> <span class="fu">$</span>
+      B.str (Tm.formatTime Tm.defaultTimeLocale <span class="st">&quot;%H-%M-%S&quot;</span> t)
+
+    getSelectedDetail fn <span class="fu">=</span>
+      <span class="kw">case</span> BL.listSelectedElement <span class="fu">$</span> st <span class="fu">^.</span> stResultsList <span class="kw">of</span>
+        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="st">&quot;&quot;</span>
+        <span class="dt">Just</span> (_, e) <span class="ot">-&gt;</span> fn e</code></pre></div>
+<p><strong>drawUI</strong> renders the state and creates the GUI. At first this may take some getting used to, but you will soon be able to see the GUI structure from the code.</p>
+<ul>
+<li><code>&lt;=&gt;</code> means horizontal break, i.e. next “line”</li>
+<li><code>&lt;+&gt;</code> means “next to”</li>
+<li>I often end up formatting code slightly differently to how I would in the other functions to better communicate the structure</li>
+<li><p>Create small GUI fragments/“controls” and combine them with <code>&lt;+&gt;</code> and <code>&lt;=&gt;</code></p>
+For example <strong>htitle</strong> creates a “title” by
+<ul>
+<li>Limiting the max width to 20</li>
+<li>Setting the attribute to <strong>infoTitle</strong></li>
+<li>Displaying the text using <code>B.txt</code> (<code>B.txt</code> displays a Text, <code>B.str</code> displays a string/[char])</li>
+</ul></li>
+<li><p><code>B.fill ' '</code> is used to get brick to fill to the maximum width (here 60) rather that having the right detail pain growing/shrinking as the data changes.</p></li>
+</ul>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">theMap ::</span> <span class="dt">BA.AttrMap</span>
+theMap <span class="fu">=</span> BA.attrMap V.defAttr [ (BE.editAttr        , V.black <span class="ot">`B.on`</span> V.cyan)
+                              , (BE.editFocusedAttr , V.black <span class="ot">`B.on`</span> V.yellow)
+                              , (BL.listAttr        , V.white <span class="ot">`B.on`</span> V.blue)
+                              , (BL.listSelectedAttr, V.blue <span class="ot">`B.on`</span> V.white)
+                              , (<span class="st">&quot;infoTitle&quot;</span>        , B.fg V.cyan)
+                              , (<span class="st">&quot;time&quot;</span>             , B.fg V.yellow)
+                              ]</code></pre></div>
+<p>The attribute map is where attributes for the controls and custom attributes are defined. This makes it easy to change how the GUI looks. There is even support <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Themes.html">for themes</a> and basic <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Markup.html">markup</a>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">----------------------------------------------------------------------------------------------</span>
+<span class="co">-- | Compare two hoogle results for sorting</span>
+<span class="ot">compareType ::</span> <span class="dt">H.Target</span> <span class="ot">-&gt;</span> <span class="dt">H.Target</span> <span class="ot">-&gt;</span> <span class="dt">Ordering</span>
+compareType a b <span class="fu">=</span>
+  compare (formatResult a) (formatResult b)
+
+  
+<span class="co">-- | Search hoogle using the default hoogle database</span>
+<span class="ot">searchHoogle ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">H.Target</span>]
+searchHoogle f <span class="fu">=</span> <span class="kw">do</span>
+  d <span class="ot">&lt;-</span> H.defaultDatabaseLocation 
+  H.withDatabase d (\x <span class="ot">-&gt;</span> pure <span class="fu">$</span> H.searchDatabase x (Txt.unpack f))
+  
+
+<span class="co">-- | Format the hoogle results so they roughly match what the terminal app would show</span>
+<span class="ot">formatResult ::</span> <span class="dt">H.Target</span> <span class="ot">-&gt;</span> <span class="dt">Text</span>
+formatResult t <span class="fu">=</span>
+  <span class="kw">let</span> typ <span class="fu">=</span> clean <span class="fu">$</span> H.targetItem t <span class="kw">in</span>
+  <span class="kw">let</span> m <span class="fu">=</span> (clean <span class="fu">.</span> fst) <span class="fu">&lt;$&gt;</span> H.targetModule t <span class="kw">in</span>
+  Txt.pack <span class="fu">$</span> fromMaybe <span class="st">&quot;&quot;</span> m <span class="fu">&lt;&gt;</span> <span class="st">&quot; :: &quot;</span> <span class="fu">&lt;&gt;</span> typ
+  
+
+<span class="ot">clean ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]
+clean <span class="fu">=</span> unescapeHTML <span class="fu">.</span> stripTags
+
+
+<span class="co">-- | From hoogle source: https://hackage.haskell.org/package/hoogle-5.0.16/docs/src/General-Util.html</span>
+<span class="ot">unescapeHTML ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]
+unescapeHTML (<span class="ch">'&amp;'</span><span class="fu">:</span>xs)
+    <span class="fu">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;lt;&quot;</span> xs <span class="fu">=</span> <span class="ch">'&lt;'</span> <span class="fu">:</span> unescapeHTML x
+    <span class="fu">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;gt;&quot;</span> xs <span class="fu">=</span> <span class="ch">'&gt;'</span> <span class="fu">:</span> unescapeHTML x
+    <span class="fu">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;amp;&quot;</span> xs <span class="fu">=</span> <span class="ch">'&amp;'</span> <span class="fu">:</span> unescapeHTML x
+    <span class="fu">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;quot;&quot;</span> xs <span class="fu">=</span> <span class="ch">'\&quot;'</span> <span class="fu">:</span> unescapeHTML x
+unescapeHTML (x<span class="fu">:</span>xs) <span class="fu">=</span> x <span class="fu">:</span> unescapeHTML xs
+unescapeHTML [] <span class="fu">=</span> []
+  
+
+<span class="co">-- | From hakyll source: https://hackage.haskell.org/package/hakyll-4.1.2.1/docs/src/Hakyll-Web-Html.html#stripTags</span>
+<span class="ot">stripTags ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]
+stripTags []         <span class="fu">=</span> []
+stripTags (<span class="ch">'&lt;'</span> <span class="fu">:</span> xs) <span class="fu">=</span> stripTags <span class="fu">$</span> drop <span class="dv">1</span> <span class="fu">$</span> dropWhile (<span class="fu">/=</span> <span class="ch">'&gt;'</span>) xs
+stripTags (x <span class="fu">:</span> xs)   <span class="fu">=</span> x <span class="fu">:</span> stripTags xs</code></pre></div>
+<p>The remainder of the code is non-brick code for searching and formatting hoogle results</p>
+<ul>
+<li><strong>compareType</strong> compares two results by formatting them first and then comparing the resulting text</li>
+<li><strong>searchHoogle</strong> searches hoogle using the default database</li>
+<li><strong>formatResults</strong> formats the hoogle results</li>
+<li><strong>unescapeHTML</strong> and <strong>stripTags</strong> are used to get plain text from the HTML. Note that this code comes from the <a href="https://hackage.haskell.org/package/hakyll-4.1.2.1/docs/src/Hakyll-Web-Html.html#stripTags">hakyll</a> and <a href="https://hackage.haskell.org/package/hoogle-5.0.16/docs/src/General-Util.html">hoogle</a> source code</li>
+</ul>
+<h1 id="thats-it">Thats it</h1>
+<p>Hopefully this example helps you get started with brick and demonstrates how easy brick makes creating terminal UIs</p>
+<h1 id="links">Links</h1>
+<ul>
+<li><a href="https://github.com/andrevdm/bhoogle">Code on github</a></li>
+<li><a href="https://github.com/andrevdm/bhoogle/releases">Releases with prebuilt linux binaries</a></li>
+<li><a href="https://github.com/jtdaugherty/brick/blob/master/docs/guide.rst">Brick user guide</a></li>
+<li><a href="https://github.com/jtdaugherty/brick/blob/master/docs/samtay-tutorial.md">Samuel Tay’s brick tutorial</a></li>
+</ul>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
