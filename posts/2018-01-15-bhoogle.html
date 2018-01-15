@@ -130,12 +130,11 @@ makeLenses <span class="ch">''</span><span class="dt">BrickState</span></code></
 <p>Here the state contains</p>
 <ol style="list-style-type: decimal">
 <li>The three controls mentioned above (two edit + one listbox)</li>
-<li>A focus ring</li>
+<li>A focus ring. (A <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Focus.html">focus ring</a> is a circular list of control names that helps your code keep track of which control has the current focus).</li>
 <li>The last updated current time</li>
 <li>The last search result</li>
 <li>The current sort order, so that it can be toggled between ascending and descending</li>
 </ol>
-<p>A <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Focus.html">focus ring</a> is a circular list of control names that helps your code keep track of which control has the current focus.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Defines how the brick application will work / handle events</span>
 <span class="ot">app ::</span> <span class="dt">B.App</span> <span class="dt">BrickState</span> <span class="dt">Event</span> <span class="dt">Name</span>
 app <span class="fu">=</span> <span class="dt">B.App</span> { B.appDraw <span class="fu">=</span> drawUI
