@@ -56,8 +56,8 @@
 <li>Search-ahead is enable for any type search longer than three characters</li>
 </ol>
 <h1 id="brick">Brick</h1>
-<p>Building a brick UI is straightforward, there are a few conventions to get used to but it should not take you too long to get the hang of things.</p>
-<p>The <a href="https://github.com/jtdaugherty/brick/blob/master/docs/guide.rst">brick user guide</a> and documentation are fantastic. Brick also comes with multiple example apps that show controls and features being used. There are also third party tutorials e.g. <a href="https://github.com/jtdaugherty/brick/blob/master/docs/samtay-tutorial.md">Samuel Tay’s brick tutorial</a></p>
+<p>There are a few conventions to get used to when building a brick UI, but I don’t think it should take you too long to get the hang of things.</p>
+<p>The <a href="https://github.com/jtdaugherty/brick/blob/master/docs/guide.rst">brick user guide</a> and documentation are fantastic. Brick comes with multiple example apps that show controls and features being used. There are also third party tutorials e.g. <a href="https://github.com/jtdaugherty/brick/blob/master/docs/samtay-tutorial.md">Samuel Tay’s brick tutorial</a></p>
 <h1 id="bhoogle-0.1.1.0-source">bhoogle 0.1.1.0 source</h1>
 <p>If you have looked at the user guide or Samuel Tay’s tutorial you’ll already have some idea of the fundamental concepts. Below is the annotated source for bhoogle. As always feel free to email or contact me on <a href="https://twitter.com/andrevdm">twitter</a> if anything is unclear and I’ll do my best to assist.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span>
@@ -88,7 +88,7 @@
 
 <span class="kw">import qualified</span> <span class="dt">Hoogle</span> <span class="kw">as</span> <span class="dt">H</span></code></pre></div>
 <p>Import all the modules we’ll need. I’m using <a href="https://github.com/sdiehl/protolude">protolude</a> as my custom prelude, changing to one of the others e.g. <a href="https://hackage.haskell.org/package/classy-prelude">classy</a> should be pretty simple if you prefer that.</p>
-<p>I’m also using lens. The brick examples use lens so its worth getting used to. However I’m only using three of the simpler lenses, so if you don’t like lens or template haskell it should be easy enough to remote them.</p>
+<p>I’m also using lens. The brick examples use lens so its worth getting used to. However I’m only using three of the simpler lenses, so if you don’t like lens or template haskell it should be easy enough to remove them.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Events that can be sent</span>
 <span class="co">-- | Here there is just one event for updating the time</span>
 <span class="kw">newtype</span> <span class="dt">Event</span> <span class="fu">=</span> <span class="dt">EventUpdateTime</span> <span class="dt">Tm.LocalTime</span>
@@ -100,7 +100,12 @@
           <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</code></pre></div>
 <p>Next we need to define the type of custom events that our brick application can handle and a sum type defining the “name” for each control we want to use.</p>
 <p>In this example there is only a single event <strong>EventUpdateTime</strong>. It is sent once a second with the current time. This gets displayed by brick in the top right corner</p>
-<p>There are three controls 1. The edit box for the type to search for 1. The edit box for the substring search 1. The results listbox</p>
+<p>There are three controls</p>
+<ol style="list-style-type: decimal">
+<li>The edit box for the type to search for</li>
+<li>The edit box for the substring search</li>
+<li>The results listbox</li>
+</ol>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Sort order</span>
 <span class="kw">data</span> <span class="dt">SortBy</span> <span class="fu">=</span> <span class="dt">SortNone</span>
             <span class="fu">|</span> <span class="dt">SortAsc</span>
