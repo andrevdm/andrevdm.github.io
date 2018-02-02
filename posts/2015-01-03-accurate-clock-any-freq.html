@@ -28,7 +28,7 @@
 </div>
 
 <p>When I created an electric timer using a PIC one of the things I needed was an accurate clock. The PIC I was using did not have a built in real-time clock (RTC) and I did not want to use an external one. After some searching I found two popular suggestions to create an accurate clock</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>Use a 32.768kHz crystal which divides down perfectly to give you seconds etc</li>
 <li>Use any frequency oscillator and manually set the value of the timer register on each interrupt. I.e. to skip some number of cycles I did not like either of these solutions</li>
 <li>32.768kHz is ridiculously slow compared to the 20-40MHz the PICs can run at</li>

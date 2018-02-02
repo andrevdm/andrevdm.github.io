@@ -31,15 +31,9 @@
 <p><em><strong>Retained mode drawing</strong></em></p>
 <p>Drawing in WPF is very different from drawing in windows forms. Drawing in windows forms is done in <em>immediate mode,</em> drawing in WPF is done in <em>retained mode</em>. What this means is that in WPF once you have drawn a visual that visual knows how to redraw itself. You don’t need to redraw it every time some part of the display changes, WPF does it for you. You should not be doing your drawing in OnRender, the WPF equivalent of OnDraw, rather you should be drawing visuals that are then only redrawn when required.</p>
 <p>As a practical example of how this makes things easier consider an application that draws graphics in multiple layers. In the application shown below there are multiple layers; one for the text, one for the background etc.</p>
-<div class="figure">
-<img src="../images/wpf1.png" />
-
-</div>
+<p><img src="../images/wpf1.png" /></p>
 <p>Scrolling moves the text up/down</p>
-<div class="figure">
-<img src="../images/wpf2.png" />
-
-</div>
+<p><img src="../images/wpf2.png" /></p>
 <p>Since each element is drawn in a separate layer, to move the the text down all you do is redraw the text layer. All the other layers remain unchanged and thus don’t need to be redrawn manually.</p>
 <p><strong><em>Drawing on the layers</em></strong></p>
 <p>The layered drawing classes presented here make it easy to create a UI like this. Here is an example of creating a layer</p>
@@ -48,191 +42,191 @@
 </blockquote>
 <p>Here a layer is created. Its priority (discussed later) is set to 10. DrawBackground is the method responsible for drawing the layer being registered. Resize is the ChangeType that will cause the layer to be redrawn.</p>
 <p>Here is the DrawBackground method</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">DrawBackground</span>( DrawingContext ctx ) 
-{ 
-    <span class="dt">var</span> pen = <span class="kw">new</span> <span class="fu">Pen</span>( Brushes.<span class="fu">Black</span>, <span class="dv">1</span> ); 
-    <span class="dt">var</span> rect = <span class="kw">new</span> <span class="fu">Rect</span>( <span class="dv">0</span>, <span class="dv">0</span>, m_layers.<span class="fu">ActualWidth</span>, m_layers.<span class="fu">ActualHeight</span> ); 
-    ctx.<span class="fu">DrawRoundedRectangle</span>( Brushes.<span class="fu">Black</span>, pen, rect, <span class="dv">50</span>, <span class="dv">50</span> );</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">DrawBackground</span>( DrawingContext ctx ) </a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">{ </a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">    <span class="dt">var</span> pen = <span class="kw">new</span> <span class="fu">Pen</span>( Brushes.<span class="fu">Black</span>, <span class="dv">1</span> ); </a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">    <span class="dt">var</span> rect = <span class="kw">new</span> <span class="fu">Rect</span>( <span class="dv">0</span>, <span class="dv">0</span>, m_layers.<span class="fu">ActualWidth</span>, m_layers.<span class="fu">ActualHeight</span> ); </a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">    ctx.<span class="fu">DrawRoundedRectangle</span>( Brushes.<span class="fu">Black</span>, pen, rect, <span class="dv">50</span>, <span class="dv">50</span> );</a></code></pre></div>
 <p>Now that that is in place having the layer redrawn when the window resized is easy</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">protected</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">OnRenderSizeChanged</span>( SizeChangedInfo sizeInfo )
-{
-    <span class="kw">base</span>.<span class="fu">OnRenderSizeChanged</span>( sizeInfo );
- 
-    <span class="fu">Draw</span>( ChangeType.<span class="fu">Resize</span> );
-}</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">protected</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">OnRenderSizeChanged</span>( SizeChangedInfo sizeInfo )</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">    <span class="kw">base</span>.<span class="fu">OnRenderSizeChanged</span>( sizeInfo );</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"> </a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">    <span class="fu">Draw</span>( ChangeType.<span class="fu">Resize</span> );</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">}</a></code></pre></div>
 <p>What you need to do is call the Draw method with the appropriate ChangeType, here ChangeType.Resize.</p>
 <p>The layer registration and change notification scheme allows you to decouple the drawing logic from the events that cause changes to the UI. So should you later want to add another layer that is also redrawn when the window is resized, then you just add a new layer registration. The code in the OnRenderSizeChanged method does not change at all. In a real application you would use this separation to keep the events and drawing logic separate (model vs view or separate layers managed by different classes)</p>
 <p>To complete the discussion of the demo application here is the full layer registration</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnLoaded</span>( <span class="dt">object</span> sender, RoutedEventArgs e )
-{
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">10</span>, DrawBackground, ChangeType.<span class="fu">Resize</span> );
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">11</span>, DrawBackgroundBlock );
- 
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">20</span>, DrawStaticForeground );
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">21</span>, DrawText, ChangeType.<span class="fu">Scroll</span> );
- 
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">30</span>, DrawForeground );</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnLoaded</span>( <span class="dt">object</span> sender, RoutedEventArgs e )</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">10</span>, DrawBackground, ChangeType.<span class="fu">Resize</span> );</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">11</span>, DrawBackgroundBlock );</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"> </a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">20</span>, DrawStaticForeground );</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">21</span>, DrawText, ChangeType.<span class="fu">Scroll</span> );</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"> </a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">30</span>, DrawForeground );</a></code></pre></div>
 <p>And here is the OnScroll handler.</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnScroll</span>( <span class="dt">object</span> sender, ScrollEventArgs e )
-{
-    <span class="fu">Draw</span>( ChangeType.<span class="fu">Scroll</span> );
-}</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnScroll</span>( <span class="dt">object</span> sender, ScrollEventArgs e )</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">    <span class="fu">Draw</span>( ChangeType.<span class="fu">Scroll</span> );</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">}</a></code></pre></div>
 <p>And that is it. Using layers like this is pretty simple and it is very efficient as is uses <a href="http://msdn.microsoft.com/en-us/library/ms742254.aspx">DrawingVisuals</a>. Drawing in this manner can be used for many purposes, for example to build a text editor control. You could have a layer for the text, one for the gutters &amp; margins and one for the selection highlight.</p>
 <p>The source code for the demo app is attached. Hopefully you will find this method useful.</p>
 <p>Below is a description of how the layered drawing is implemented.</p>
 <p><strong><em>Implementation</em></strong></p>
 <p>The ChangeType enum is used to describe different types of changes. The exact values used would depend on your application.</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">[Flags]
-<span class="kw">public</span> <span class="kw">enum</span> ChangeType
-{
-  Redraw = <span class="dv">1</span>,
-  Resize = <span class="dv">2</span>,
-  Scroll = <span class="dv">4</span>,
-}</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb5-1" data-line-number="1">[Flags]</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="kw">public</span> <span class="kw">enum</span> ChangeType</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">{</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">  Redraw = <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">  Resize = <span class="dv">2</span>,</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">  Scroll = <span class="dv">4</span>,</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">}</a></code></pre></div>
 <p>The WpfLayerInfo class stores the details for each layer.</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="kw">class</span> WpfLayerInfo
-{
-  <span class="kw">public</span> <span class="fu">WpfLayerInfo</span>( <span class="dt">int</span> priority, Action&lt;DrawingContext&gt; draw, DrawingVisual visual, ChangeType notifyOnChange )
-  {
-        NotifyOnChange = notifyOnChange;
-        Priority = priority;
-        Visual = visual;
-        Draw = draw;
-  }
- 
-  <span class="kw">public</span> ChangeType NotifyOnChange { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
-  <span class="kw">public</span> <span class="dt">int</span> Priority { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
-  <span class="kw">public</span> DrawingVisual Visual { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
-  <span class="kw">public</span> Action&lt;DrawingContext&gt; Draw { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }
-}</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">public</span> <span class="kw">class</span> WpfLayerInfo</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">public</span> <span class="fu">WpfLayerInfo</span>( <span class="dt">int</span> priority, Action&lt;DrawingContext&gt; draw, DrawingVisual visual, ChangeType notifyOnChange )</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">  {</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">        NotifyOnChange = notifyOnChange;</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">        Priority = priority;</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">        Visual = visual;</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">        Draw = draw;</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">  }</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"> </a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">  <span class="kw">public</span> ChangeType NotifyOnChange { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }</a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">  <span class="kw">public</span> <span class="dt">int</span> Priority { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }</a>
+<a class="sourceLine" id="cb6-13" data-line-number="13">  <span class="kw">public</span> DrawingVisual Visual { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }</a>
+<a class="sourceLine" id="cb6-14" data-line-number="14">  <span class="kw">public</span> Action&lt;DrawingContext&gt; Draw { <span class="kw">get</span>; <span class="kw">private</span> <span class="kw">set</span>; }</a>
+<a class="sourceLine" id="cb6-15" data-line-number="15">}</a></code></pre></div>
 <p><strong><em>Layers in WPF</em></strong></p>
 <p>Building the layers in WPF is relatively strait forward. Each layer is a [DrawingVisual][3] and the layers are contained in a FrameworkElement user control. You then override the GetVisualChild() method to return a layer’s visual.</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="kw">class</span> WpfLayers : FrameworkElement
-{
-  <span class="kw">private</span> <span class="kw">readonly</span> VisualCollection m_children;
-  <span class="kw">private</span> <span class="kw">readonly</span> List&lt;WpfLayerInfo&gt; m_layers = <span class="kw">new</span> List&lt;WpfLayerInfo&gt;();
- 
-  <span class="kw">public</span> <span class="fu">WpfLayers</span>()
-  {
-        m_children = <span class="kw">new</span> <span class="fu">VisualCollection</span>( <span class="kw">this</span> );
-  }
- 
-  <span class="kw">public</span> <span class="dt">void</span> <span class="fu">AddLayer</span>( ... )
-  {
-        <span class="dt">var</span> drawingVisual = <span class="kw">new</span> <span class="fu">DrawingVisual</span>();
- 
-        ...
-       
-        m_children.<span class="fu">Add</span>( l.<span class="fu">Visual</span> );
-  }
- 
-  <span class="kw">protected</span> <span class="kw">override</span> <span class="dt">int</span> VisualChildrenCount
-  {
-        <span class="kw">get</span> { <span class="kw">return</span> m_children.<span class="fu">Count</span>; }
-  }
- 
-  <span class="kw">protected</span> <span class="kw">override</span> Visual <span class="fu">GetVisualChild</span>( <span class="dt">int</span> index )
-  {
-        <span class="kw">if</span>( index &lt; <span class="dv">0</span> || index &gt;= m_children.<span class="fu">Count</span> )
-        {
-             <span class="kw">throw</span> <span class="kw">new</span> <span class="fu">ArgumentOutOfRangeException</span>( <span class="st">&quot;index&quot;</span> );
-        }
- 
-        <span class="kw">return</span> m_children[index];
-  }
-}</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">public</span> <span class="kw">class</span> WpfLayers : FrameworkElement</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="kw">private</span> <span class="kw">readonly</span> VisualCollection m_children;</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">  <span class="kw">private</span> <span class="kw">readonly</span> List&lt;WpfLayerInfo&gt; m_layers = <span class="kw">new</span> List&lt;WpfLayerInfo&gt;();</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5"> </a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">  <span class="kw">public</span> <span class="fu">WpfLayers</span>()</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">  {</a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">        m_children = <span class="kw">new</span> <span class="fu">VisualCollection</span>( <span class="kw">this</span> );</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9">  }</a>
+<a class="sourceLine" id="cb7-10" data-line-number="10"> </a>
+<a class="sourceLine" id="cb7-11" data-line-number="11">  <span class="kw">public</span> <span class="dt">void</span> <span class="fu">AddLayer</span>( ... )</a>
+<a class="sourceLine" id="cb7-12" data-line-number="12">  {</a>
+<a class="sourceLine" id="cb7-13" data-line-number="13">        <span class="dt">var</span> drawingVisual = <span class="kw">new</span> <span class="fu">DrawingVisual</span>();</a>
+<a class="sourceLine" id="cb7-14" data-line-number="14"> </a>
+<a class="sourceLine" id="cb7-15" data-line-number="15">        ...</a>
+<a class="sourceLine" id="cb7-16" data-line-number="16">       </a>
+<a class="sourceLine" id="cb7-17" data-line-number="17">        m_children.<span class="fu">Add</span>( l.<span class="fu">Visual</span> );</a>
+<a class="sourceLine" id="cb7-18" data-line-number="18">  }</a>
+<a class="sourceLine" id="cb7-19" data-line-number="19"> </a>
+<a class="sourceLine" id="cb7-20" data-line-number="20">  <span class="kw">protected</span> <span class="kw">override</span> <span class="dt">int</span> VisualChildrenCount</a>
+<a class="sourceLine" id="cb7-21" data-line-number="21">  {</a>
+<a class="sourceLine" id="cb7-22" data-line-number="22">        <span class="kw">get</span> { <span class="kw">return</span> m_children.<span class="fu">Count</span>; }</a>
+<a class="sourceLine" id="cb7-23" data-line-number="23">  }</a>
+<a class="sourceLine" id="cb7-24" data-line-number="24"> </a>
+<a class="sourceLine" id="cb7-25" data-line-number="25">  <span class="kw">protected</span> <span class="kw">override</span> Visual <span class="fu">GetVisualChild</span>( <span class="dt">int</span> index )</a>
+<a class="sourceLine" id="cb7-26" data-line-number="26">  {</a>
+<a class="sourceLine" id="cb7-27" data-line-number="27">        <span class="kw">if</span>( index &lt; <span class="dv">0</span> || index &gt;= m_children.<span class="fu">Count</span> )</a>
+<a class="sourceLine" id="cb7-28" data-line-number="28">        {</a>
+<a class="sourceLine" id="cb7-29" data-line-number="29">             <span class="kw">throw</span> <span class="kw">new</span> <span class="fu">ArgumentOutOfRangeException</span>( <span class="st">&quot;index&quot;</span> );</a>
+<a class="sourceLine" id="cb7-30" data-line-number="30">        }</a>
+<a class="sourceLine" id="cb7-31" data-line-number="31"> </a>
+<a class="sourceLine" id="cb7-32" data-line-number="32">        <span class="kw">return</span> m_children[index];</a>
+<a class="sourceLine" id="cb7-33" data-line-number="33">  }</a>
+<a class="sourceLine" id="cb7-34" data-line-number="34">}</a></code></pre></div>
 <p>The code above illustrates the main points, there is a FrameworkElement with a VisualCollection (m_children) containing DrawingVisuals. Each DrawingVisual represents a layer. m_layers is a list of WpfLayerInfo objects each describing a layer.</p>
 <p>Adding a layer is handled by the AddLayer method</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="dt">void</span> <span class="fu">AddLayer</span>( <span class="dt">int</span> priority, Action&lt;DrawingContext&gt; draw, ChangeType notifyOnChange = ChangeType.<span class="fu">Redraw</span> )
-{
-    <span class="dt">var</span> drawingVisual = <span class="kw">new</span> <span class="fu">DrawingVisual</span>();
- 
-    <span class="dt">var</span> layerInfo = <span class="kw">new</span> <span class="fu">WpfLayerInfo</span>( priority, draw, drawingVisual, notifyOnChange );
-    m_layers.<span class="fu">Add</span>( layerInfo );
- 
-    <span class="co">//Sort the layers by priority</span>
-    m_layers.<span class="fu">Sort</span>( ( x, y ) =&gt; x.<span class="fu">Priority</span>.<span class="fu">CompareTo</span>( y.<span class="fu">Priority</span> ) );
- 
-    <span class="co">//Remove all the visual layers and add them in order</span>
-    m_children.<span class="fu">Clear</span>();
-    m_layers.<span class="fu">ForEach</span>( l =&gt; m_children.<span class="fu">Add</span>( l.<span class="fu">Visual</span> ) );
-}</code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">public</span> <span class="dt">void</span> <span class="fu">AddLayer</span>( <span class="dt">int</span> priority, Action&lt;DrawingContext&gt; draw, ChangeType notifyOnChange = ChangeType.<span class="fu">Redraw</span> )</a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">    <span class="dt">var</span> drawingVisual = <span class="kw">new</span> <span class="fu">DrawingVisual</span>();</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4"> </a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">    <span class="dt">var</span> layerInfo = <span class="kw">new</span> <span class="fu">WpfLayerInfo</span>( priority, draw, drawingVisual, notifyOnChange );</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">    m_layers.<span class="fu">Add</span>( layerInfo );</a>
+<a class="sourceLine" id="cb8-7" data-line-number="7"> </a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">    <span class="co">//Sort the layers by priority</span></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">    m_layers.<span class="fu">Sort</span>( ( x, y ) =&gt; x.<span class="fu">Priority</span>.<span class="fu">CompareTo</span>( y.<span class="fu">Priority</span> ) );</a>
+<a class="sourceLine" id="cb8-10" data-line-number="10"> </a>
+<a class="sourceLine" id="cb8-11" data-line-number="11">    <span class="co">//Remove all the visual layers and add them in order</span></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12">    m_children.<span class="fu">Clear</span>();</a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">    m_layers.<span class="fu">ForEach</span>( l =&gt; m_children.<span class="fu">Add</span>( l.<span class="fu">Visual</span> ) );</a>
+<a class="sourceLine" id="cb8-14" data-line-number="14">}</a></code></pre></div>
 <p>This method creates a new DrawingVisual and a WpfLayerInfo for the new layer. The visuals are then added to the VisualCollection in order of priority. I.e lowest priority at the bottom of the Z-order.</p>
 <p>The Draw method which controls what layers will be redrawn</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Draw</span>( ChangeType change )
-{
-    <span class="dt">var</span> affected = from l <span class="kw">in</span> m_layers
-                        <span class="fu">where</span> ((change &amp; ChangeType.<span class="fu">Redraw</span>) != <span class="dv">0</span>) || ((l.<span class="fu">NotifyOnChange</span> &amp; change) != <span class="dv">0</span>)
-                        orderby l.<span class="fu">Priority</span>
-                        select l;
- 
-    <span class="kw">foreach</span>( WpfLayerInfo layer <span class="kw">in</span> affected )
-    {
-         DrawingContext ctx = layer.<span class="fu">Visual</span>.<span class="fu">RenderOpen</span>();
-         layer.<span class="fu">Draw</span>( ctx );
-         ctx.<span class="fu">Close</span>();
-    }
-}</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">public</span> <span class="dt">void</span> <span class="fu">Draw</span>( ChangeType change )</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">    <span class="dt">var</span> affected = from l <span class="kw">in</span> m_layers</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">                        <span class="fu">where</span> ((change &amp; ChangeType.<span class="fu">Redraw</span>) != <span class="dv">0</span>) || ((l.<span class="fu">NotifyOnChange</span> &amp; change) != <span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">                        orderby l.<span class="fu">Priority</span></a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">                        select l;</a>
+<a class="sourceLine" id="cb9-7" data-line-number="7"> </a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">    <span class="kw">foreach</span>( WpfLayerInfo layer <span class="kw">in</span> affected )</a>
+<a class="sourceLine" id="cb9-9" data-line-number="9">    {</a>
+<a class="sourceLine" id="cb9-10" data-line-number="10">         DrawingContext ctx = layer.<span class="fu">Visual</span>.<span class="fu">RenderOpen</span>();</a>
+<a class="sourceLine" id="cb9-11" data-line-number="11">         layer.<span class="fu">Draw</span>( ctx );</a>
+<a class="sourceLine" id="cb9-12" data-line-number="12">         ctx.<span class="fu">Close</span>();</a>
+<a class="sourceLine" id="cb9-13" data-line-number="13">    }</a>
+<a class="sourceLine" id="cb9-14" data-line-number="14">}</a></code></pre></div>
 <p>This method first gets the layers that need to be redrawn (lines 3 to 6) ordered by priority. ChangeType.Redraw is treated as a special case, if it is selected then all layers are selected (i.e. to be redrawn)</p>
 <p>Next for each selected layer a DrawingContext is created and passed to the layer’s draw method.</p>
 <p><strong><em>The Demo</em></strong></p>
 <p>The XAML for the demo looks like this</p>
-<div class="sourceCode"><pre class="sourceCode xml"><code class="sourceCode xml"><span class="kw">&lt;Window</span><span class="ot"> x:Class=</span><span class="st">&quot;LayeredDrawingDemo.MainWindow&quot;</span>
-<span class="ot">        xmlns=</span><span class="st">&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;</span>
-<span class="ot">        xmlns:x=</span><span class="st">&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;</span>
-<span class="ot">        xmlns:LayeredDrawingDemo=</span><span class="st">&quot;clr-namespace:LayeredDrawingDemo&quot;</span>
-<span class="ot">        Title=</span><span class="st">&quot;Layered Drawing&quot;</span>
-<span class="ot">        Loaded=</span><span class="st">&quot;OnLoaded&quot;</span>
-<span class="ot">        Height=</span><span class="st">&quot;350&quot;</span>
-<span class="ot">        Width=</span><span class="st">&quot;500&quot;</span><span class="kw">&gt;</span>
-    <span class="kw">&lt;DockPanel</span><span class="ot"> LastChildFill=</span><span class="st">&quot;true&quot;</span><span class="kw">&gt;</span>
-        <span class="kw">&lt;TextBlock</span><span class="ot"> Name=</span><span class="st">&quot;m_log&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Right&quot;</span><span class="ot"> Width=</span><span class="st">&quot;150&quot;</span><span class="ot"> Margin=</span><span class="st">&quot;5&quot;</span><span class="kw">/&gt;</span>
-        <span class="kw">&lt;ScrollBar</span><span class="ot"> Name=</span><span class="st">&quot;m_scroll&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Right&quot;</span><span class="ot"> Scroll=</span><span class="st">&quot;OnScroll&quot;</span> <span class="kw">/&gt;</span>
-        <span class="kw">&lt;LayeredDrawingDemo:WpfLayers</span><span class="ot"> x:Name=</span><span class="st">&quot;m_layers&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Left&quot;</span><span class="kw">&gt;&lt;/LayeredDrawingDemo:WpfLayers&gt;</span>
-    <span class="kw">&lt;/DockPanel&gt;</span>
-<span class="kw">&lt;/Window&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode xml"><code class="sourceCode xml"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">&lt;Window</span><span class="ot"> x:Class=</span><span class="st">&quot;LayeredDrawingDemo.MainWindow&quot;</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="ot">        xmlns=</span><span class="st">&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;</span></a>
+<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="ot">        xmlns:x=</span><span class="st">&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="ot">        xmlns:LayeredDrawingDemo=</span><span class="st">&quot;clr-namespace:LayeredDrawingDemo&quot;</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5"><span class="ot">        Title=</span><span class="st">&quot;Layered Drawing&quot;</span></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="ot">        Loaded=</span><span class="st">&quot;OnLoaded&quot;</span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="ot">        Height=</span><span class="st">&quot;350&quot;</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="ot">        Width=</span><span class="st">&quot;500&quot;</span><span class="kw">&gt;</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">    <span class="kw">&lt;DockPanel</span><span class="ot"> LastChildFill=</span><span class="st">&quot;true&quot;</span><span class="kw">&gt;</span></a>
+<a class="sourceLine" id="cb10-10" data-line-number="10">        <span class="kw">&lt;TextBlock</span><span class="ot"> Name=</span><span class="st">&quot;m_log&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Right&quot;</span><span class="ot"> Width=</span><span class="st">&quot;150&quot;</span><span class="ot"> Margin=</span><span class="st">&quot;5&quot;</span><span class="kw">/&gt;</span></a>
+<a class="sourceLine" id="cb10-11" data-line-number="11">        <span class="kw">&lt;ScrollBar</span><span class="ot"> Name=</span><span class="st">&quot;m_scroll&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Right&quot;</span><span class="ot"> Scroll=</span><span class="st">&quot;OnScroll&quot;</span> <span class="kw">/&gt;</span></a>
+<a class="sourceLine" id="cb10-12" data-line-number="12">        <span class="kw">&lt;LayeredDrawingDemo:WpfLayers</span><span class="ot"> x:Name=</span><span class="st">&quot;m_layers&quot;</span><span class="ot"> DockPanel.Dock=</span><span class="st">&quot;Left&quot;</span><span class="kw">&gt;&lt;/LayeredDrawingDemo:WpfLayers&gt;</span></a>
+<a class="sourceLine" id="cb10-13" data-line-number="13">    <span class="kw">&lt;/DockPanel&gt;</span></a>
+<a class="sourceLine" id="cb10-14" data-line-number="14"><span class="kw">&lt;/Window&gt;</span></a></code></pre></div>
 <p>The layers are added on line 12.</p>
 <p>As shown above the OnLoad handler creates the layers and redraws all layers</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnLoaded</span>( <span class="dt">object</span> sender, RoutedEventArgs e )
-{
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">10</span>, DrawBackground, ChangeType.<span class="fu">Resize</span> );
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">11</span>, DrawBackgroundBlock );
- 
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">20</span>, DrawStaticForeground );
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">21</span>, DrawText, ChangeType.<span class="fu">Scroll</span> );
- 
-    m_layers.<span class="fu">AddLayer</span>( <span class="dv">30</span>, DrawForeground );
- 
-    <span class="fu">Draw</span>( ChangeType.<span class="fu">Redraw</span> );
-}</code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnLoaded</span>( <span class="dt">object</span> sender, RoutedEventArgs e )</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">10</span>, DrawBackground, ChangeType.<span class="fu">Resize</span> );</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">11</span>, DrawBackgroundBlock );</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5"> </a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">20</span>, DrawStaticForeground );</a>
+<a class="sourceLine" id="cb11-7" data-line-number="7">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">21</span>, DrawText, ChangeType.<span class="fu">Scroll</span> );</a>
+<a class="sourceLine" id="cb11-8" data-line-number="8"> </a>
+<a class="sourceLine" id="cb11-9" data-line-number="9">    m_layers.<span class="fu">AddLayer</span>( <span class="dv">30</span>, DrawForeground );</a>
+<a class="sourceLine" id="cb11-10" data-line-number="10"> </a>
+<a class="sourceLine" id="cb11-11" data-line-number="11">    <span class="fu">Draw</span>( ChangeType.<span class="fu">Redraw</span> );</a>
+<a class="sourceLine" id="cb11-12" data-line-number="12">}</a></code></pre></div>
 <p>The window resize handler which causes the DrawBackground method to be called (ChangeType.Resize)</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">protected</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">OnRenderSizeChanged</span>( SizeChangedInfo sizeInfo )
-{
-    <span class="kw">base</span>.<span class="fu">OnRenderSizeChanged</span>( sizeInfo );
- 
-    m_scroll.<span class="fu">Minimum</span> = <span class="dv">0</span>;
-    m_scroll.<span class="fu">Maximum</span> = m_layers.<span class="fu">ActualHeight</span> - <span class="dv">70</span>;
-    <span class="fu">Draw</span>( ChangeType.<span class="fu">Resize</span> );
-}</code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw">protected</span> <span class="kw">override</span> <span class="dt">void</span> <span class="fu">OnRenderSizeChanged</span>( SizeChangedInfo sizeInfo )</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">    <span class="kw">base</span>.<span class="fu">OnRenderSizeChanged</span>( sizeInfo );</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"> </a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">    m_scroll.<span class="fu">Minimum</span> = <span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">    m_scroll.<span class="fu">Maximum</span> = m_layers.<span class="fu">ActualHeight</span> - <span class="dv">70</span>;</a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">    <span class="fu">Draw</span>( ChangeType.<span class="fu">Resize</span> );</a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">}</a></code></pre></div>
 <p>The scroll handler</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnScroll</span>( <span class="dt">object</span> sender, ScrollEventArgs e )
-{
-    <span class="fu">Draw</span>( ChangeType.<span class="fu">Scroll</span> );
-}</code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">OnScroll</span>( <span class="dt">object</span> sender, ScrollEventArgs e )</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">    <span class="fu">Draw</span>( ChangeType.<span class="fu">Scroll</span> );</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">}</a></code></pre></div>
 <p>The Draw() method</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">Draw</span>( ChangeType change )
-{
-    m_layers.<span class="fu">Draw</span>( change );
-}</code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">Draw</span>( ChangeType change )</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">    m_layers.<span class="fu">Draw</span>( change );</a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">}</a></code></pre></div>
 <p>One of he draw methods</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">DrawForeground</span>( DrawingContext ctx )
-{
-    <span class="dt">var</span> pen = <span class="kw">new</span> <span class="fu">Pen</span>( Brushes.<span class="fu">Black</span>, <span class="dv">1</span> );
-    <span class="dt">var</span> rect = <span class="kw">new</span> <span class="fu">Rect</span>( <span class="dv">20</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">55</span> );
-    ctx.<span class="fu">DrawRectangle</span>( Brushes.<span class="fu">Red</span>, pen, rect );
- 
-    <span class="fu">Log</span>( <span class="st">&quot;foreground&quot;</span> );
-}</code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="kw">private</span> <span class="dt">void</span> <span class="fu">DrawForeground</span>( DrawingContext ctx )</a>
+<a class="sourceLine" id="cb15-2" data-line-number="2">{</a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">    <span class="dt">var</span> pen = <span class="kw">new</span> <span class="fu">Pen</span>( Brushes.<span class="fu">Black</span>, <span class="dv">1</span> );</a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">    <span class="dt">var</span> rect = <span class="kw">new</span> <span class="fu">Rect</span>( <span class="dv">20</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">55</span> );</a>
+<a class="sourceLine" id="cb15-5" data-line-number="5">    ctx.<span class="fu">DrawRectangle</span>( Brushes.<span class="fu">Red</span>, pen, rect );</a>
+<a class="sourceLine" id="cb15-6" data-line-number="6"> </a>
+<a class="sourceLine" id="cb15-7" data-line-number="7">    <span class="fu">Log</span>( <span class="st">&quot;foreground&quot;</span> );</a>
+<a class="sourceLine" id="cb15-8" data-line-number="8">}</a></code></pre></div>
 <p>Notice that each of the draw methods in this example log that they have been called. This makes it easy to see from the demo UI which layers are being changes. E.g. when you resize the window you will see that the text is not redrawn etc.</p>
 <p>The source code for the example is available <a href="https://github.com/andrevdm/WpfLayeredDrawingDemo">on github</a>. Hopefully you will find this method of drawing in WPF as useful as I have.</p>
 

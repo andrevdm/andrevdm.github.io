@@ -30,25 +30,25 @@
 <p>I recently wrote my first embedded C project and was surprised to find that unit tests were not as widely used as I would have expected. There seems to be a general opinion that unit tests are less useful for embedded development that for application development. I find this strange because debugging embedded systems is hard compared to application development.</p>
 <p>Fortunately not everyone agrees with this sentiment and in the end it was pretty easy to get unit tests working thanks to <a href="https://code.google.com/p/seatest/">SeaTest</a> (https://code.google.com/p/seatest/). SeaTest is simple and specifically designed for embedded-c projects.</p>
 <p>To get it working for a Microchip MPLabX project I did this</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>Created a _test directory in my main projects directory</li>
 <li>Created my unit tests in this directory in test.c</li>
 <li>In this directory created a bash script named “test”</li>
 <li>Copied seatest.c and seatest.h into the directory</li>
 <li>Created dummy PIC include files in this directory
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>xc.h</li>
 <li>xc.c</li>
 <li>pic18f4550.h</li>
 </ol></li>
 <li>Created a plib directory under _test containing
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>timers.h The idea being that the my test directory (_test) contained files for mocking the Microchip libraries to make testing possible. This turned out to be much simpler than I had feared.</li>
 </ol></li>
 </ol>
 <p><strong>Test runner bash script</strong></p>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">    <span class="co">#/bin/sh</span>
-    <span class="kw">gcc</span> -std=c99 -o test.o -D TESTING -I . -I .. xc.c test.c ../buttons.c ../lcd.c ../dateTime.c ../timerUi.c ../timer.c seatest.c <span class="kw">&amp;&amp;</span> <span class="kw">./test.o</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" data-line-number="1">    <span class="co">#/bin/sh</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="fu">gcc</span> -std=c99 -o test.o -D TESTING -I . -I .. xc.c test.c ../buttons.c ../lcd.c ../dateTime.c ../timerUi.c ../timer.c seatest.c <span class="kw">&amp;&amp;</span> <span class="ex">./test.o</span></a></code></pre></div>
 <p>Nothing fancy… It does this</p>
 <ul>
 <li>Defines a TESTING constant</li>

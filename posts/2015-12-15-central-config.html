@@ -46,50 +46,50 @@
 <h2 id="using-centralconfig">Using CentralConfig</h2>
 <p>Install “CentralConfig” from nuget Unless you have created a custom persistor use the mongo settings persistor Set the central config mongo settings Setup DI</p>
 <h3 id="app.settings-for-the-mongo-persistor">app.settings for the mongo persistor</h3>
-<div class="sourceCode"><pre class="sourceCode xml"><code class="sourceCode xml">   <span class="kw">&lt;appSettings&gt;</span>
-     <span class="kw">&lt;add</span><span class="ot"> key=</span><span class="st">&quot;MongoDB.Server&quot;</span><span class="ot"> value=</span><span class="st">&quot;mongodb://localhost:27017&quot;</span> <span class="kw">/&gt;</span>
-     <span class="kw">&lt;add</span><span class="ot"> key=</span><span class="st">&quot;CentralConfig.MongoDatabase&quot;</span><span class="ot"> value=</span><span class="st">&quot;TestConfig&quot;</span> <span class="kw">/&gt;</span>
-   <span class="kw">&lt;/appSettings&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode xml"><code class="sourceCode xml"><a class="sourceLine" id="cb1-1" data-line-number="1">   <span class="kw">&lt;appSettings&gt;</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">     <span class="kw">&lt;add</span><span class="ot"> key=</span><span class="st">&quot;MongoDB.Server&quot;</span><span class="ot"> value=</span><span class="st">&quot;mongodb://localhost:27017&quot;</span> <span class="kw">/&gt;</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">     <span class="kw">&lt;add</span><span class="ot"> key=</span><span class="st">&quot;CentralConfig.MongoDatabase&quot;</span><span class="ot"> value=</span><span class="st">&quot;TestConfig&quot;</span> <span class="kw">/&gt;</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">   <span class="kw">&lt;/appSettings&gt;</span></a></code></pre></div>
 <h3 id="di-setup">DI setup</h3>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">       ObjectFactory.<span class="fu">Configure</span>( x =&gt;
-       {
-           x.<span class="fu">For</span>().<span class="fu">Use</span>();
-           x.<span class="fu">For</span>().<span class="fu">Use</span>();
-       } );</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb2-1" data-line-number="1">       ObjectFactory.<span class="fu">Configure</span>( x =&gt;</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">       {</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">           x.<span class="fu">For</span>().<span class="fu">Use</span>();</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">           x.<span class="fu">For</span>().<span class="fu">Use</span>();</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">       } );</a></code></pre></div>
 <h3 id="configure-settings-in-mongo">Configure settings in Mongo</h3>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">       {
-           <span class="st">&quot;key&quot;</span> : <span class="st">&quot;TestSetting&quot;</span>,
-           <span class="st">&quot;machine&quot;</span> : <span class="kw">null</span>,
-           <span class="st">&quot;value&quot;</span> : <span class="st">&quot;some value&quot;</span>
-       }</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb3-1" data-line-number="1">       {</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">           <span class="st">&quot;key&quot;</span> : <span class="st">&quot;TestSetting&quot;</span>,</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">           <span class="st">&quot;machine&quot;</span> : <span class="kw">null</span>,</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">           <span class="st">&quot;value&quot;</span> : <span class="st">&quot;some value&quot;</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">       }</a></code></pre></div>
 <h3 id="use-the-setting-from-code">Use the setting from code</h3>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">       Console.<span class="fu">WriteLine</span>( <span class="st">&quot;test: {0}&quot;</span>, ConfigManager.<span class="fu">AppSettings</span>[<span class="st">&quot;TestSetting&quot;</span>] );</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb4-1" data-line-number="1">       Console.<span class="fu">WriteLine</span>( <span class="st">&quot;test: {0}&quot;</span>, ConfigManager.<span class="fu">AppSettings</span>[<span class="st">&quot;TestSetting&quot;</span>] );</a></code></pre></div>
 <h2 id="different-persistors">Different Persistors</h2>
 <p>I’ve always used the mongo persistor but you can easily create new persistors as required. To do so implement the IPersistor interface</p>
-<div class="sourceCode"><pre class="sourceCode cs"><code class="sourceCode cs">        <span class="kw">public</span> <span class="kw">interface</span> IConfigPersistor
-        {
-            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">string</span> machine, <span class="dt">long</span> version );
-            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">string</span> machine );
-            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">long</span> version );
-            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key );
-
-            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">string</span> machine, <span class="dt">long</span> version );
-            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">string</span> machine );
-            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">long</span> version );
-            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName );
-        }</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode cs"><code class="sourceCode cs"><a class="sourceLine" id="cb5-1" data-line-number="1">        <span class="kw">public</span> <span class="kw">interface</span> IConfigPersistor</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">        {</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">string</span> machine, <span class="dt">long</span> version );</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">string</span> machine );</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key, <span class="dt">long</span> version );</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">            <span class="dt">string</span> <span class="fu">ReadAppSetting</span>( <span class="dt">string</span> key );</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">string</span> machine, <span class="dt">long</span> version );</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">string</span> machine );</a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName, <span class="dt">long</span> version );</a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">            TResult <span class="fu">GetSection</span>( <span class="dt">string</span> sectionName );</a>
+<a class="sourceLine" id="cb5-12" data-line-number="12">        }</a></code></pre></div>
 <h2 id="order-of-matching">Order of matching</h2>
 <p>When you request a value, CentralConfig will try find the most specific value it can. So it will first look for the setting match both the key and the current machine name, if that does not match then it looks for a value matching on key only</p>
-<div class="sourceCode"><pre class="sourceCode json"><code class="sourceCode json">       <span class="fu">{</span>
-           <span class="dt">&quot;key&quot;</span> <span class="fu">:</span> <span class="st">&quot;TestSetting&quot;</span><span class="fu">,</span>
-           <span class="dt">&quot;machine&quot;</span> <span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span>
-           <span class="dt">&quot;value&quot;</span> <span class="fu">:</span> <span class="st">&quot;some value&quot;</span>
-       <span class="fu">}</span><span class="er">,</span>
-       <span class="fu">{</span>
-           <span class="dt">&quot;key&quot;</span> <span class="fu">:</span> <span class="st">&quot;TestSetting&quot;</span><span class="fu">,</span>
-           <span class="dt">&quot;machine&quot;</span> <span class="fu">:</span> <span class="st">&quot;MYPC&quot;</span><span class="fu">,</span>
-           <span class="dt">&quot;value&quot;</span> <span class="fu">:</span> <span class="st">&quot;another value&quot;</span>
-       <span class="fu">}</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode json"><code class="sourceCode json"><a class="sourceLine" id="cb6-1" data-line-number="1">       <span class="fu">{</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">           <span class="dt">&quot;key&quot;</span> <span class="fu">:</span> <span class="st">&quot;TestSetting&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">           <span class="dt">&quot;machine&quot;</span> <span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">           <span class="dt">&quot;value&quot;</span> <span class="fu">:</span> <span class="st">&quot;some value&quot;</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">       <span class="fu">}</span><span class="er">,</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">       <span class="fu">{</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">           <span class="dt">&quot;key&quot;</span> <span class="fu">:</span> <span class="st">&quot;TestSetting&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">           <span class="dt">&quot;machine&quot;</span> <span class="fu">:</span> <span class="st">&quot;MYPC&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">           <span class="dt">&quot;value&quot;</span> <span class="fu">:</span> <span class="st">&quot;another value&quot;</span></a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">       <span class="fu">}</span></a></code></pre></div>
 <p>Given the mongo settings above when you request “TestSetting” you will get “another value” if your machine name is MYPC or “some value otherwise”</p>
 
 

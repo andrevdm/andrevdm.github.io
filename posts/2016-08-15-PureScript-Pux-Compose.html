@@ -34,152 +34,152 @@
 <h2 id="the-starter-app">The starter app</h2>
 <p>The starter app has a counter component that is rendered in the Laout.purs file</p>
 <h3 id="the-original-counter">The original counter</h3>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span> <span class="fu">=</span> <span class="dt">Increment</span> <span class="fu">|</span> <span class="dt">Decrement</span>
-
-<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span> <span class="dt">Int</span>
-
-init<span class="ot"> ::</span> <span class="dt">State</span>
-init <span class="fu">=</span> <span class="dv">0</span>
-
-<span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span>
-update <span class="dt">Increment</span> state <span class="fu">=</span> state <span class="fu">+</span> <span class="dv">1</span>
-update <span class="dt">Decrement</span> state <span class="fu">=</span> state <span class="fu">-</span> <span class="dv">1</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Action</span> <span class="fu">=</span> <span class="dt">Increment</span> <span class="fu">|</span> <span class="dt">Decrement</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">init<span class="ot"> ::</span> <span class="dt">State</span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">init <span class="fu">=</span> <span class="dv">0</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">update <span class="dt">Increment</span> state <span class="fu">=</span> state <span class="fu">+</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">update <span class="dt">Decrement</span> state <span class="fu">=</span> state <span class="fu">-</span> <span class="dv">1</span></a></code></pre></div>
 <h3 id="the-original-layout">The original layout</h3>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span>
-  <span class="fu">=</span> <span class="dt">Child</span> (<span class="dt">Counter.Action</span>)
-  <span class="fu">|</span> <span class="dt">PageView</span> <span class="dt">Route</span>
-
-<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span>
-  {<span class="ot"> route ::</span> <span class="dt">Route</span>
-  ,<span class="ot"> count ::</span> <span class="dt">Counter.State</span> }
-
-init<span class="ot"> ::</span> <span class="dt">State</span>
-init <span class="fu">=</span>
-  { route<span class="fu">:</span> <span class="dt">NotFound</span>
-  , count<span class="fu">:</span> Counter.init }
-
-<span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span>
-update (<span class="dt">PageView</span> route) state <span class="fu">=</span> state { route <span class="fu">=</span> route }
-update (<span class="dt">Child</span> action) state <span class="fu">=</span> state { count <span class="fu">=</span> Counter.update action state<span class="fu">.</span>count }</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Action</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">  <span class="fu">=</span> <span class="dt">Child</span> (<span class="dt">Counter.Action</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="fu">|</span> <span class="dt">PageView</span> <span class="dt">Route</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">  {<span class="ot"> route ::</span> <span class="dt">Route</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">  ,<span class="ot"> count ::</span> <span class="dt">Counter.State</span> }</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">init<span class="ot"> ::</span> <span class="dt">State</span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">init <span class="fu">=</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">  { route<span class="fu">:</span> <span class="dt">NotFound</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">  , count<span class="fu">:</span> Counter.init }</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">update (<span class="dt">PageView</span> route) state <span class="fu">=</span> state { route <span class="fu">=</span> route }</a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">update (<span class="dt">Child</span> action) state <span class="fu">=</span> state { count <span class="fu">=</span> Counter.update action state<span class="fu">.</span>count }</a></code></pre></div>
 <h2 id="making-the-counter-effectful">Making the counter effectful</h2>
 <h3 id="effmodel">EffModel</h3>
 <p>The type of an update function with no effects (as above) is</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">State</span></a></code></pre></div>
 <p>For it to be effectful it should return an EffModel. The EffModel looks like this</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">EffModel</span> state action eff <span class="fu">=</span> 
-    {<span class="ot"> state ::</span> state
-    ,<span class="ot"> effects ::</span> <span class="dt">Array</span> (<span class="dt">Aff</span> (<span class="ot">channel ::</span> <span class="dt">CHANNEL</span> <span class="fu">|</span> eff) action) 
-    }</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">type</span> <span class="dt">EffModel</span> state action eff <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">    {<span class="ot"> state ::</span> state</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">    ,<span class="ot"> effects ::</span> <span class="dt">Array</span> (<span class="dt">Aff</span> (<span class="ot">channel ::</span> <span class="dt">CHANNEL</span> <span class="fu">|</span> eff) action) </a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">    }</a></code></pre></div>
 <p>The update type will then be</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)</a></code></pre></div>
 <h3 id="changing-the-counter">Changing the counter</h3>
 <p>To keep things simple I’ll make the counter component act as if its effectual without doing any actual IO. To perform effects the component returns a list of effects that should be performed in the EffModel’s effects. The counter needs to do three things</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>Increment</li>
 <li>Decrement</li>
 <li>Apply the effects</li>
 </ol>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)
-update (<span class="dt">ReceiveInc</span> i) state<span class="fu">=</span> 
-  noEffects <span class="fu">$</span> state <span class="fu">+</span> i
-update <span class="dt">Increment</span> state <span class="fu">=</span>
-  { state<span class="fu">:</span> state
-  , effects<span class="fu">:</span> [ <span class="kw">do</span>
-                  pure <span class="fu">$</span> <span class="dt">ReceiveInc</span> <span class="dv">1</span>
-             ]
-  }
-update <span class="dt">Decrement</span> state <span class="fu">=</span>
-  { state<span class="fu">:</span> state
-  , effects<span class="fu">:</span> [ <span class="kw">do</span>
-                  pure <span class="fu">$</span> <span class="dt">ReceiveInc</span> (<span class="fu">-</span><span class="dv">1</span>)
-             ]
-  }
-
-<span class="ot">view ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Html</span> <span class="dt">Action</span>
-view state <span class="fu">=</span>
-  div
-    []
-    [ button [ onClick (const <span class="dt">Increment</span>) ] [ text <span class="st">&quot;Increment&quot;</span> ]
-    , span [] [ text (show state) ]
-    , button [ onClick (const <span class="dt">Decrement</span>) ] [ text <span class="st">&quot;Decrement&quot;</span> ]
-    ]</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">update (<span class="dt">ReceiveInc</span> i) state<span class="fu">=</span> </a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  noEffects <span class="fu">$</span> state <span class="fu">+</span> i</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">update <span class="dt">Increment</span> state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">  { state<span class="fu">:</span> state</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">  , effects<span class="fu">:</span> [ <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">                  pure <span class="fu">$</span> <span class="dt">ReceiveInc</span> <span class="dv">1</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">             ]</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">  }</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">update <span class="dt">Decrement</span> state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">  { state<span class="fu">:</span> state</a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">  , effects<span class="fu">:</span> [ <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-13" data-line-number="13">                  pure <span class="fu">$</span> <span class="dt">ReceiveInc</span> (<span class="fu">-</span><span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb6-14" data-line-number="14">             ]</a>
+<a class="sourceLine" id="cb6-15" data-line-number="15">  }</a>
+<a class="sourceLine" id="cb6-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb6-17" data-line-number="17"><span class="ot">view ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Html</span> <span class="dt">Action</span></a>
+<a class="sourceLine" id="cb6-18" data-line-number="18">view state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-19" data-line-number="19">  div</a>
+<a class="sourceLine" id="cb6-20" data-line-number="20">    []</a>
+<a class="sourceLine" id="cb6-21" data-line-number="21">    [ button [ onClick (const <span class="dt">Increment</span>) ] [ text <span class="st">&quot;Increment&quot;</span> ]</a>
+<a class="sourceLine" id="cb6-22" data-line-number="22">    , span [] [ text (show state) ]</a>
+<a class="sourceLine" id="cb6-23" data-line-number="23">    , button [ onClick (const <span class="dt">Decrement</span>) ] [ text <span class="st">&quot;Decrement&quot;</span> ]</a>
+<a class="sourceLine" id="cb6-24" data-line-number="24">    ]</a></code></pre></div>
 <p>The increment and decrement cases return a ReceiveInc effect that will then be passed to the component and applied by the ReceiveInc case. In a real world component there would be an actual IO action e.g. using AJAX with affjax etc. But ultimately you are returning the effect in the array to be applied.</p>
 <h3 id="changing-the-layout">Changing the layout</h3>
 <p>The layout’s update function must also be changed to use an EffModel</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)
-update (<span class="dt">PageView</span> route) state <span class="fu">=</span> noEffects <span class="fu">$</span> state { route <span class="fu">=</span> route }
-update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">update (<span class="dt">PageView</span> route) state <span class="fu">=</span> noEffects <span class="fu">$</span> state { route <span class="fu">=</span> route }</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span></a></code></pre></div>
 <p>The problem is that the counter’s EffModel does not have the same type as the layout’s EffModel, so you can’t simply use the result from the child components. Rather you need to map both the state and the effects using the mapState and mapEffects functions.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span>
-  <span class="kw">let</span> efm <span class="fu">=</span> Counter.update action state<span class="fu">.</span>count <span class="kw">in</span>
-  <span class="kw">let</span> st <span class="fu">=</span> mapState (\s <span class="ot">-&gt;</span> state {count <span class="fu">=</span> s}) efm <span class="kw">in</span>
-  <span class="kw">let</span> ef <span class="fu">=</span> mapEffects (\e <span class="ot">-&gt;</span> <span class="dt">PostCounter</span> e) st <span class="kw">in</span>
-  ef</code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">  <span class="kw">let</span> efm <span class="fu">=</span> Counter.update action state<span class="fu">.</span>count <span class="kw">in</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="kw">let</span> st <span class="fu">=</span> mapState (\s <span class="ot">-&gt;</span> state {count <span class="fu">=</span> s}) efm <span class="kw">in</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">  <span class="kw">let</span> ef <span class="fu">=</span> mapEffects (\e <span class="ot">-&gt;</span> <span class="dt">PostCounter</span> e) st <span class="kw">in</span></a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">  ef</a></code></pre></div>
 <p>So first the Counter’s update function is called. Then the state is mapped to change the state. Finally the effects are mapped by creating a PostCounter instance for each event. This can be cleaned up a bit, e.g. using the <strong><em>#</em></strong> operator</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span>
-  Counter.update action state<span class="fu">.</span>count
-  <span class="fu">#</span> mapState (state {count <span class="fu">=</span> _}) 
-  <span class="fu">#</span> mapEffects <span class="dt">PostCounter</span> </code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">  Counter.update action state<span class="fu">.</span>count</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="fu">#</span> mapState (state {count <span class="fu">=</span> _}) </a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="fu">#</span> mapEffects <span class="dt">PostCounter</span> </a></code></pre></div>
 <p>The final layout code looks like this</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Action</span>
-  <span class="fu">=</span> <span class="dt">PostCounter</span> (<span class="dt">Counter.Action</span>)
-  <span class="fu">|</span> <span class="dt">PostCounter2</span> (<span class="dt">Counter.Action</span>)
-  <span class="fu">|</span> <span class="dt">PageView</span> <span class="dt">Route</span>
-
-<span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span>
-  {<span class="ot"> route ::</span> <span class="dt">Route</span>
-  ,<span class="ot"> count ::</span> <span class="dt">Counter.State</span>
-  ,<span class="ot"> count2 ::</span> <span class="dt">Counter.State</span>
-  }
-
-init<span class="ot"> ::</span> <span class="dt">State</span>
-init <span class="fu">=</span>
-  {
-    route<span class="fu">:</span> <span class="dt">NotFound</span>
-  , count<span class="fu">:</span> Counter.init
-  , count2<span class="fu">:</span> Counter.init
-  }
-
-<span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)
-update (<span class="dt">PageView</span> route) state <span class="fu">=</span> noEffects <span class="fu">$</span> state { route <span class="fu">=</span> route }
-update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span>
-  Counter.update action state<span class="fu">.</span>count
-  <span class="fu">#</span> mapState (state {count <span class="fu">=</span> _}) 
-  <span class="fu">#</span> mapEffects <span class="dt">PostCounter</span> 
-update (<span class="dt">PostCounter2</span> action) state <span class="fu">=</span>
-  Counter.update action state<span class="fu">.</span>count2
-  <span class="fu">#</span> mapState (state {count2 <span class="fu">=</span> _}) 
-  <span class="fu">#</span> mapEffects <span class="dt">PostCounter2</span> 
-
-<span class="ot">view ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Html</span> <span class="dt">Action</span>
-view state <span class="fu">=</span>
-  div
-    []
-    [ h1 [] [ text <span class="st">&quot;Pux Starter App&quot;</span> ]
-    , p [] [ text <span class="st">&quot;Change src/Layout.purs and watch me hot-reload.&quot;</span> ]
-    , <span class="kw">case</span> state<span class="fu">.</span>route <span class="kw">of</span>
-        <span class="dt">Home</span> <span class="ot">-&gt;</span>
-          div
-            []
-            [
-              map <span class="dt">PostCounter</span> <span class="fu">$</span> Counter.view state<span class="fu">.</span>count
-            , hr [] [] 
-            , map <span class="dt">PostCounter2</span> <span class="fu">$</span> Counter.view state<span class="fu">.</span>count2
-            ]
-        <span class="dt">NotFound</span> <span class="ot">-&gt;</span> NotFound.view state
-    ]</code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Action</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">  <span class="fu">=</span> <span class="dt">PostCounter</span> (<span class="dt">Counter.Action</span>)</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="fu">|</span> <span class="dt">PostCounter2</span> (<span class="dt">Counter.Action</span>)</a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="fu">|</span> <span class="dt">PageView</span> <span class="dt">Route</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="kw">type</span> <span class="dt">State</span> <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">  {<span class="ot"> route ::</span> <span class="dt">Route</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">  ,<span class="ot"> count ::</span> <span class="dt">Counter.State</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">  ,<span class="ot"> count2 ::</span> <span class="dt">Counter.State</span></a>
+<a class="sourceLine" id="cb10-10" data-line-number="10">  }</a>
+<a class="sourceLine" id="cb10-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb10-12" data-line-number="12">init<span class="ot"> ::</span> <span class="dt">State</span></a>
+<a class="sourceLine" id="cb10-13" data-line-number="13">init <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-14" data-line-number="14">  {</a>
+<a class="sourceLine" id="cb10-15" data-line-number="15">    route<span class="fu">:</span> <span class="dt">NotFound</span></a>
+<a class="sourceLine" id="cb10-16" data-line-number="16">  , count<span class="fu">:</span> Counter.init</a>
+<a class="sourceLine" id="cb10-17" data-line-number="17">  , count2<span class="fu">:</span> Counter.init</a>
+<a class="sourceLine" id="cb10-18" data-line-number="18">  }</a>
+<a class="sourceLine" id="cb10-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb10-20" data-line-number="20"><span class="ot">update ::</span> <span class="dt">Action</span> <span class="ot">-&gt;</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">EffModel</span> <span class="dt">State</span> <span class="dt">Action</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX</span>)</a>
+<a class="sourceLine" id="cb10-21" data-line-number="21">update (<span class="dt">PageView</span> route) state <span class="fu">=</span> noEffects <span class="fu">$</span> state { route <span class="fu">=</span> route }</a>
+<a class="sourceLine" id="cb10-22" data-line-number="22">update (<span class="dt">PostCounter</span> action) state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-23" data-line-number="23">  Counter.update action state<span class="fu">.</span>count</a>
+<a class="sourceLine" id="cb10-24" data-line-number="24">  <span class="fu">#</span> mapState (state {count <span class="fu">=</span> _}) </a>
+<a class="sourceLine" id="cb10-25" data-line-number="25">  <span class="fu">#</span> mapEffects <span class="dt">PostCounter</span> </a>
+<a class="sourceLine" id="cb10-26" data-line-number="26">update (<span class="dt">PostCounter2</span> action) state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-27" data-line-number="27">  Counter.update action state<span class="fu">.</span>count2</a>
+<a class="sourceLine" id="cb10-28" data-line-number="28">  <span class="fu">#</span> mapState (state {count2 <span class="fu">=</span> _}) </a>
+<a class="sourceLine" id="cb10-29" data-line-number="29">  <span class="fu">#</span> mapEffects <span class="dt">PostCounter2</span> </a>
+<a class="sourceLine" id="cb10-30" data-line-number="30"></a>
+<a class="sourceLine" id="cb10-31" data-line-number="31"><span class="ot">view ::</span> <span class="dt">State</span> <span class="ot">-&gt;</span> <span class="dt">Html</span> <span class="dt">Action</span></a>
+<a class="sourceLine" id="cb10-32" data-line-number="32">view state <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-33" data-line-number="33">  div</a>
+<a class="sourceLine" id="cb10-34" data-line-number="34">    []</a>
+<a class="sourceLine" id="cb10-35" data-line-number="35">    [ h1 [] [ text <span class="st">&quot;Pux Starter App&quot;</span> ]</a>
+<a class="sourceLine" id="cb10-36" data-line-number="36">    , p [] [ text <span class="st">&quot;Change src/Layout.purs and watch me hot-reload.&quot;</span> ]</a>
+<a class="sourceLine" id="cb10-37" data-line-number="37">    , <span class="kw">case</span> state<span class="fu">.</span>route <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-38" data-line-number="38">        <span class="dt">Home</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb10-39" data-line-number="39">          div</a>
+<a class="sourceLine" id="cb10-40" data-line-number="40">            []</a>
+<a class="sourceLine" id="cb10-41" data-line-number="41">            [</a>
+<a class="sourceLine" id="cb10-42" data-line-number="42">              map <span class="dt">PostCounter</span> <span class="fu">$</span> Counter.view state<span class="fu">.</span>count</a>
+<a class="sourceLine" id="cb10-43" data-line-number="43">            , hr [] [] </a>
+<a class="sourceLine" id="cb10-44" data-line-number="44">            , map <span class="dt">PostCounter2</span> <span class="fu">$</span> Counter.view state<span class="fu">.</span>count2</a>
+<a class="sourceLine" id="cb10-45" data-line-number="45">            ]</a>
+<a class="sourceLine" id="cb10-46" data-line-number="46">        <span class="dt">NotFound</span> <span class="ot">-&gt;</span> NotFound.view state</a>
+<a class="sourceLine" id="cb10-47" data-line-number="47">    ]</a></code></pre></div>
 <h3 id="changing-main">Changing main</h3>
 <p>The only remaining changes are a few minor modifications to Main.purs</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>Import <code>Network.HTTP.Affjax (AJAX)</code></li>
 <li><p>Add AJAX to the AppEfects type</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">type</span> <span class="dt">AppEffects</span> <span class="fu">=</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX0</span>)</code></pre></div></li>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">type</span> <span class="dt">AppEffects</span> <span class="fu">=</span> (<span class="ot">dom ::</span> <span class="dt">DOM</span>,<span class="ot"> ajax ::</span> <span class="dt">AJAX0</span>)</a></code></pre></div></li>
 <li><p>The update function no longer needs the <code>fromSimple</code></p></li>
 </ol>
 <h2 id="summary">Summary</h2>
 <p>The full code for this example is available in this fork of the start app <a href="https://github.com/andrevdm/pux-starter-app-with-effects" class="uri">https://github.com/andrevdm/pux-starter-app-with-effects</a></p>
 <h2 id="links">Links</h2>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li><a href="https://leanpub.com/purescript">PureScript By Example</a>. The PureScript book</li>
 <li><a href="http://www.alexmingoia.com/purescript-pux/index.html">Pux Tutorial</a></li>
 <li><a href="https://github.com/dariooddenino/pux-blog">Pux blog sample project</a>. Shows this and more in a real world project. This helped clear up some of the confusion for me, definitely worth taking a look at</li>

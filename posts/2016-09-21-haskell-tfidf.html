@@ -30,7 +30,7 @@
 <p>This is part two in a two part blog series about haskell terminal applications, this blog shows a simple text classification implementation using techniques from <a href="2016-09-20-haskell-shell.html">part one</a>.</p>
 <h1 id="text-classification-with-tf-idf">Text Classification with Tf-Idf</h1>
 <p>There are many ways to classify documents ranging from simple to very complex. The algorithm I’m using here is called Tf-Idf or “term frequency / inverse document frequency”. There are a number of sites that explain how it works better in detail than I would. See for example</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li><a href="https://en.wikipedia.org/wiki/Tf%E2%80%93idf">Wikipedia</a></li>
 <li><a href="http://www.tfidf.com/">What does tf-idf mean?</a></li>
 </ol>
@@ -40,7 +40,7 @@
 <p>You can get the source for TextClassify at <a href="https://github.com/andrevdm/TextClassify" class="uri">https://github.com/andrevdm/TextClassify</a>. The code is reasonably well commented IMO, so I wont go into too much detail here on every line of code</p>
 <p>Below I’ll discuss some implementation details not covered by the code comments.</p>
 <h1 id="using-the-application">Using the application</h1>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>The user sets up a directory of text files, one file per category.
 <ul>
 <li>These files contain the text that each category should match against.</li>
@@ -57,126 +57,126 @@
 <p>There are a large number of existing terminal applications so it often makes sense to use this existing functionality as well as writing terminal applications so that they too can be reused.</p>
 <h2 id="removing-lines-with-awk">Removing lines with awk</h2>
 <p>The CSV files I work with have a header that needs to be removed. Here is a awk script (removePrefix.awk) to do that</p>
-<div class="sourceCode"><pre class="sourceCode awk"><code class="sourceCode awk"><span class="co">#!/usr/bin/awk -f</span>
-<span class="kw">BEGIN</span> <span class="kw">{</span>FS = <span class="st">&quot;,&quot;</span>;<span class="kw">}</span>
-NR&lt;<span class="dv">7</span> <span class="kw">{next}</span>
-NF <span class="kw">{</span> <span class="kw">print</span> <span class="kw">}</span> 
-<span class="kw">END</span> <span class="kw">{</span> <span class="kw">}</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode awk"><code class="sourceCode awk"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="co">#!/usr/bin/awk -f</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="cf">BEGIN</span> <span class="kw">{</span><span class="bu">FS</span> <span class="op">=</span> <span class="st">&quot;,&quot;</span><span class="op">;</span><span class="kw">}</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="bu">NR</span><span class="op">&lt;</span><span class="dv">7</span> <span class="kw">{next}</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="bu">NF</span> <span class="kw">{</span> <span class="kw">print</span> <span class="kw">}</span> </a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="cf">END</span> <span class="kw">{</span> <span class="kw">}</span></a></code></pre></div>
 <p>This script can be used to pre-process the CSV file</p>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">removePrevfix.awk</span> souceFile.csv</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ex">removePrevfix.awk</span> souceFile.csv</a></code></pre></div>
 <h2 id="cleaning-text-with-sed">Cleaning text with sed</h2>
 <p>The higher the quality of the input data to the classification algorithm the better the results will be. Some regular expressions can clean up the input text nicely. Here is a sed script that does this</p>
-<div class="sourceCode"><pre class="sourceCode sed"><code class="sourceCode sed"><span class="co">#!/bin/sed -uf</span>
-<span class="kw">s</span><span class="st">/c</span><span class="ch">\*</span><span class="st">/ /</span><span class="dt">gi</span>
-<span class="kw">s</span><span class="st">/jan</span><span class="ch">\|</span><span class="st">feb</span><span class="ch">\|</span><span class="st">mar</span><span class="ch">\|</span><span class="st">apr</span><span class="ch">\|</span><span class="st">may</span><span class="ch">\|</span><span class="st">jun</span><span class="ch">\|</span><span class="st">jul</span><span class="ch">\|</span><span class="st">aug</span><span class="ch">\|</span><span class="st">sep</span><span class="ch">\|</span><span class="st">oct</span><span class="ch">\|</span><span class="st">nov</span><span class="ch">\|</span><span class="st">dec/ /</span><span class="dt">gi</span>
-<span class="kw">s</span><span class="st">/ </span><span class="ch">\+$</span><span class="st">//</span><span class="dt">gi</span>
-<span class="kw">s</span><span class="st">/</span><span class="ch">\[\(\)</span><span class="st">!\-</span><span class="ch">\/*\\\]</span><span class="st">/ /</span><span class="dt">g</span>
-<span class="kw">s</span><span class="st">/</span><span class="ch">[\.*\/\(\)</span><span class="st">_,</span><span class="ch">\]</span><span class="st">/ /</span><span class="dt">g</span>
-<span class="kw">s</span><span class="st">/-/ /</span><span class="dt">g</span>
-<span class="kw">s</span><span class="st">/</span><span class="ch">\t</span><span class="st">/ /</span><span class="dt">g</span>
-<span class="kw">s</span><span class="st">/  </span><span class="ch">\+</span><span class="st">/ /</span><span class="dt">g</span>
-<span class="kw">s</span><span class="st">/ </span><span class="ch">\+$</span><span class="st">//</span><span class="dt">gi</span>
-<span class="kw">s</span><span class="st">/</span><span class="ch">^</span><span class="st"> </span><span class="ch">\+</span><span class="st">//</span><span class="dt">gi</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sed"><code class="sourceCode sed"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">#!/bin/sed -uf</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">s</span><span class="st">/c</span><span class="ch">\*</span><span class="st">/ /</span><span class="dt">gi</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="kw">s</span><span class="st">/jan</span><span class="ch">\|</span><span class="st">feb</span><span class="ch">\|</span><span class="st">mar</span><span class="ch">\|</span><span class="st">apr</span><span class="ch">\|</span><span class="st">may</span><span class="ch">\|</span><span class="st">jun</span><span class="ch">\|</span><span class="st">jul</span><span class="ch">\|</span><span class="st">aug</span><span class="ch">\|</span><span class="st">sep</span><span class="ch">\|</span><span class="st">oct</span><span class="ch">\|</span><span class="st">nov</span><span class="ch">\|</span><span class="st">dec/ /</span><span class="dt">gi</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="kw">s</span><span class="st">/ </span><span class="ch">\+$</span><span class="st">//</span><span class="dt">gi</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="kw">s</span><span class="st">/</span><span class="ch">\[\(\)</span><span class="st">!\-</span><span class="ch">\/*\\\]</span><span class="st">/ /g</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="er">s/[\.*\/\(\)_,\]/ /g</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="kw">s</span><span class="st">/-/ /</span><span class="dt">g</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="kw">s</span><span class="st">/</span><span class="ch">\t</span><span class="st">/ /</span><span class="dt">g</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="kw">s</span><span class="st">/  </span><span class="ch">\+</span><span class="st">/ /</span><span class="dt">g</span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="kw">s</span><span class="st">/ </span><span class="ch">\+$</span><span class="st">//</span><span class="dt">gi</span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="kw">s</span><span class="st">/</span><span class="ch">^</span><span class="st"> </span><span class="ch">\+</span><span class="st">//</span><span class="dt">gi</span></a></code></pre></div>
 <p>This sed script removes some common words (the months), removes special characters and multiple spaces. You can customise this or create one per type of input as required. The -u parameter is important as it disables buffering which may interfere with line-by-line processing.</p>
 <p>The TextClassification application will start sed and keep it running. A line of input data will be passed to it and the result read back a line at a time.</p>
 <h2 id="displaying-csv-results-with-column">Displaying CSV results with column</h2>
 <p><code>column</code> can be used to show CSV data as an aligned table in the terminal. I’ll use this later to show the results of the classification.</p>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cat</span> sourceFile.csv <span class="kw">|</span> <span class="kw">column</span> -s , -t</code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="fu">cat</span> sourceFile.csv <span class="kw">|</span> <span class="ex">column</span> -s , -t</a></code></pre></div>
 <h1 id="command-line-arguments">Command line arguments</h1>
 <p><em>See Args.hs</em></p>
 <p>As <a href="2016-09-20-haskell-shell.html">part one</a> showed I’m using <a href="https://hackage.haskell.org/package/optparse-generic">OptParse-generic</a> to parse the command line arguments.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Arguments</span> <span class="fu">=</span> <span class="dt">Arguments</span> {<span class="ot">train ::</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Path to training data&quot;</span>
-                           ,<span class="ot">input ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Input file to categorise. If missing stdin will be used&quot;</span>
-                           ,<span class="ot">parser ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser type, defaults to lines. Options are lines/detail/csv&quot;</span>
-                           ,<span class="ot">popts ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser options&quot;</span>
-                           ,<span class="ot">clean ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Options name of text cleaner - see docs&quot;</span>
-                           } <span class="kw">deriving</span> (<span class="dt">Generic</span>, <span class="dt">Show</span>)
-<span class="kw">instance</span> <span class="dt">ParseRecord</span> <span class="dt">Arguments</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Arguments</span> <span class="fu">=</span> <span class="dt">Arguments</span> {<span class="ot">train ::</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Path to training data&quot;</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">                           ,<span class="ot">input ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Input file to categorise. If missing stdin will be used&quot;</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">                           ,<span class="ot">parser ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser type, defaults to lines. Options are lines/detail/csv&quot;</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">                           ,<span class="ot">popts ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser options&quot;</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">                           ,<span class="ot">clean ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Options name of text cleaner - see docs&quot;</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">                           } <span class="kw">deriving</span> (<span class="dt">Generic</span>, <span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="kw">instance</span> <span class="dt">ParseRecord</span> <span class="dt">Arguments</span></a></code></pre></div>
 <p>This is the resulting help text from these arguments</p>
-<div class="sourceCode"><pre class="sourceCode email"><code class="sourceCode email">  Usage: txtcls --train STRING [--input STRING] [--parser TEXT] [--popts TEXT]
-                [--clean TEXT]
-  
-  Available options:
-    -h,--help                Show this help text
-    --train TEXT             Path to training data
-    --input TEXT             Input file to categorise. If missing stdin will be
-                             used
-    --parser TEXT            Parser type, defaults to lines. Options are
-                             lines/detail/csv
-    --popts TEXT             Parser options
-    --clean TEXT             Options name of text cleaner - see docs</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode email"><code class="sourceCode email"><a class="sourceLine" id="cb6-1" data-line-number="1">  Usage: txtcls --train STRING [--input STRING] [--parser TEXT] [--popts TEXT]</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">                [--clean TEXT]</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  </a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">  Available options:</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">    -h,--help                Show this help text</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">    --train TEXT             Path to training data</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">    --input TEXT             Input file to categorise. If missing stdin will be</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">                             used</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">    --parser TEXT            Parser type, defaults to lines. Options are</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">                             lines/detail/csv</a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">    --popts TEXT             Parser options</a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">    --clean TEXT             Options name of text cleaner - see docs</a></code></pre></div>
 <p>These arguments are then interpreted and stored in the Options type</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Options</span> <span class="fu">=</span> <span class="dt">Options</span> {<span class="ot">trainingPath ::</span> <span class="dt">Text</span>
-                       ,<span class="ot">parserType ::</span> <span class="dt">Text</span>
-                       ,<span class="ot">parserOptions ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span>
-                       ,<span class="ot">txtCleaner ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span>
-                       ,<span class="ot">hin ::</span> <span class="dt">Handle</span>
-                       ,<span class="ot">hout ::</span> <span class="dt">Handle</span>
-                       } </code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Options</span> <span class="fu">=</span> <span class="dt">Options</span> {<span class="ot">trainingPath ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">                       ,<span class="ot">parserType ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">                       ,<span class="ot">parserOptions ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">                       ,<span class="ot">txtCleaner ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">                       ,<span class="ot">hin ::</span> <span class="dt">Handle</span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">                       ,<span class="ot">hout ::</span> <span class="dt">Handle</span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">                       } </a></code></pre></div>
 <h2 id="input-handle">Input handle</h2>
 <p>hin is set to the handle of the input stream, stdin if no <code>--input</code> parameter is present else the handle for the file</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">hin_ <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span>
-           <span class="dt">Just</span> t <span class="ot">-&gt;</span> 
-             openFile (Txt.unpack t) <span class="dt">ReadMode</span>
-           <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
-              pure stdin</code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1">hin_ <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">           <span class="dt">Just</span> t <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">             openFile (Txt.unpack t) <span class="dt">ReadMode</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">           <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">              pure stdin</a></code></pre></div>
 <h1 id="text-cleaning-with-the-cleaning-script">Text cleaning with the cleaning script</h1>
 <p>Above I showed a sed that could be used to clean the input text. However because this application can use a CSV as the input it can’t simply apply the cleaning to the entire file or even an entire line. Only the text being classified should be cleaned. To do this an instance of sed is started and fed the text to clean one line at a time. (Actually any app could be used as long as it reads and writes one line at a time). The name of the app / script to use is defined by the <code>--clean</code> parameter</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Build a 'cleaner'</span>
-<span class="ot">getCleaner ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span>)
-getCleaner mcmd <span class="fu">=</span> 
-  <span class="kw">case</span> mcmd <span class="kw">of</span>
-    <span class="co">-- | The cleaner uses the extenal process to do the actual cleaning. One line is writtent to the processes' stdin and then a value is read from its stdout </span>
-    <span class="dt">Just</span> cmd <span class="ot">-&gt;</span> <span class="kw">do</span>
-      (<span class="dt">Just</span> inp, <span class="dt">Just</span> outp, _, phandle) <span class="ot">&lt;-</span> createProcess (proc (Txt.unpack cmd) []) { std_out <span class="fu">=</span> <span class="dt">CreatePipe</span>, std_in <span class="fu">=</span> <span class="dt">CreatePipe</span> }
-      hSetBuffering outp <span class="dt">NoBuffering</span>
-      hSetBuffering inp <span class="dt">LineBuffering</span>
-      pure <span class="fu">$</span> cleanText inp outp
-    <span class="co">-- | No external cleaner. Just make the text lower case</span>
-    <span class="dt">Nothing</span> <span class="ot">-&gt;</span>
-      pure <span class="fu">$</span> pure <span class="fu">.</span> Txt.toLower
-
-<span class="co">-- | Used by getCleaner to build a curried cleaner function</span>
-<span class="ot">cleanText ::</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span>
-cleanText inp outp txt <span class="fu">=</span> <span class="kw">do</span>
-  hPutStrLn inp <span class="fu">$</span> Txt.unpack (Txt.toLower txt)
-  pure <span class="fu">.</span> Txt.pack <span class="fu">=&lt;&lt;</span> hGetLine outp</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="co">-- | Build a 'cleaner'</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2"><span class="ot">getCleaner ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">getCleaner mcmd <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="kw">case</span> mcmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">    <span class="co">-- | The cleaner uses the extenal process to do the actual cleaning. One line is writtent to the processes' stdin and then a value is read from its stdout </span></a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">    <span class="dt">Just</span> cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">      (<span class="dt">Just</span> inp, <span class="dt">Just</span> outp, _, phandle) <span class="ot">&lt;-</span> createProcess (proc (Txt.unpack cmd) []) { std_out <span class="fu">=</span> <span class="dt">CreatePipe</span>, std_in <span class="fu">=</span> <span class="dt">CreatePipe</span> }</a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">      hSetBuffering outp <span class="dt">NoBuffering</span></a>
+<a class="sourceLine" id="cb9-9" data-line-number="9">      hSetBuffering inp <span class="dt">LineBuffering</span></a>
+<a class="sourceLine" id="cb9-10" data-line-number="10">      pure <span class="fu">$</span> cleanText inp outp</a>
+<a class="sourceLine" id="cb9-11" data-line-number="11">    <span class="co">-- | No external cleaner. Just make the text lower case</span></a>
+<a class="sourceLine" id="cb9-12" data-line-number="12">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb9-13" data-line-number="13">      pure <span class="fu">$</span> pure <span class="fu">.</span> Txt.toLower</a>
+<a class="sourceLine" id="cb9-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb9-15" data-line-number="15"><span class="co">-- | Used by getCleaner to build a curried cleaner function</span></a>
+<a class="sourceLine" id="cb9-16" data-line-number="16"><span class="ot">cleanText ::</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb9-17" data-line-number="17">cleanText inp outp txt <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-18" data-line-number="18">  hPutStrLn inp <span class="fu">$</span> Txt.unpack (Txt.toLower txt)</a>
+<a class="sourceLine" id="cb9-19" data-line-number="19">  pure <span class="fu">.</span> Txt.pack <span class="fu">=&lt;&lt;</span> hGetLine outp</a></code></pre></div>
 <p>The <strong>getCleaner</strong> function is passed (the optional) name of the cleaner script. If a script was specified then a processes is started and a curried <strong>cleanText</strong> function is returned as the cleaning function. If no script was specified then the returned cleaning function simply performs a toLower on the text.</p>
 <p><strong>cleanText</strong> writes a line to the input handle for the process and then immediately reads the response line.</p>
 <h1 id="reading-the-input-data">Reading the input data</h1>
 <p>TextClassifier has three parsers</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>CSV - one of the columns is the data column</li>
 <li>Lines - each line is the data</li>
 <li>Detail - same as line but additional information is printed for each input line</li>
 </ol>
 <p>whileM_ is used to read a line of input at a time. The line is then passed to the appropriate parsers, i.e. CSV, line or detail.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Read input a line at a time and pass it to the parser</span>
-whileM_ (not <span class="fu">&lt;$&gt;</span> <span class="dt">IO</span><span class="fu">.</span>hIsEOF (Args.hin opts)) <span class="fu">$</span> <span class="kw">do</span>
-  <span class="co">-- | line of data</span>
-  origChars <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>hGetLine <span class="fu">$</span> Args.hin opts
-  <span class="kw">let</span> origLine <span class="fu">=</span> Txt.pack origChars
-  
-  <span class="co">-- | parse the line and get the results to display</span>
-  parsed <span class="ot">&lt;-</span> <span class="kw">case</span> parser <span class="kw">of</span>
-              <span class="fu">---</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="co">-- | Read input a line at a time and pass it to the parser</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">whileM_ (not <span class="fu">&lt;$&gt;</span> <span class="dt">IO</span><span class="fu">.</span>hIsEOF (Args.hin opts)) <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="co">-- | line of data</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">  origChars <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>hGetLine <span class="fu">$</span> Args.hin opts</a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">  <span class="kw">let</span> origLine <span class="fu">=</span> Txt.pack origChars</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">  </a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">  <span class="co">-- | parse the line and get the results to display</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">  parsed <span class="ot">&lt;-</span> <span class="kw">case</span> parser <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">              <span class="co">---</span></a></code></pre></div>
 <h1 id="parsing-the-csv-data">Parsing the CSV Data</h1>
 <p><em>See ClassifyCsv.hs and Classify.hs</em></p>
 <p>I’m using <a href="https://hackage.haskell.org/package/cassava">Cassava</a> to read the CSV file as well as creating the output csv. Since I’m not interpreting any of the data apart from the text to be classified I’m simply reading the CSV as a vector of Text.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> contents <span class="fu">=</span> BL8.pack <span class="fu">.</span> Txt.unpack <span class="fu">$</span> line <span class="kw">in</span>
-<span class="kw">let</span> parsed <span class="fu">=</span> decode <span class="dt">NoHeader</span><span class="ot"> contents ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] (<span class="dt">V.Vector</span> [<span class="dt">Text</span>]) <span class="kw">in</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw">let</span> contents <span class="fu">=</span> BL8.pack <span class="fu">.</span> Txt.unpack <span class="fu">$</span> line <span class="kw">in</span></a>
+<a class="sourceLine" id="cb11-2" data-line-number="2"><span class="kw">let</span> parsed <span class="fu">=</span> decode <span class="dt">NoHeader</span><span class="ot"> contents ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] (<span class="dt">V.Vector</span> [<span class="dt">Text</span>]) <span class="kw">in</span></a></code></pre></div>
 <p>Given a vector of Text it is simple to get the column containing the text to classify. The <strong>parseCsvLine</strong> function returns a <strong>ParsedLine a</strong> type which contains the text to be classified.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">RawText</span> <span class="fu">=</span> <span class="dt">RawText</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)
-<span class="kw">data</span> <span class="dt">ParsedLine</span> a <span class="fu">=</span> <span class="dt">ParsedLine</span> <span class="dt">RawText</span> a <span class="kw">deriving</span> (<span class="dt">Show</span>)</code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw">newtype</span> <span class="dt">RawText</span> <span class="fu">=</span> <span class="dt">RawText</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="kw">data</span> <span class="dt">ParsedLine</span> a <span class="fu">=</span> <span class="dt">ParsedLine</span> <span class="dt">RawText</span> a <span class="kw">deriving</span> (<span class="dt">Show</span>)</a></code></pre></div>
 <p>Remember that each line of data must be cleaned. Rather than having <strong>parseCsvLine</strong> live in IO it returns a <strong>ParsedLine a</strong> type. The code in Main then calls the cleaner and passes the resulting <strong>CleanedLine a</strong> to <strong>categoriseCsvLine</strong>. This limits the amount of code that needs to be in IO. It also make the code easier to test (e.g. from the REPL) as the two functions can be tested independently.</p>
 <h1 id="tf-idf">Tf-Idf</h1>
 <h2 id="training-set">Training set</h2>
 <p><em>See ClassifyIO.hs</em></p>
 <p>The training set is a directory with a file per category. Each file contains the words for that category. To load the files the <strong>loadTrainingSet</strong> function is used</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">newtype</span> <span class="dt">Category</span> <span class="fu">=</span> <span class="dt">Category</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)
-<span class="kw">data</span> <span class="dt">TrainingSet</span> <span class="fu">=</span> <span class="dt">TrainingSet</span> [(<span class="dt">Category</span>, [<span class="dt">Text</span>])] <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="ot">loadTrainingSet ::</span> <span class="dt">Args.Options</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TrainingSet</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">newtype</span> <span class="dt">Category</span> <span class="fu">=</span> <span class="dt">Category</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="kw">data</span> <span class="dt">TrainingSet</span> <span class="fu">=</span> <span class="dt">TrainingSet</span> [(<span class="dt">Category</span>, [<span class="dt">Text</span>])] <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb13-4" data-line-number="4"><span class="ot">loadTrainingSet ::</span> <span class="dt">Args.Options</span> <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">TrainingSet</span></a></code></pre></div>
 <p>All .txt files in the directory are loaded and result in a category of words.</p>
 <h2 id="tf-idf-1">Tf-Idf</h2>
 <p><em>See TfIdf.hs</em></p>
@@ -187,94 +187,94 @@ whileM_ (not <span class="fu">&lt;$&gt;</span> <span class="dt">IO</span><span c
 <li>Document - a document of terms mapped to their TfIdf value</li>
 </ul>
 <p>the <strong>train</strong> function takes a <strong>TrainingSet</strong> and creates a <strong>TrainedData</strong></p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | A term is a single word</span>
-<span class="kw">newtype</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Term</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)
-<span class="co">-- | A category name</span>
-<span class="kw">newtype</span> <span class="dt">Category</span> <span class="fu">=</span> <span class="dt">Category</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)
-<span class="co">-- | Term frequency value</span>
-<span class="kw">newtype</span> <span class="dt">Tf</span> <span class="fu">=</span> <span class="dt">Tf</span> <span class="dt">Double</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)
-<span class="co">-- | Inverse document frequency value</span>
-<span class="kw">newtype</span> <span class="dt">Idf</span> <span class="fu">=</span> <span class="dt">Idf</span> <span class="dt">Double</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)
-<span class="co">-- | The combined Tf and Idf value</span>
-<span class="kw">newtype</span> <span class="dt">TfIdf</span> <span class="fu">=</span> <span class="dt">TfIdf</span> <span class="dt">Double</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)
-<span class="co">-- | A document is a map of terms to TfIdf</span>
-<span class="kw">newtype</span> <span class="dt">Document</span> <span class="fu">=</span> <span class="dt">Document</span> (<span class="dt">Map</span> <span class="dt">Term</span> <span class="dt">TfIdf</span>) <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-<span class="co">-- | Data making up the training set</span>
-<span class="kw">data</span> <span class="dt">TrainingSet</span> <span class="fu">=</span> <span class="dt">TrainingSet</span> [(<span class="dt">Category</span>, [<span class="dt">Text</span>])] <span class="kw">deriving</span> (<span class="dt">Show</span>)
-<span class="co">-- | The trained data, each category linked to a document</span>
-<span class="kw">data</span> <span class="dt">TrainedData</span> <span class="fu">=</span> <span class="dt">TrainedData</span> [(<span class="dt">Category</span>, <span class="dt">Document</span>)] <span class="kw">deriving</span> (<span class="dt">Show</span>)
-
-
-<span class="ot">train ::</span> <span class="dt">TrainingSet</span> <span class="ot">-&gt;</span> <span class="dt">TrainedData</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="co">-- | A term is a single word</span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2"><span class="kw">newtype</span> <span class="dt">Term</span> <span class="fu">=</span> <span class="dt">Term</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3"><span class="co">-- | A category name</span></a>
+<a class="sourceLine" id="cb14-4" data-line-number="4"><span class="kw">newtype</span> <span class="dt">Category</span> <span class="fu">=</span> <span class="dt">Category</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb14-5" data-line-number="5"><span class="co">-- | Term frequency value</span></a>
+<a class="sourceLine" id="cb14-6" data-line-number="6"><span class="kw">newtype</span> <span class="dt">Tf</span> <span class="fu">=</span> <span class="dt">Tf</span> <span class="dt">Double</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb14-7" data-line-number="7"><span class="co">-- | Inverse document frequency value</span></a>
+<a class="sourceLine" id="cb14-8" data-line-number="8"><span class="kw">newtype</span> <span class="dt">Idf</span> <span class="fu">=</span> <span class="dt">Idf</span> <span class="dt">Double</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb14-9" data-line-number="9"><span class="co">-- | The combined Tf and Idf value</span></a>
+<a class="sourceLine" id="cb14-10" data-line-number="10"><span class="kw">newtype</span> <span class="dt">TfIdf</span> <span class="fu">=</span> <span class="dt">TfIdf</span> <span class="dt">Double</span> <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb14-11" data-line-number="11"><span class="co">-- | A document is a map of terms to TfIdf</span></a>
+<a class="sourceLine" id="cb14-12" data-line-number="12"><span class="kw">newtype</span> <span class="dt">Document</span> <span class="fu">=</span> <span class="dt">Document</span> (<span class="dt">Map</span> <span class="dt">Term</span> <span class="dt">TfIdf</span>) <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb14-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb14-14" data-line-number="14"><span class="co">-- | Data making up the training set</span></a>
+<a class="sourceLine" id="cb14-15" data-line-number="15"><span class="kw">data</span> <span class="dt">TrainingSet</span> <span class="fu">=</span> <span class="dt">TrainingSet</span> [(<span class="dt">Category</span>, [<span class="dt">Text</span>])] <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb14-16" data-line-number="16"><span class="co">-- | The trained data, each category linked to a document</span></a>
+<a class="sourceLine" id="cb14-17" data-line-number="17"><span class="kw">data</span> <span class="dt">TrainedData</span> <span class="fu">=</span> <span class="dt">TrainedData</span> [(<span class="dt">Category</span>, <span class="dt">Document</span>)] <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb14-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb14-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb14-20" data-line-number="20"><span class="ot">train ::</span> <span class="dt">TrainingSet</span> <span class="ot">-&gt;</span> <span class="dt">TrainedData</span></a></code></pre></div>
 <p>Categorising text is handled by the <strong>categorise</strong> function. Given a collection of words it returns the best matching category if one was found. <strong>classifyDetail</strong> returns all possible matches sorted best match first. Both functions use cagegoriseWords to do the actual classification.</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Classify a line of text and try get the best matching category</span>
-<span class="ot">classify ::</span> <span class="dt">Args.Options</span> <span class="ot">-&gt;</span> <span class="dt">TrainedData</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Category</span>, <span class="dt">Double</span>) <span class="co">-- In Classify.hs</span>
-
-<span class="co">-- | Classify a line of text and get all matching categories, best first</span>
-<span class="ot">classifyDetail ::</span> <span class="dt">TrainedData</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [(<span class="dt">Category</span>, <span class="dt">Double</span>)] <span class="co">-- In Classify.hs</span>
-
-
-<span class="ot">categoriseWords ::</span> <span class="dt">TrainedData</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> [(<span class="dt">Category</span>, <span class="dt">Double</span>)]  <span class="co">-- in TfIdf.hs</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="co">-- | Classify a line of text and try get the best matching category</span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2"><span class="ot">classify ::</span> <span class="dt">Args.Options</span> <span class="ot">-&gt;</span> <span class="dt">TrainedData</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Category</span>, <span class="dt">Double</span>) <span class="co">-- In Classify.hs</span></a>
+<a class="sourceLine" id="cb15-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb15-4" data-line-number="4"><span class="co">-- | Classify a line of text and get all matching categories, best first</span></a>
+<a class="sourceLine" id="cb15-5" data-line-number="5"><span class="ot">classifyDetail ::</span> <span class="dt">TrainedData</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [(<span class="dt">Category</span>, <span class="dt">Double</span>)] <span class="co">-- In Classify.hs</span></a>
+<a class="sourceLine" id="cb15-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb15-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb15-8" data-line-number="8"><span class="ot">categoriseWords ::</span> <span class="dt">TrainedData</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> [(<span class="dt">Category</span>, <span class="dt">Double</span>)]  <span class="co">-- in TfIdf.hs</span></a></code></pre></div>
 <p>To calculate the Tf and the Idf values the following two functions are used</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Calgulate the term frequency for a collection of words</span>
-<span class="co">-- | Tf = occurrence / terms in document.</span>
-<span class="ot">calcTermFreq ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">Term</span> <span class="dt">Tf</span>
-calcTermFreq terms <span class="fu">=</span>
-  <span class="co">-- | Map of term to number of occurrences</span>
-  <span class="kw">let</span> freq <span class="fu">=</span> Map.fromListWith (<span class="fu">+</span>) [(<span class="dt">Term</span> t, <span class="dv">1</span>) <span class="fu">|</span> t <span class="ot">&lt;-</span> terms] <span class="kw">in</span>
-  <span class="co">-- | Document of Term to freq. Tf = occurrence count / terms in doc</span>
-  (\d <span class="ot">-&gt;</span> <span class="dt">Tf</span> <span class="fu">$</span> d <span class="fu">/</span> fromIntegral(length terms)) <span class="fu">&lt;$&gt;</span> freq
-
-<span class="co">-- | Claculate the term's inverse document frequency</span>
-<span class="co">-- | Idf = (tf + 1) / (number of documents + 1)</span>
-<span class="co">-- | + 1 is used to avoid divide by zero</span>
-<span class="ot">calcTermIdf ::</span> [<span class="dt">Map</span> <span class="dt">Term</span> a] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Idf</span>
-calcTermIdf termToTfs term <span class="fu">=</span>
-  <span class="kw">let</span> docsWithTerm <span class="fu">=</span> filter identity (Map.member term <span class="fu">&lt;$&gt;</span> termToTfs) <span class="kw">in</span>
-  <span class="dt">Idf</span> <span class="fu">$</span> log ((fromIntegral <span class="fu">.</span> length <span class="fu">$</span> termToTfs) <span class="fu">+</span> <span class="dv">1</span>) <span class="fu">/</span> ((fromIntegral <span class="fu">.</span> length <span class="fu">$</span> docsWithTerm) <span class="fu">+</span> <span class="dv">1</span>)</code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="co">-- | Calgulate the term frequency for a collection of words</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="co">-- | Tf = occurrence / terms in document.</span></a>
+<a class="sourceLine" id="cb16-3" data-line-number="3"><span class="ot">calcTermFreq ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">Term</span> <span class="dt">Tf</span></a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">calcTermFreq terms <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">  <span class="co">-- | Map of term to number of occurrences</span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">  <span class="kw">let</span> freq <span class="fu">=</span> Map.fromListWith (<span class="fu">+</span>) [(<span class="dt">Term</span> t, <span class="dv">1</span>) <span class="fu">|</span> t <span class="ot">&lt;-</span> terms] <span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-7" data-line-number="7">  <span class="co">-- | Document of Term to freq. Tf = occurrence count / terms in doc</span></a>
+<a class="sourceLine" id="cb16-8" data-line-number="8">  (\d <span class="ot">-&gt;</span> <span class="dt">Tf</span> <span class="fu">$</span> d <span class="fu">/</span> fromIntegral(length terms)) <span class="fu">&lt;$&gt;</span> freq</a>
+<a class="sourceLine" id="cb16-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb16-10" data-line-number="10"><span class="co">-- | Claculate the term's inverse document frequency</span></a>
+<a class="sourceLine" id="cb16-11" data-line-number="11"><span class="co">-- | Idf = (tf + 1) / (number of documents + 1)</span></a>
+<a class="sourceLine" id="cb16-12" data-line-number="12"><span class="co">-- | + 1 is used to avoid divide by zero</span></a>
+<a class="sourceLine" id="cb16-13" data-line-number="13"><span class="ot">calcTermIdf ::</span> [<span class="dt">Map</span> <span class="dt">Term</span> a] <span class="ot">-&gt;</span> <span class="dt">Term</span> <span class="ot">-&gt;</span> <span class="dt">Idf</span></a>
+<a class="sourceLine" id="cb16-14" data-line-number="14">calcTermIdf termToTfs term <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-15" data-line-number="15">  <span class="kw">let</span> docsWithTerm <span class="fu">=</span> filter identity (Map.member term <span class="fu">&lt;$&gt;</span> termToTfs) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-16" data-line-number="16">  <span class="dt">Idf</span> <span class="fu">$</span> log ((fromIntegral <span class="fu">.</span> length <span class="fu">$</span> termToTfs) <span class="fu">+</span> <span class="dv">1</span>) <span class="fu">/</span> ((fromIntegral <span class="fu">.</span> length <span class="fu">$</span> docsWithTerm) <span class="fu">+</span> <span class="dv">1</span>)</a></code></pre></div>
 <p>Notice that there is no need for IO at all in the TfIdf module. It is given a loaded training set and cleaned text to classify.</p>
 <p>The classification is then just finding the category with the closest matching tf-idf value</p>
-<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- | Calculate how well terms matches categories</span>
-<span class="ot">compareToCategory ::</span> [(<span class="dt">Term</span>,<span class="dt">TfIdf</span>)] <span class="ot">-&gt;</span> (<span class="dt">Category</span>, <span class="dt">Document</span>) <span class="ot">-&gt;</span> (<span class="dt">Category</span>, <span class="dt">Double</span>)
-compareToCategory searchTfIdf (cat, <span class="dt">Document</span> catMap) <span class="fu">=</span>
-  <span class="kw">let</span> catList <span class="fu">=</span> Map.toList catMap <span class="kw">in</span>
-
-  <span class="co">-- | common words in the category and the search text</span>
-  <span class="kw">let</span> common <span class="fu">=</span> Lst.intersectBy sameTerm catList searchTfIdf <span class="kw">in</span>
-  <span class="kw">let</span> commonV <span class="fu">=</span> sum <span class="fu">$</span> valFromTfIdf <span class="fu">.</span> snd <span class="fu">&lt;$&gt;</span> common <span class="kw">in</span>
-
-  <span class="co">-- | Sum of all the TfIdf values</span>
-  <span class="kw">let</span> allV <span class="fu">=</span> sum (valFromTfIdf <span class="fu">.</span> snd <span class="fu">&lt;$&gt;</span> searchTfIdf) <span class="fu">+</span> sum (valFromTfIdf <span class="fu">.</span> snd <span class="fu">&lt;$&gt;</span> catList) <span class="kw">in</span>
-  
-  <span class="co">-- | Similarity = ((common a) + (common b)) / (sum all tfIdf)</span>
-  (cat, (commonV <span class="fu">*</span> <span class="dv">2</span>) <span class="fu">/</span> allV)</code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="co">-- | Calculate how well terms matches categories</span></a>
+<a class="sourceLine" id="cb17-2" data-line-number="2"><span class="ot">compareToCategory ::</span> [(<span class="dt">Term</span>,<span class="dt">TfIdf</span>)] <span class="ot">-&gt;</span> (<span class="dt">Category</span>, <span class="dt">Document</span>) <span class="ot">-&gt;</span> (<span class="dt">Category</span>, <span class="dt">Double</span>)</a>
+<a class="sourceLine" id="cb17-3" data-line-number="3">compareToCategory searchTfIdf (cat, <span class="dt">Document</span> catMap) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb17-4" data-line-number="4">  <span class="kw">let</span> catList <span class="fu">=</span> Map.toList catMap <span class="kw">in</span></a>
+<a class="sourceLine" id="cb17-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb17-6" data-line-number="6">  <span class="co">-- | common words in the category and the search text</span></a>
+<a class="sourceLine" id="cb17-7" data-line-number="7">  <span class="kw">let</span> common <span class="fu">=</span> Lst.intersectBy sameTerm catList searchTfIdf <span class="kw">in</span></a>
+<a class="sourceLine" id="cb17-8" data-line-number="8">  <span class="kw">let</span> commonV <span class="fu">=</span> sum <span class="fu">$</span> valFromTfIdf <span class="fu">.</span> snd <span class="fu">&lt;$&gt;</span> common <span class="kw">in</span></a>
+<a class="sourceLine" id="cb17-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb17-10" data-line-number="10">  <span class="co">-- | Sum of all the TfIdf values</span></a>
+<a class="sourceLine" id="cb17-11" data-line-number="11">  <span class="kw">let</span> allV <span class="fu">=</span> sum (valFromTfIdf <span class="fu">.</span> snd <span class="fu">&lt;$&gt;</span> searchTfIdf) <span class="fu">+</span> sum (valFromTfIdf <span class="fu">.</span> snd <span class="fu">&lt;$&gt;</span> catList) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb17-12" data-line-number="12">  </a>
+<a class="sourceLine" id="cb17-13" data-line-number="13">  <span class="co">-- | Similarity = ((common a) + (common b)) / (sum all tfIdf)</span></a>
+<a class="sourceLine" id="cb17-14" data-line-number="14">  (cat, (commonV <span class="fu">*</span> <span class="dv">2</span>) <span class="fu">/</span> allV)</a></code></pre></div>
 <h1 id="using-txtcls">Using txtcls</h1>
 <h2 id="building">Building</h2>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">git</span> clone git@github.com:andrevdm/TextClassify.git
-<span class="kw">stack</span> build</code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="fu">git</span> clone git@github.com:andrevdm/TextClassify.git</a>
+<a class="sourceLine" id="cb18-2" data-line-number="2"><span class="ex">stack</span> build</a></code></pre></div>
 <h2 id="installing">Installing</h2>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">stack</span> install</code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb19-1" data-line-number="1"><span class="ex">stack</span> install</a></code></pre></div>
 <p>This will install txtcls into your local stack bin folder.</p>
 <h2 id="usage-instructions">Usage Instructions</h2>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">txtcls</span> --help</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode email"><code class="sourceCode email">txtcls - Text Classifier. Version 0.1.2
-
-Usage: txtcls --train TEXT [--input TEXT] [--parser TEXT] [--popts TEXT]
-              [--clean TEXT]
-
-Available options:
-  -h,--help                Show this help text
-  --train TEXT             Path to training data
-  --input TEXT             Input file to categorise. If missing stdin will be
-                           used
-  --parser TEXT            Parser type, defaults to lines. Options are
-                           lines/detail/csv
-  --popts TEXT             Parser options
-  --clean TEXT             Options name of text cleaner - see docs</code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="ex">txtcls</span> --help</a></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode email"><code class="sourceCode email"><a class="sourceLine" id="cb21-1" data-line-number="1">txtcls - Text Classifier. Version 0.1.2</a>
+<a class="sourceLine" id="cb21-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb21-3" data-line-number="3">Usage: txtcls --train TEXT [--input TEXT] [--parser TEXT] [--popts TEXT]</a>
+<a class="sourceLine" id="cb21-4" data-line-number="4">              [--clean TEXT]</a>
+<a class="sourceLine" id="cb21-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb21-6" data-line-number="6">Available options:</a>
+<a class="sourceLine" id="cb21-7" data-line-number="7">  -h,--help                Show this help text</a>
+<a class="sourceLine" id="cb21-8" data-line-number="8">  --train TEXT             Path to training data</a>
+<a class="sourceLine" id="cb21-9" data-line-number="9">  --input TEXT             Input file to categorise. If missing stdin will be</a>
+<a class="sourceLine" id="cb21-10" data-line-number="10">                           used</a>
+<a class="sourceLine" id="cb21-11" data-line-number="11">  --parser TEXT            Parser type, defaults to lines. Options are</a>
+<a class="sourceLine" id="cb21-12" data-line-number="12">                           lines/detail/csv</a>
+<a class="sourceLine" id="cb21-13" data-line-number="13">  --popts TEXT             Parser options</a>
+<a class="sourceLine" id="cb21-14" data-line-number="14">  --clean TEXT             Options name of text cleaner - see docs</a></code></pre></div>
 <h2 id="usage-examples">Usage examples</h2>
 <p>The examples folder contains scripts showing how txtcls can be used. The files are</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li>cleanText.sed - sed script for cleaning the words</li>
 <li>skipLines.awk - awk script for skipping lines in the input CSV</li>
 <li>egLines.txt - example of data where each line is the data</li>
@@ -290,44 +290,44 @@ Available options:
 <li>trainingData/hasekll.txt</li>
 </ol>
 <h2 id="lines">Lines</h2>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">txtcls</span> --train ./trainingData --input egLines.txt --parser lines --clean ./cleanText.sed</code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="ex">txtcls</span> --train ./trainingData --input egLines.txt --parser lines --clean ./cleanText.sed</a></code></pre></div>
 <p>Where</p>
 <ul>
-<li><code class="sourceCode bash"><span class="kw">--train</span> ./trainingData</code>
+<li><code class="sourceCode bash"><span class="ex">--train</span> ./trainingData</code>
 <ul>
 <li>is the path to the folder with the training data</li>
 </ul></li>
-<li><code class="sourceCode bash"><span class="kw">--input</span> egLines.txt</code>
+<li><code class="sourceCode bash"><span class="ex">--input</span> egLines.txt</code>
 <ul>
 <li>is the data source to classify</li>
 </ul></li>
-<li><code class="sourceCode bash"><span class="kw">--parser</span> lines</code>
+<li><code class="sourceCode bash"><span class="ex">--parser</span> lines</code>
 <ul>
 <li>is the parser to use</li>
 </ul></li>
-<li><code class="sourceCode bash"><span class="kw">--clean</span> ./cleanText.sed</code>
+<li><code class="sourceCode bash"><span class="ex">--clean</span> ./cleanText.sed</code>
 <ul>
 <li>is the external process or script to use to clean the text</li>
 </ul></li>
 </ul>
 <h3 id="detail">Detail</h3>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">txtcls</span> --train ./trainingData --input egLines.txt --parser detail --clean ./cleanText.sed</code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb23-1" data-line-number="1"><span class="ex">txtcls</span> --train ./trainingData --input egLines.txt --parser detail --clean ./cleanText.sed</a></code></pre></div>
 <p>Where</p>
 <ul>
-<li><code class="sourceCode bash"><span class="kw">--parser</span> detail</code>
+<li><code>--parser detail</code> {.bash}
 <ul>
 <li>is the parser to use</li>
 </ul></li>
 </ul>
 <h3 id="csv">CSV</h3>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">txtcls</span> --train ./trainingData --input egCsv.csv --parser csv --popts 2 --clean ./cleanText.sed <span class="kw">|</span> <span class="kw">column</span> -s , -t</code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="ex">txtcls</span> --train ./trainingData --input egCsv.csv --parser csv --popts 2 --clean ./cleanText.sed <span class="kw">|</span> <span class="ex">column</span> -s , -t</a></code></pre></div>
 <p>Where</p>
 <ul>
-<li><code class="sourceCode bash"><span class="kw">--popts</span> 2</code>
+<li><code>--popts 2</code> {.bash}
 <ul>
 <li>is column in the CSV data that contains the data to classify</li>
 </ul></li>
-<li><code class="sourceCode bash"><span class="kw">|</span> <span class="kw">column</span> -s , -t</code>
+<li><code>| column -s , -t</code> {.bash}
 <ul>
 <li>pipes the resulting CSV to column to display it as a table in the terminal window</li>
 </ul></li>
@@ -336,13 +336,13 @@ Available options:
 <pre class="./bash"><code>skipLines.awk egCsvWithHeader.csv | txtcls --train ./trainingData --parser csv --popts 2 --clean ./cleanText.sed | column -s , -t</code></pre>
 <p>Where</p>
 <ul>
-<li><code class="sourceCode bash"><span class="kw">./skipLines.awk</span> egCsvWithHeader.csv <span class="kw">|</span></code>
+<li><code class="sourceCode bash"><span class="ex">./skipLines.awk</span> egCsvWithHeader.csv <span class="kw">|</span></code>
 <ul>
 <li>uses the awk script to remove 4 lines from the input CSV. Note that there is no <code>--input</code> paramter so the input is read from stdin (here the output of awk)</li>
 </ul></li>
 </ul>
 <h3 id="interactive">interactive</h3>
-<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">txtcls</span> --train ./trainingData --parser detail --clean ./cleanText.sed</code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="ex">txtcls</span> --train ./trainingData --parser detail --clean ./cleanText.sed</a></code></pre></div>
 <h1 id="in-conclusion">In conclusion</h1>
 <p>The source code for TextClassify is available and commented. You should hopefully be able to look at it and understand how it was implemented.</p>
 <p>The important things to notice are</p>
@@ -354,7 +354,7 @@ Available options:
 <li>Tf-Idf is a relatively simple but quite accurate way to classify simple documents</li>
 </ul>
 <h1 id="links">Links</h1>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li><a href="https://github.com/andrevdm/TextClassify">Source code for the examples</a></li>
 <li><a href="https://hackage.haskell.org/package/optparse-generic">OptParse-generic</a></li>
 <li><a href="https://hackage.haskell.org/package/cassava">Cassava</a></li>
