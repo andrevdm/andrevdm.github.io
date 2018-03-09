@@ -20,6 +20,7 @@
     
 </div>
 
+<p><em>(updated: 09/March/2018 - includes, local path &amp; html, css and js support)</em></p>
 <p>Ensuring that the code you include in a blog post is up to date and works can be a bit of a pain. Often I’ll change code while writing a post and then I have to find and copy anything that has changed. This is manual and error prone.</p>
 <p>Fortunately <a href="https://hackage.haskell.org/package/hakyll">Hakyll</a> is reasonably easy to customise. Here I’ll show one way to write a hakyll compiler to help with this issue.</p>
 <h1 id="goal">Goal</h1>
@@ -104,7 +105,7 @@
 <a class="sourceLine" id="cb4-6" data-line-number="6">            <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/default.html&quot;</span> postCtx</a>
 <a class="sourceLine" id="cb4-7" data-line-number="7">            <span class="fu">&gt;&gt;=</span> relativizeUrls</a></code></pre></div>
 <p>Lets modify this route to use a new compiler named <strong>includeCodeCompiler</strong> and pipe that output through pandoc</p>
-<h6 id="site.hs-32-to-39">site.hs (32 to 39)</h6>
+<h6 id="stack-workinterointero5986g3f-temp.hs-32-to-39">.stack-work/intero/intero5986G3f-TEMP.hs (32 to 39)</h6>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">    match <span class="st">&quot;posts/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
 <a class="sourceLine" id="cb5-2" data-line-number="2">        route <span class="fu">$</span> setExtension <span class="st">&quot;html&quot;</span></a>
 <a class="sourceLine" id="cb5-3" data-line-number="3">        compile <span class="fu">$</span> includeCodeCompiler</a>
@@ -120,7 +121,7 @@
 </ol>
 <h2 id="preliminaries">Preliminaries</h2>
 <p>Here are the imports I’m using</p>
-<h6 id="site.hs-2-to-20">site.hs (2 to 20)</h6>
+<h6 id="stack-workinterointero5986g3f-temp.hs-2-to-20">.stack-work/intero/intero5986G3f-TEMP.hs (2 to 20)</h6>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
 <a class="sourceLine" id="cb6-2" data-line-number="2"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></a>
 <a class="sourceLine" id="cb6-3" data-line-number="3"><span class="ot">{-# LANGUAGE LambdaCase #-}</span></a>
@@ -141,7 +142,7 @@
 <a class="sourceLine" id="cb6-18" data-line-number="18"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">System.Directory</span> <span class="kw">as</span> <span class="dt">Dir</span></a>
 <a class="sourceLine" id="cb6-19" data-line-number="19"><span class="kw">import</span>           <span class="dt">Control.Exception.Safe</span> (onException, throwString)</a></code></pre></div>
 <p>And a few helper functions for running shell processes and finding files</p>
-<h6 id="site.hs-198-to-228">site.hs (198 to 228)</h6>
+<h6 id="stack-workinterointero5986g3f-temp.hs-220-to-250">.stack-work/intero/intero5986G3f-TEMP.hs (220 to 250)</h6>
 <div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">runShell&#39; ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
 <a class="sourceLine" id="cb7-2" data-line-number="2">runShell&#39; workingDir cmd <span class="fu">=</span> <span class="kw">do</span></a>
 <a class="sourceLine" id="cb7-3" data-line-number="3">  putText cmd</a>
@@ -174,7 +175,7 @@
 <a class="sourceLine" id="cb7-30" data-line-number="30">  entries <span class="ot">&lt;-</span> (p <span class="fu">&lt;/&gt;</span>) <span class="fu">&lt;&lt;$&gt;&gt;</span> Dir.listDirectory p</a>
 <a class="sourceLine" id="cb7-31" data-line-number="31">  filterM Dir.doesFileExist entries</a></code></pre></div>
 <h2 id="the-includecodecompiler">The includeCodeCompiler</h2>
-<h6 id="site.hs-51-to-66">site.hs (51 to 66)</h6>
+<h6 id="stack-workinterointero5986g3f-temp.hs-51-to-66">.stack-work/intero/intero5986G3f-TEMP.hs (51 to 66)</h6>
 <div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">includeCodeCompiler ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</a>
 <a class="sourceLine" id="cb8-2" data-line-number="2">includeCodeCompiler <span class="fu">=</span> <span class="kw">do</span></a>
 <a class="sourceLine" id="cb8-3" data-line-number="3">  p <span class="ot">&lt;-</span> getResourceFilePath</a>
@@ -190,47 +191,56 @@
 <a class="sourceLine" id="cb8-13" data-line-number="13"><span class="ot">    includeCompile&#39; ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></a>
 <a class="sourceLine" id="cb8-14" data-line-number="14">    includeCompile&#39; source <span class="fu">=</span> <span class="kw">do</span></a>
 <a class="sourceLine" id="cb8-15" data-line-number="15">      <span class="kw">let</span> ls1 <span class="fu">=</span> Txt.lines <span class="fu">$</span> Txt.pack source </a>
-<a class="sourceLine" id="cb8-16" data-line-number="16">      <span class="kw">let</span> (sourceNoSetup, repoPath&#39;, sha&#39;, cmds&#39;) <span class="fu">=</span> getConfig ls1 </a></code></pre></div>
+<a class="sourceLine" id="cb8-16" data-line-number="16">      <span class="kw">let</span> (sourceNoSetup, repoPath&#39;, sha&#39;, cmds&#39;, path&#39;) <span class="fu">=</span> getConfig ls1 </a></code></pre></div>
 <p>A pandoc compiler has the type <code>Compiler (Item String)</code>. Since this compiler needs to read file it has to be able to perform IO. To allow IO the <code>unsafeCompiler</code> function is used.</p>
 <p>So this code, gets the current file path, the item body and starts the includeCompile in IO</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1">  p <span class="ot">&lt;-</span> getResourceFilePath</a>
 <a class="sourceLine" id="cb9-2" data-line-number="2">  getResourceString <span class="fu">&gt;&gt;=</span> withItemBody (unsafeCompiler <span class="fu">.</span> includeCompile p)</a></code></pre></div>
 <p><code>onException</code> is used to print the name of the file being compiled if there is an exception.</p>
 <p>Once the config (repo, sha and commands) have been read the main compiler logic can be run.</p>
-<h6 id="site.hs-70-to-101">site.hs (70 to 101)</h6>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1">      <span class="kw">case</span> (repoPath&#39;, sha&#39;, cmds&#39;) <span class="kw">of</span></a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">        (<span class="dt">Nothing</span>, <span class="dt">Nothing</span>, []) <span class="ot">-&gt;</span> pure <span class="fu">$</span> Txt.unpack <span class="fu">.</span> Txt.unlines <span class="fu">$</span> sourceNoSetup</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">        (<span class="dt">Just</span> _, <span class="dt">Nothing</span>, _) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No sha found&quot;</span></a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">        (<span class="dt">Just</span> _, _, []) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No run commands found&quot;</span></a>
-<a class="sourceLine" id="cb10-5" data-line-number="5">        (<span class="dt">Nothing</span>, _, (_<span class="fu">:</span>_)) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No repo setup found&quot;</span></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6">        (<span class="dt">Nothing</span>, <span class="dt">Just</span> _, []) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No repo setup found&quot;</span></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">        (<span class="dt">Just</span> repoPath, <span class="dt">Just</span> sha, cmds) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8">          root <span class="ot">&lt;-</span> Dir.getCurrentDirectory</a>
-<a class="sourceLine" id="cb10-9" data-line-number="9">          <span class="kw">let</span> tempPath <span class="fu">=</span> root <span class="fu">&lt;/&gt;</span> tmpDirectory defaultConfiguration <span class="fu">&lt;/&gt;</span> <span class="st">&quot;codeIncludeGit&quot;</span></a>
-<a class="sourceLine" id="cb10-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb10-11" data-line-number="11">          <span class="co">-- Cleanup from previous post</span></a>
-<a class="sourceLine" id="cb10-12" data-line-number="12">          removeDirectoryRecursiveIfExists tempPath</a>
-<a class="sourceLine" id="cb10-13" data-line-number="13">          Dir.createDirectoryIfMissing <span class="dt">True</span> tempPath</a>
-<a class="sourceLine" id="cb10-14" data-line-number="14">          <span class="co">-- Clone the git repo</span></a>
-<a class="sourceLine" id="cb10-15" data-line-number="15">          runShell&#39; root <span class="fu">$</span> <span class="st">&quot;git clone \&quot;&quot;</span> <span class="fu">&lt;&gt;</span> repoPath <span class="fu">&lt;&gt;</span> <span class="st">&quot;\&quot; \&quot;&quot;</span> <span class="fu">&lt;&gt;</span> Txt.pack tempPath <span class="fu">&lt;&gt;</span> <span class="st">&quot;\&quot;&quot;</span></a>
-<a class="sourceLine" id="cb10-16" data-line-number="16">          <span class="co">-- Goto the correct sha (if it was specified)</span></a>
-<a class="sourceLine" id="cb10-17" data-line-number="17">          gotoSha sha tempPath</a>
-<a class="sourceLine" id="cb10-18" data-line-number="18">          <span class="co">-- Execute the run commands (buid, test etc)</span></a>
-<a class="sourceLine" id="cb10-19" data-line-number="19">          executeRunCommands cmds tempPath</a>
-<a class="sourceLine" id="cb10-20" data-line-number="20">          <span class="co">-- Delete all dirs we are not interested in (exclude .git and .stack-work)</span></a>
-<a class="sourceLine" id="cb10-21" data-line-number="21">          removeDirectoryRecursiveIfExists <span class="fu">$</span> tempPath <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.git&quot;</span></a>
-<a class="sourceLine" id="cb10-22" data-line-number="22">          removeDirectoryRecursiveIfExists <span class="fu">$</span> tempPath <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.stack-work&quot;</span></a>
-<a class="sourceLine" id="cb10-23" data-line-number="23">          <span class="co">-- Get all files in the repo </span></a>
-<a class="sourceLine" id="cb10-24" data-line-number="24">          files <span class="ot">&lt;-</span> getFilesRec tempPath</a>
-<a class="sourceLine" id="cb10-25" data-line-number="25">          <span class="co">-- All sections from all files</span></a>
-<a class="sourceLine" id="cb10-26" data-line-number="26">          sections&#39; <span class="ot">&lt;-</span> Map.fromList <span class="fu">.</span> concat <span class="fu">&lt;$&gt;</span> traverse getSections files</a>
-<a class="sourceLine" id="cb10-27" data-line-number="27">          <span class="kw">let</span> sections <span class="fu">=</span> Map.map (\(p, s, e, ls) <span class="ot">-&gt;</span> (drop (length tempPath <span class="fu">+</span> <span class="dv">1</span>) p, s, e, ls)) sections&#39; </a>
-<a class="sourceLine" id="cb10-28" data-line-number="28">          <span class="co">-- Replace sections in the file</span></a>
-<a class="sourceLine" id="cb10-29" data-line-number="29">          replaced&#39; <span class="ot">&lt;-</span> traverse (replaceLineSection sections) sourceNoSetup</a>
-<a class="sourceLine" id="cb10-30" data-line-number="30">          <span class="kw">let</span> replaced <span class="fu">=</span> Txt.unlines <span class="fu">.</span> concat <span class="fu">$</span> replaced&#39;</a>
-<a class="sourceLine" id="cb10-31" data-line-number="31">          <span class="co">-- Replace sha and repo tokens</span></a>
-<a class="sourceLine" id="cb10-32" data-line-number="32">          pure <span class="fu">.</span> Txt.unpack <span class="fu">.</span> Txt.replace <span class="st">&quot;f3c9bfa85757304dd9ecf0082625f9bc2de83cb5&quot;</span> sha <span class="fu">$</span> Txt.replace <span class="st">&quot;https://gist.github.com/53e179c4244411493ae1f9deebc3cc3f.git&quot;</span> repoPath replaced</a></code></pre></div>
-<h6 id="site.hs-105-to-112">site.hs (105 to 112)</h6>
+<h6 id="stack-workinterointero5986g3f-temp.hs-70-to-110">.stack-work/intero/intero5986G3f-TEMP.hs (70 to 110)</h6>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1">      <span class="kw">case</span> path&#39; <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">          <span class="kw">case</span> (repoPath&#39;, sha&#39;, cmds&#39;) <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">            (<span class="dt">Nothing</span>, <span class="dt">Nothing</span>, []) <span class="ot">-&gt;</span> pure <span class="fu">$</span> Txt.unpack <span class="fu">.</span> Txt.unlines <span class="fu">$</span> sourceNoSetup</a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">            (<span class="dt">Just</span> _, <span class="dt">Nothing</span>, _) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No sha found&quot;</span></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">            (<span class="dt">Just</span> _, _, []) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No run commands found&quot;</span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">            (<span class="dt">Nothing</span>, _, (_<span class="fu">:</span>_)) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No repo setup found&quot;</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">            (<span class="dt">Nothing</span>, <span class="dt">Just</span> _, []) <span class="ot">-&gt;</span> throwString <span class="st">&quot;No repo setup found&quot;</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">            (<span class="dt">Just</span> repoPath, <span class="dt">Just</span> sha, cmds) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb10-10" data-line-number="10">              root <span class="ot">&lt;-</span> Dir.getCurrentDirectory</a>
+<a class="sourceLine" id="cb10-11" data-line-number="11">              <span class="kw">let</span> tempPath <span class="fu">=</span> root <span class="fu">&lt;/&gt;</span> tmpDirectory defaultConfiguration <span class="fu">&lt;/&gt;</span> <span class="st">&quot;codeIncludeGit&quot;</span></a>
+<a class="sourceLine" id="cb10-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb10-13" data-line-number="13">              <span class="co">-- Cleanup from previous post</span></a>
+<a class="sourceLine" id="cb10-14" data-line-number="14">              removeDirectoryRecursiveIfExists tempPath</a>
+<a class="sourceLine" id="cb10-15" data-line-number="15">              Dir.createDirectoryIfMissing <span class="dt">True</span> tempPath</a>
+<a class="sourceLine" id="cb10-16" data-line-number="16">              <span class="co">-- Clone the git repo</span></a>
+<a class="sourceLine" id="cb10-17" data-line-number="17">              runShell&#39; root <span class="fu">$</span> <span class="st">&quot;git clone \&quot;&quot;</span> <span class="fu">&lt;&gt;</span> repoPath <span class="fu">&lt;&gt;</span> <span class="st">&quot;\&quot; \&quot;&quot;</span> <span class="fu">&lt;&gt;</span> Txt.pack tempPath <span class="fu">&lt;&gt;</span> <span class="st">&quot;\&quot;&quot;</span></a>
+<a class="sourceLine" id="cb10-18" data-line-number="18">              <span class="co">-- Goto the correct sha (if it was specified)</span></a>
+<a class="sourceLine" id="cb10-19" data-line-number="19">              gotoSha sha tempPath</a>
+<a class="sourceLine" id="cb10-20" data-line-number="20">              <span class="co">-- Execute the run commands (buid, test etc)</span></a>
+<a class="sourceLine" id="cb10-21" data-line-number="21">              executeRunCommands cmds tempPath</a>
+<a class="sourceLine" id="cb10-22" data-line-number="22">              <span class="co">-- Delete all dirs we are not interested in (exclude .git and .stack-work)</span></a>
+<a class="sourceLine" id="cb10-23" data-line-number="23">              removeDirectoryRecursiveIfExists <span class="fu">$</span> tempPath <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.git&quot;</span></a>
+<a class="sourceLine" id="cb10-24" data-line-number="24">              removeDirectoryRecursiveIfExists <span class="fu">$</span> tempPath <span class="fu">&lt;/&gt;</span> <span class="st">&quot;.stack-work&quot;</span></a>
+<a class="sourceLine" id="cb10-25" data-line-number="25">              includeCode tempPath repoPath sha sourceNoSetup</a>
+<a class="sourceLine" id="cb10-26" data-line-number="26"></a>
+<a class="sourceLine" id="cb10-27" data-line-number="27">        <span class="dt">Just</span> path <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb10-28" data-line-number="28">          includeCode (Txt.unpack path) <span class="st">&quot;**local**&quot;</span> <span class="st">&quot;**local**&quot;</span> sourceNoSetup</a>
+<a class="sourceLine" id="cb10-29" data-line-number="29"></a>
+<a class="sourceLine" id="cb10-30" data-line-number="30">    includeCode tempPath repoPath sha sourceNoSetup <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb10-31" data-line-number="31">      <span class="co">-- Get all files in the repo </span></a>
+<a class="sourceLine" id="cb10-32" data-line-number="32">      files <span class="ot">&lt;-</span> getFilesRec tempPath</a>
+<a class="sourceLine" id="cb10-33" data-line-number="33">      <span class="co">-- All sections from all files</span></a>
+<a class="sourceLine" id="cb10-34" data-line-number="34">      sections&#39; <span class="ot">&lt;-</span> Map.fromList <span class="fu">.</span> concat <span class="fu">&lt;$&gt;</span> traverse getSections files</a>
+<a class="sourceLine" id="cb10-35" data-line-number="35">      <span class="kw">let</span> sections <span class="fu">=</span> Map.map (\(p, s, e, lang, ls) <span class="ot">-&gt;</span> (drop (length tempPath <span class="fu">+</span> <span class="dv">1</span>) p, s, e, lang, ls)) sections&#39; </a>
+<a class="sourceLine" id="cb10-36" data-line-number="36">      <span class="co">-- Replace sections in the file</span></a>
+<a class="sourceLine" id="cb10-37" data-line-number="37">      replaced&#39; <span class="ot">&lt;-</span> traverse (replaceCodeLineSection tempPath sections) sourceNoSetup</a>
+<a class="sourceLine" id="cb10-38" data-line-number="38">      <span class="kw">let</span> replaced <span class="fu">=</span> Txt.unlines <span class="fu">.</span> concat <span class="fu">$</span> replaced&#39;</a>
+<a class="sourceLine" id="cb10-39" data-line-number="39">      <span class="co">-- Replace sha and repo tokens</span></a>
+<a class="sourceLine" id="cb10-40" data-line-number="40">      pure <span class="fu">.</span> Txt.unpack <span class="fu">.</span> Txt.replace <span class="st">&quot;**local**&quot;</span> sha <span class="fu">$</span> Txt.replace <span class="st">&quot;**local**&quot;</span> repoPath replaced</a>
+<a class="sourceLine" id="cb10-41" data-line-number="41">  </a></code></pre></div>
+<h6 id="stack-workinterointero5986g3f-temp.hs-114-to-121">.stack-work/intero/intero5986G3f-TEMP.hs (114 to 121)</h6>
 <div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="ot">    executeRunCommands ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
 <a class="sourceLine" id="cb11-2" data-line-number="2">    executeRunCommands cmds path <span class="fu">=</span> </a>
 <a class="sourceLine" id="cb11-3" data-line-number="3">      traverse_ (runShell&#39; path) cmds</a>
@@ -250,87 +260,107 @@
 </ol>
 <h2 id="details">Details</h2>
 <p>Loading the config is done quite simply by filtering the source lines</p>
-<h6 id="site.hs-117-to-131">site.hs (117 to 131)</h6>
+<h6 id="stack-workinterointero5986g3f-temp.hs-126-to-142">.stack-work/intero/intero5986G3f-TEMP.hs (126 to 142)</h6>
 <div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">    getConfig ls <span class="fu">=</span></a>
 <a class="sourceLine" id="cb12-2" data-line-number="2">      <span class="kw">let</span></a>
-<a class="sourceLine" id="cb12-3" data-line-number="3">        cfgRepo <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.repo&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-4" data-line-number="4">        cfgSha <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.sha&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-5" data-line-number="5">        cfgRun <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.run&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-6" data-line-number="6">        repo <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgRepo) ls)</a>
-<a class="sourceLine" id="cb12-7" data-line-number="7">        sha <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgSha) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgSha) ls)</a>
-<a class="sourceLine" id="cb12-8" data-line-number="8">        run <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRun) <span class="fu">&lt;$&gt;</span> filter (Txt.isPrefixOf cfgRun) ls</a>
-<a class="sourceLine" id="cb12-9" data-line-number="9">      <span class="kw">in</span></a>
-<a class="sourceLine" id="cb12-10" data-line-number="10">      (filter (not <span class="fu">.</span> Txt.isPrefixOf <span class="st">&quot;[&lt;code setup.&quot;</span>) ls, repo, sha, run)</a>
-<a class="sourceLine" id="cb12-11" data-line-number="11">        </a>
-<a class="sourceLine" id="cb12-12" data-line-number="12">    removeDirectoryRecursiveIfExists p <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb12-13" data-line-number="13">      Dir.doesDirectoryExist p <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
-<a class="sourceLine" id="cb12-14" data-line-number="14">        <span class="dt">True</span> <span class="ot">-&gt;</span> Dir.removeDirectoryRecursive p</a>
-<a class="sourceLine" id="cb12-15" data-line-number="15">        <span class="dt">False</span> <span class="ot">-&gt;</span> pass</a></code></pre></div>
+<a class="sourceLine" id="cb12-3" data-line-number="3">        cfgPath <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.path&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">        cfgRepo <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.repo&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">        cfgSha <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.sha&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">        cfgRun <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.run&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">        path <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgPath) ls)</a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">        repo <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgRepo) ls)</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">        sha <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgSha) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgSha) ls)</a>
+<a class="sourceLine" id="cb12-10" data-line-number="10">        run <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRun) <span class="fu">&lt;$&gt;</span> filter (Txt.isPrefixOf cfgRun) ls</a>
+<a class="sourceLine" id="cb12-11" data-line-number="11">      <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-12" data-line-number="12">      (filter (not <span class="fu">.</span> Txt.isPrefixOf <span class="st">&quot;[&lt;code setup.&quot;</span>) ls, repo, sha, run, path)</a>
+<a class="sourceLine" id="cb12-13" data-line-number="13">        </a>
+<a class="sourceLine" id="cb12-14" data-line-number="14">    removeDirectoryRecursiveIfExists p <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb12-15" data-line-number="15">      Dir.doesDirectoryExist p <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
+<a class="sourceLine" id="cb12-16" data-line-number="16">        <span class="dt">True</span> <span class="ot">-&gt;</span> Dir.removeDirectoryRecursive p</a>
+<a class="sourceLine" id="cb12-17" data-line-number="17">        <span class="dt">False</span> <span class="ot">-&gt;</span> pass</a></code></pre></div>
 <p>And once the sections have been loaded from the source code the tags can be replaced in the markdown. Each <code>[&lt;code&gt;]</code> tag is replaced by a markdown code block, a title showing the source file and offset.</p>
-<h6 id="site.hs-136-to-154">site.hs (136 to 154)</h6>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="ot">    replaceLineSection ::</span> <span class="dt">Map</span> <span class="dt">Text</span> (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, [<span class="dt">Text</span>]) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">Text</span>]</a>
-<a class="sourceLine" id="cb13-2" data-line-number="2">    replaceLineSection sections line <span class="fu">=</span> <span class="kw">do</span></a>
+<h6 id="stack-workinterointero5986g3f-temp.hs-147-to-175">.stack-work/intero/intero5986G3f-TEMP.hs (147 to 175)</h6>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="ot">    replaceCodeLineSection ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">Text</span> (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Text</span>, [<span class="dt">Text</span>]) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">Text</span>]</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">    replaceCodeLineSection tempPath sections line <span class="fu">=</span> <span class="kw">do</span></a>
 <a class="sourceLine" id="cb13-3" data-line-number="3">      <span class="kw">let</span> codeTag <span class="fu">=</span> <span class="st">&quot;[&lt;code&gt;]&quot;</span> </a>
-<a class="sourceLine" id="cb13-4" data-line-number="4">      <span class="kw">if</span> not <span class="fu">$</span> Txt.isPrefixOf codeTag line </a>
-<a class="sourceLine" id="cb13-5" data-line-number="5">        <span class="kw">then</span> pure [line]</a>
-<a class="sourceLine" id="cb13-6" data-line-number="6">        <span class="kw">else</span></a>
-<a class="sourceLine" id="cb13-7" data-line-number="7">          <span class="kw">let</span> secName <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length codeTag) <span class="fu">$</span> line <span class="kw">in</span></a>
-<a class="sourceLine" id="cb13-8" data-line-number="8">          <span class="kw">case</span> Map.lookup secName sections <span class="kw">of</span></a>
-<a class="sourceLine" id="cb13-9" data-line-number="9">            <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwString <span class="fu">$</span> Txt.unpack <span class="fu">$</span> <span class="st">&quot;No section named &quot;</span> <span class="fu">&lt;&gt;</span> secName</a>
-<a class="sourceLine" id="cb13-10" data-line-number="10">            <span class="dt">Just</span> (path, start, end, code) <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb13-11" data-line-number="11">              <span class="kw">let</span> title <span class="fu">=</span> Txt.pack path <span class="fu">&lt;&gt;</span> <span class="st">&quot; (&quot;</span> <span class="fu">&lt;&gt;</span> show start <span class="fu">&lt;&gt;</span> <span class="st">&quot; to &quot;</span> <span class="fu">&lt;&gt;</span> show end <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span> <span class="kw">in</span></a>
-<a class="sourceLine" id="cb13-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb13-13" data-line-number="13">              pure [ <span class="st">&quot;###### &quot;</span> <span class="fu">&lt;&gt;</span> title</a>
-<a class="sourceLine" id="cb13-14" data-line-number="14">                   , <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb13-15" data-line-number="15">                   , <span class="st">&quot;~~~{.haskell}&quot;</span></a>
-<a class="sourceLine" id="cb13-16" data-line-number="16">                   , Txt.unlines code</a>
-<a class="sourceLine" id="cb13-17" data-line-number="17">                   , <span class="st">&quot;~~~&quot;</span></a>
-<a class="sourceLine" id="cb13-18" data-line-number="18">                   , <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb13-19" data-line-number="19">                   ]</a></code></pre></div>
+<a class="sourceLine" id="cb13-4" data-line-number="4">      <span class="kw">let</span> includeTag <span class="fu">=</span> <span class="st">&quot;[&lt;include&gt;]&quot;</span> </a>
+<a class="sourceLine" id="cb13-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6">      <span class="kw">if</span> Txt.isPrefixOf codeTag line </a>
+<a class="sourceLine" id="cb13-7" data-line-number="7">        <span class="kw">then</span></a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">          <span class="kw">let</span> secName <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length codeTag) <span class="fu">$</span> line <span class="kw">in</span></a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">          <span class="kw">case</span> Map.lookup secName sections <span class="kw">of</span></a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">            <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwString <span class="fu">$</span> Txt.unpack <span class="fu">$</span> <span class="st">&quot;No section named &quot;</span> <span class="fu">&lt;&gt;</span> secName</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11">            <span class="dt">Just</span> (path, start, end, lang, code) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb13-12" data-line-number="12">              <span class="kw">let</span> title <span class="fu">=</span> Txt.pack path <span class="fu">&lt;&gt;</span> <span class="st">&quot; (&quot;</span> <span class="fu">&lt;&gt;</span> show start <span class="fu">&lt;&gt;</span> <span class="st">&quot; to &quot;</span> <span class="fu">&lt;&gt;</span> show end <span class="fu">&lt;&gt;</span> <span class="st">&quot;)&quot;</span> <span class="kw">in</span></a>
+<a class="sourceLine" id="cb13-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb13-14" data-line-number="14">              pure [ <span class="st">&quot;###### &quot;</span> <span class="fu">&lt;&gt;</span> title</a>
+<a class="sourceLine" id="cb13-15" data-line-number="15">                   , <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb13-16" data-line-number="16">                   , <span class="st">&quot;~~~{.&quot;</span> <span class="fu">&lt;&gt;</span> lang <span class="fu">&lt;&gt;</span> <span class="st">&quot;}&quot;</span></a>
+<a class="sourceLine" id="cb13-17" data-line-number="17">                   , Txt.unlines code</a>
+<a class="sourceLine" id="cb13-18" data-line-number="18">                   , <span class="st">&quot;~~~&quot;</span></a>
+<a class="sourceLine" id="cb13-19" data-line-number="19">                   , <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb13-20" data-line-number="20">                   ]</a>
+<a class="sourceLine" id="cb13-21" data-line-number="21">        <span class="kw">else</span></a>
+<a class="sourceLine" id="cb13-22" data-line-number="22">          <span class="kw">if</span> not <span class="fu">$</span> Txt.isPrefixOf includeTag line </a>
+<a class="sourceLine" id="cb13-23" data-line-number="23">            <span class="kw">then</span> pure [line]</a>
+<a class="sourceLine" id="cb13-24" data-line-number="24">            <span class="kw">else</span></a>
+<a class="sourceLine" id="cb13-25" data-line-number="25">              <span class="kw">let</span></a>
+<a class="sourceLine" id="cb13-26" data-line-number="26">                incRelPath <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length includeTag) <span class="fu">$</span> line </a>
+<a class="sourceLine" id="cb13-27" data-line-number="27">                incFullPath <span class="fu">=</span> tempPath <span class="fu">&lt;/&gt;</span> Txt.unpack incRelPath</a>
+<a class="sourceLine" id="cb13-28" data-line-number="28">              <span class="kw">in</span></a>
+<a class="sourceLine" id="cb13-29" data-line-number="29">              sequenceA [Txt.readFile incFullPath]</a></code></pre></div>
 <h2 id="getting-sections-from-the-repo">Getting sections from the repo</h2>
-<h6 id="site.hs-160-to-193">site.hs (160 to 193)</h6>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw">type</span> <span class="dt">LineState</span> <span class="fu">=</span> (<span class="dt">Int</span>, [(<span class="dt">Text</span>, (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, [<span class="dt">Text</span>]))]) </a>
+<h6 id="stack-workinterointero5986g3f-temp.hs-181-to-215">.stack-work/intero/intero5986G3f-TEMP.hs (181 to 215)</h6>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw">type</span> <span class="dt">LineState</span> <span class="fu">=</span> (<span class="dt">Int</span>, [(<span class="dt">Text</span>, (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Text</span>, [<span class="dt">Text</span>]))]) </a>
 <a class="sourceLine" id="cb14-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb14-3" data-line-number="3"><span class="ot">getSections ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> [(<span class="dt">Text</span>, (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, [<span class="dt">Text</span>]))]</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3"><span class="ot">getSections ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">IO</span> [(<span class="dt">Text</span>, (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Text</span>, [<span class="dt">Text</span>]))]</a>
 <a class="sourceLine" id="cb14-4" data-line-number="4">getSections f <span class="fu">=</span> </a>
 <a class="sourceLine" id="cb14-5" data-line-number="5">  <span class="kw">case</span> FP.takeExtension f <span class="kw">of</span></a>
-<a class="sourceLine" id="cb14-6" data-line-number="6">    <span class="st">&quot;.hs&quot;</span> <span class="ot">-&gt;</span> getHaskellSections</a>
-<a class="sourceLine" id="cb14-7" data-line-number="7">    _ <span class="ot">-&gt;</span> pure []</a>
-<a class="sourceLine" id="cb14-8" data-line-number="8">  </a>
-<a class="sourceLine" id="cb14-9" data-line-number="9">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb14-10" data-line-number="10">    getHaskellSections <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb14-11" data-line-number="11">      ls <span class="ot">&lt;-</span> Txt.lines <span class="fu">&lt;$&gt;</span> Txt.readFile f</a>
-<a class="sourceLine" id="cb14-12" data-line-number="12">      (_, r) <span class="ot">&lt;-</span> foldlM (parseLine ls) (<span class="dv">1</span>, []) ls</a>
-<a class="sourceLine" id="cb14-13" data-line-number="13">      pure r</a>
-<a class="sourceLine" id="cb14-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb14-15" data-line-number="15">      <span class="kw">where</span></a>
-<a class="sourceLine" id="cb14-16" data-line-number="16"><span class="ot">        parseLine ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">LineState</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">LineState</span></a>
-<a class="sourceLine" id="cb14-17" data-line-number="17">        parseLine ls (lineNum, hist) l <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-18" data-line-number="18">          <span class="kw">if</span> not <span class="fu">.</span> Txt.isPrefixOf <span class="st">&quot;{-! SECTION&lt; &quot;</span> <span class="fu">.</span> Txt.strip <span class="fu">$</span> l</a>
-<a class="sourceLine" id="cb14-19" data-line-number="19">          <span class="kw">then</span> pure (lineNum <span class="fu">+</span> <span class="dv">1</span>, hist)</a>
-<a class="sourceLine" id="cb14-20" data-line-number="20">          <span class="kw">else</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb14-21" data-line-number="21">            <span class="kw">let</span> secName <span class="fu">=</span> Txt.strip <span class="fu">.</span> fst <span class="fu">.</span> Txt.breakOn <span class="st">&quot; &quot;</span> <span class="fu">.</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length <span class="st">&quot;{-! SECTION&lt; &quot;</span>) <span class="fu">$</span> l </a>
-<a class="sourceLine" id="cb14-22" data-line-number="22">            end <span class="ot">&lt;-</span> scanForEnd ls secName lineNum</a>
-<a class="sourceLine" id="cb14-23" data-line-number="23">            pure (lineNum <span class="fu">+</span> <span class="dv">1</span>, (secName, (f, lineNum <span class="fu">+</span> <span class="dv">1</span>, lineNum <span class="fu">+</span> length end, end)) <span class="fu">:</span> hist)</a>
-<a class="sourceLine" id="cb14-24" data-line-number="24"></a>
-<a class="sourceLine" id="cb14-25" data-line-number="25">        scanForEnd ls secName fromLine <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-26" data-line-number="26">          <span class="kw">let</span> fromOffset <span class="fu">=</span> drop fromLine ls <span class="kw">in</span></a>
-<a class="sourceLine" id="cb14-27" data-line-number="27">          <span class="kw">case</span> Lst.span (not <span class="fu">.</span> Txt.isPrefixOf (<span class="st">&quot;{-! SECTION&gt; &quot;</span> <span class="fu">&lt;&gt;</span> secName) <span class="fu">.</span> Txt.strip) fromOffset <span class="kw">of</span></a>
-<a class="sourceLine" id="cb14-28" data-line-number="28">            (_, []) <span class="ot">-&gt;</span> throwString <span class="fu">$</span> <span class="st">&quot;No section end found for: &quot;</span> <span class="fu">&lt;&gt;</span> Txt.unpack secName</a>
-<a class="sourceLine" id="cb14-29" data-line-number="29">            (r, _) <span class="ot">-&gt;</span> pure <span class="fu">$</span> cleanLine <span class="fu">&lt;$&gt;</span> r</a>
-<a class="sourceLine" id="cb14-30" data-line-number="30"></a>
-<a class="sourceLine" id="cb14-31" data-line-number="31">        cleanLine l <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-32" data-line-number="32">          <span class="kw">if</span> Txt.isPrefixOf <span class="st">&quot;{-! SECTION&quot;</span> <span class="fu">.</span> Txt.strip <span class="fu">$</span> l</a>
-<a class="sourceLine" id="cb14-33" data-line-number="33">          <span class="kw">then</span> <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb14-34" data-line-number="34">          <span class="kw">else</span> l</a></code></pre></div>
-<p>Different types of files will need different tag styles. In the code above I’m only handling haskell code. This pattern can probably be used for most other source code types as well.</p>
+<a class="sourceLine" id="cb14-6" data-line-number="6">    <span class="st">&quot;.hs&quot;</span> <span class="ot">-&gt;</span> getLangSections <span class="st">&quot;{-! SECTION&lt; &quot;</span> <span class="st">&quot;{-! SECTION&gt; &quot;</span> <span class="st">&quot;{-! SECTION&quot;</span> <span class="st">&quot;haskell&quot;</span></a>
+<a class="sourceLine" id="cb14-7" data-line-number="7">    <span class="st">&quot;.js&quot;</span> <span class="ot">-&gt;</span> getLangSections <span class="st">&quot;//!SECTION&lt; &quot;</span> <span class="st">&quot;//!SECTION&gt; &quot;</span> <span class="st">&quot;//!SECTION&quot;</span> <span class="st">&quot;javascript&quot;</span></a>
+<a class="sourceLine" id="cb14-8" data-line-number="8">    <span class="st">&quot;.html&quot;</span> <span class="ot">-&gt;</span> getLangSections <span class="st">&quot;&lt;!-- !SECTION+ &quot;</span> <span class="st">&quot;&lt;!-- !SECTION- &quot;</span> <span class="st">&quot;&lt;!-- !SECTION&quot;</span> <span class="st">&quot;html&quot;</span></a>
+<a class="sourceLine" id="cb14-9" data-line-number="9">    <span class="st">&quot;.css&quot;</span> <span class="ot">-&gt;</span> getLangSections <span class="st">&quot;/* !SECTION&lt; &quot;</span> <span class="st">&quot;/* !SECTION&gt; &quot;</span> <span class="st">&quot;/* !SECTION&quot;</span> <span class="st">&quot;html&quot;</span></a>
+<a class="sourceLine" id="cb14-10" data-line-number="10">    _ <span class="ot">-&gt;</span> pure []</a>
+<a class="sourceLine" id="cb14-11" data-line-number="11">  </a>
+<a class="sourceLine" id="cb14-12" data-line-number="12">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb14-13" data-line-number="13">    getLangSections startToken endToken cleanToken lang <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb14-14" data-line-number="14">      ls <span class="ot">&lt;-</span> Txt.lines <span class="fu">&lt;$&gt;</span> Txt.readFile f</a>
+<a class="sourceLine" id="cb14-15" data-line-number="15">      (_, r) <span class="ot">&lt;-</span> foldlM (parseLine ls) (<span class="dv">1</span>, []) ls</a>
+<a class="sourceLine" id="cb14-16" data-line-number="16">      pure r</a>
+<a class="sourceLine" id="cb14-17" data-line-number="17"></a>
+<a class="sourceLine" id="cb14-18" data-line-number="18">      <span class="kw">where</span></a>
+<a class="sourceLine" id="cb14-19" data-line-number="19"><span class="ot">        parseLine ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">LineState</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">LineState</span></a>
+<a class="sourceLine" id="cb14-20" data-line-number="20">        parseLine ls (lineNum, hist) l <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-21" data-line-number="21">          <span class="kw">if</span> not <span class="fu">.</span> Txt.isPrefixOf startToken <span class="fu">.</span> Txt.strip <span class="fu">$</span> l</a>
+<a class="sourceLine" id="cb14-22" data-line-number="22">          <span class="kw">then</span> pure (lineNum <span class="fu">+</span> <span class="dv">1</span>, hist)</a>
+<a class="sourceLine" id="cb14-23" data-line-number="23">          <span class="kw">else</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb14-24" data-line-number="24">            <span class="kw">let</span> secName <span class="fu">=</span> Txt.strip <span class="fu">.</span> fst <span class="fu">.</span> Txt.breakOn <span class="st">&quot; &quot;</span> <span class="fu">.</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length startToken) <span class="fu">.</span> Txt.strip <span class="fu">$</span> l </a>
+<a class="sourceLine" id="cb14-25" data-line-number="25">            end <span class="ot">&lt;-</span> scanForEnd ls secName lineNum</a>
+<a class="sourceLine" id="cb14-26" data-line-number="26">            pure (lineNum <span class="fu">+</span> <span class="dv">1</span>, (secName, (f, lineNum <span class="fu">+</span> <span class="dv">1</span>, lineNum <span class="fu">+</span> length end, lang, end)) <span class="fu">:</span> hist)</a>
+<a class="sourceLine" id="cb14-27" data-line-number="27"></a>
+<a class="sourceLine" id="cb14-28" data-line-number="28">        scanForEnd ls secName fromLine <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-29" data-line-number="29">          <span class="kw">let</span> fromOffset <span class="fu">=</span> drop fromLine ls <span class="kw">in</span></a>
+<a class="sourceLine" id="cb14-30" data-line-number="30">          <span class="kw">case</span> Lst.span (not <span class="fu">.</span> Txt.isPrefixOf (endToken <span class="fu">&lt;&gt;</span> secName) <span class="fu">.</span> Txt.strip) fromOffset <span class="kw">of</span></a>
+<a class="sourceLine" id="cb14-31" data-line-number="31">            (_, []) <span class="ot">-&gt;</span> throwString <span class="fu">$</span> <span class="st">&quot;No section end found for: &quot;</span> <span class="fu">&lt;&gt;</span> Txt.unpack secName</a>
+<a class="sourceLine" id="cb14-32" data-line-number="32">            (r, _) <span class="ot">-&gt;</span> pure <span class="fu">$</span> filter cleanLine r</a>
+<a class="sourceLine" id="cb14-33" data-line-number="33"></a>
+<a class="sourceLine" id="cb14-34" data-line-number="34">        cleanLine <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-35" data-line-number="35">          not <span class="fu">.</span> Txt.isPrefixOf cleanToken <span class="fu">.</span> Txt.strip</a></code></pre></div>
+<p>Different types of files will need different tag styles. In the code above I’m handling haskell, javascript, css and HTML. You should be able to fairly easily add this to other languages as well.</p>
 <p><code>parseLine</code> works by going line by line looking for a start token, and for each one that it finds it scans to find the end token. This is a little inefficient but it allows for nested and/or overlapping tags.</p>
+<h1 id="code-includes">Code includes</h1>
+<p>Sometimes it is useful to include external files into a post. The <code>[&lt;include&gt;]</code> tag makes this simple.</p>
+<p>For example <code>[&lt;include&gt;] /home/user/static/interestingStuff.json</code>. Unlike the <code>[&lt;code&gt;]</code> tag, no assumptions are made about the included text. If you want it syntax highlighted simply wrap the text in a code fence.</p>
+<h1 id="speeding-up-the-writing-process">Speeding up the writing process</h1>
+<p>Fetching the code from a remote repo and doing a full build each time can be pretty slow. This is fine when you are confirming that everything works correctly, but its not idea when you are writing a post and still making many small changes. To help with this there is a <code>[&lt;code setup.path&gt;]</code> tag. This tag overrides the repo and run settings. If it is present then all code sections will be read from this path directly without any fetching, building or running of commands.</p>
+<p>e.g. <code>[&lt;code setup.path&gt;] /home/user/dev/myProject</code></p>
+<p>Obviously it is important that you remove this setting once the post is done.</p>
 <h1 id="using-the-compiler">Using the compiler</h1>
 <p>Once you add this to your hakyll you can be sure that you are only using working code blocks. While there is a bit of code in this compiler most of it is for dealing with the file IO and parsing. I think it also shows how easily hakyll can be customised to do useful things.</p>
 <p>This code works with hakyll 4.10.0.0. See the cabal file in the gist for other dependencies</p>
 <h1 id="links">Links</h1>
 <ul>
-<li><a href="https://gist.github.com/andrevdm/53e179c4244411493ae1f9deebc3cc3f">Code on github</a> f3c9bfa85757304dd9ecf0082625f9bc2de83cb5</li>
+<li><a href="https://gist.github.com/andrevdm/53e179c4244411493ae1f9deebc3cc3f">Code on github</a> <strong>local</strong></li>
 <li><a href="https://jaspervdj.be/hakyll/tutorials.html">Hakyll tutorial</a></li>
 <li><a href="https://medium.com/@phlummox/the-simplest-custom-hakyll-compiler-6ee7b189a6c6">The simplest custom Hakyll compiler</a></li>
 </ul>
