@@ -1,0 +1,745 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Structure</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_19.html">prev</a> <a href="2018-04-02-haskell-rogue-like_fin.html">next</a></p>
+<h1 id="code-structure">Code structure</h1>
+<p>Even with everything we have implemented so far the game code is still fairly small somewhere around 1400 lines of Haskell. Its also still pretty manageable with the basic structure of engine, core, levels and hosting. But as your code base starts getting more complex you may feel that you need a bit more structure.</p>
+<p>Here I’m <strong>very</strong> briefly going to look at implementing Matt Parsons’ <a href="http://www.parsonsmatt.org/2018/03/22/three_layer_haskell_cake.html">Three Layer Haskell Cake</a>.</p>
+<p>This is entirely optional and I’m certainly not even going to attempt explain things better than Matt already has. So if any of this does not make sense feel free to rather skip to the <a href="2018-04-02-haskell-rogue-like_fin.html">next chapter</a></p>
+<h1 id="identifying-the-layers">Identifying the layers</h1>
+<ol type="1">
+<li>Layer 1 / orchestration: The code that initialises the client and loops waiting for commands from the client</li>
+<li>Layer 2 / external services: The external service is the web socket connection</li>
+<li>Layer 3 / pure functional: Everything else</li>
+</ol>
+<p>The majority of the code is already fairly basic and pure, which is good news. Most of the functionality already fits nicely into layer 3. All the code that deals with the TVar will be moved into layer 1 or 2.</p>
+<p>I’ve not changed the hosting code to fit into the layers, so I’ve just called it layer 0. I could have made it part of layer 1, either by making a HostT or alternatively by having Apt store a <em>Maybe</em> <em>World</em> and <em>Connection</em>. If my hosting code got any more complicated I’d do something like that.</p>
+<h2 id="layer-0">Layer 0</h2>
+<p>All the code in GameHost is layer zero as is <em>runGame</em> and <em>manageConnection</em> from GameEngine. <em>manageConnection</em> starts the AppT pipeline (initialise and <em>startGame</em>)</p>
+<h6 id="structuresrcgameengine.hs-41-to-69">20_structure/src/GameEngine.hs (41 to 69)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="co">-- L0 Hosting</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="ot">runGame ::</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">runGame getLevel <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">  Host.runHost <span class="fu">$</span> manageConnection getLevel</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="ot">manageConnection ::</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">manageConnection getLevel conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">      std <span class="ot">&lt;-</span> Rnd.getStdGen</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">      </a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">      <span class="kw">case</span> initialiseConnection conn cmdData std getLevel <span class="kw">of</span> <span class="co">-- initialiseConnection is L3</span></a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">        <span class="dt">Right</span> world <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">          app <span class="ot">&lt;-</span> atomically <span class="fu">$</span> <span class="dt">AppState</span> <span class="fu">&lt;$&gt;</span> newTVar conn <span class="fu">&lt;*&gt;</span> newTVar world</a>
+<a class="sourceLine" id="cb1-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">          <span class="co">-- Start the AppT pipeline</span></a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">          runReaderT (unAppT <span class="fu">$</span> initialiseConfig <span class="fu">&gt;&gt;</span> startGame) app</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23"></a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">        <span class="dt">Left</span> e <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">          runReaderT (sendHostError e) conn</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">        </a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">      pass</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
+<h2 id="layer-1">Layer 1</h2>
+<p>Layer 1 defines <em>AppState</em> and <em>AppT</em>. It has the <em>initialiseConfig</em> and <em>startGame</em> functions. <em>startGame</em> gets commands from the web sockets and starts layer two’s <em>handleCommand</em></p>
+<h6 id="structuresrcgameengine.hs-74-to-115">20_structure/src/GameEngine.hs (74 to 115)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="co">-- L1 App (orchestration)</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="kw">data</span> <span class="dt">AppState</span> <span class="fu">=</span> <span class="dt">AppState</span> {<span class="ot"> appConnection ::</span> <span class="fu">!</span>(<span class="dt">TVar</span> <span class="dt">Host.Connection</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">                         ,<span class="ot"> appWorld ::</span> <span class="fu">!</span>(<span class="dt">TVar</span> <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">                         } </a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="kw">newtype</span> <span class="dt">AppT</span> m a <span class="fu">=</span> <span class="dt">AppT</span> {<span class="ot"> unAppT ::</span> <span class="dt">ReaderT</span> <span class="dt">AppState</span> m a </a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">                        } <span class="kw">deriving</span> (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadReader</span> <span class="dt">AppState</span>, <span class="dt">MonadTrans</span>)</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="ot">askApp ::</span> (<span class="dt">AppState</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> a) <span class="ot">-&gt;</span> <span class="dt">AppT</span> <span class="dt">IO</span> a</a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">askApp getter <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">  lift <span class="fu">.</span> atomically <span class="fu">.</span> readTVar <span class="fu">$</span> getter app</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="ot">modifyApp ::</span> (<span class="dt">AppState</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-17" data-line-number="17">modifyApp getter modify' <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-18" data-line-number="18">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-19" data-line-number="19">  lift <span class="fu">.</span> atomically <span class="fu">$</span> modifyTVar' (getter app) modify'</a>
+<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">----</span></a>
+<a class="sourceLine" id="cb2-21" data-line-number="21"></a>
+<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="ot">initialiseConfig ::</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-23" data-line-number="23">initialiseConfig <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-24" data-line-number="24">  conn <span class="ot">&lt;-</span> askApp appConnection</a>
+<a class="sourceLine" id="cb2-25" data-line-number="25">  world <span class="ot">&lt;-</span> askApp appWorld</a>
+<a class="sourceLine" id="cb2-26" data-line-number="26">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-27" data-line-number="27">  lift <span class="fu">$</span> runReaderT (sendConfig <span class="fu">$</span> world <span class="fu">^.</span> wdConfig) (conn, appWorld app)</a>
+<a class="sourceLine" id="cb2-28" data-line-number="28">  </a>
+<a class="sourceLine" id="cb2-29" data-line-number="29"></a>
+<a class="sourceLine" id="cb2-30" data-line-number="30"><span class="ot">startGame ::</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-31" data-line-number="31">startGame <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-32" data-line-number="32">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-33" data-line-number="33">  conn <span class="ot">&lt;-</span> askApp appConnection</a>
+<a class="sourceLine" id="cb2-34" data-line-number="34"></a>
+<a class="sourceLine" id="cb2-35" data-line-number="35">  lift <span class="fu">.</span> forever <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-36" data-line-number="36">    t <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb2-37" data-line-number="37">    r <span class="ot">&lt;-</span> runReaderT (handleCommand t) (conn, appWorld app)</a>
+<a class="sourceLine" id="cb2-38" data-line-number="38"></a>
+<a class="sourceLine" id="cb2-39" data-line-number="39">    <span class="kw">case</span> r <span class="kw">of</span></a>
+<a class="sourceLine" id="cb2-40" data-line-number="40">      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> pass</a>
+<a class="sourceLine" id="cb2-41" data-line-number="41">      <span class="dt">Just</span> e <span class="ot">-&gt;</span> putText e</a>
+<a class="sourceLine" id="cb2-42" data-line-number="42"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
+<h2 id="layer-2">Layer 2</h2>
+<p>Layer 2 acts as a bridge to external services. The only external service here is the web socket connection. The <em>MonadHost</em> class abstracts actions on this connection. There are two instances of the type class. One for the normal case where we have the connection and a <em>World</em> and one for when we only have a connection. I could have chosen to use a <em>Maybe World</em> and only have one instance but I think this was is clearer.</p>
+<p>Since there are two instances and they share most of their code, the type class has a default implementation for most of the functions.</p>
+<h6 id="structuresrcgameengine.hs-120-to-178">20_structure/src/GameEngine.hs (120 to 178)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co">-- L2 (bridge / external services)</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="kw">class</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadHost</span> m <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="ot">  receiveHostText ::</span> m <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="ot">  sendHostData ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="ot">  sendHostLog ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="ot">  sendHostError ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="ot">  sendHostUiConfig ::</span> <span class="dt">UiConfigData</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="ot">  compressData ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m <span class="dt">BSL.ByteString</span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">  <span class="co">--default implementation</span></a>
+<a class="sourceLine" id="cb3-13" data-line-number="13">  sendHostLog err <span class="fu">=</span> sendHostData <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;log&quot;</span> err</a>
+<a class="sourceLine" id="cb3-14" data-line-number="14">  sendHostError err <span class="fu">=</span> sendHostData <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;error&quot;</span> err</a>
+<a class="sourceLine" id="cb3-15" data-line-number="15">  sendHostUiConfig config <span class="fu">=</span> sendHostData <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> config</a>
+<a class="sourceLine" id="cb3-16" data-line-number="16">  compressData <span class="fu">=</span> pure <span class="fu">.</span> Bz.compress <span class="fu">.</span> BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 </a>
+<a class="sourceLine" id="cb3-17" data-line-number="17"></a>
+<a class="sourceLine" id="cb3-18" data-line-number="18"><span class="kw">instance</span> <span class="dt">MonadHost</span> (<span class="dt">ReaderT</span> (<span class="dt">Host.Connection</span>, <span class="dt">TVar</span> <span class="dt">World</span>) <span class="dt">IO</span>) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-19" data-line-number="19">  receiveHostText <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-20" data-line-number="20">    (conn, _) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-21" data-line-number="21">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb3-22" data-line-number="22"></a>
+<a class="sourceLine" id="cb3-23" data-line-number="23">  sendHostData t <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-24" data-line-number="24">    (conn, _) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-25" data-line-number="25">    lz <span class="ot">&lt;-</span> compressData t</a>
+<a class="sourceLine" id="cb3-26" data-line-number="26">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a>
+<a class="sourceLine" id="cb3-27" data-line-number="27"></a>
+<a class="sourceLine" id="cb3-28" data-line-number="28"><span class="kw">instance</span> <span class="dt">MonadHost</span> (<span class="dt">ReaderT</span> <span class="dt">Host.Connection</span> <span class="dt">IO</span>) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-29" data-line-number="29">  receiveHostText <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-30" data-line-number="30">    conn <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-31" data-line-number="31">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb3-32" data-line-number="32"></a>
+<a class="sourceLine" id="cb3-33" data-line-number="33">  sendHostData t <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-34" data-line-number="34">    conn <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-35" data-line-number="35">    lz <span class="ot">&lt;-</span> compressData t</a>
+<a class="sourceLine" id="cb3-36" data-line-number="36">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a>
+<a class="sourceLine" id="cb3-37" data-line-number="37"></a>
+<a class="sourceLine" id="cb3-38" data-line-number="38"></a>
+<a class="sourceLine" id="cb3-39" data-line-number="39"><span class="kw">class</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadWorld</span> m <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-40" data-line-number="40"><span class="ot">  askWorld ::</span> m <span class="dt">World</span></a>
+<a class="sourceLine" id="cb3-41" data-line-number="41"><span class="ot">  putWorld ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-42" data-line-number="42"><span class="ot">  modifyWorld ::</span> (<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span>) <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-43" data-line-number="43"><span class="ot">  debugPrint ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-44" data-line-number="44"></a>
+<a class="sourceLine" id="cb3-45" data-line-number="45"><span class="kw">instance</span> <span class="dt">MonadWorld</span> (<span class="dt">ReaderT</span> (<span class="dt">Host.Connection</span>, <span class="dt">TVar</span> <span class="dt">World</span>) <span class="dt">IO</span>) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-46" data-line-number="46">  askWorld <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-47" data-line-number="47">    (_, wt) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-48" data-line-number="48">    w <span class="ot">&lt;-</span> lift <span class="fu">.</span> atomically <span class="fu">$</span> readTVar wt</a>
+<a class="sourceLine" id="cb3-49" data-line-number="49">    pure w</a>
+<a class="sourceLine" id="cb3-50" data-line-number="50">    </a>
+<a class="sourceLine" id="cb3-51" data-line-number="51">  putWorld w <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-52" data-line-number="52">    (_, wt) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-53" data-line-number="53">    lift <span class="fu">.</span> atomically <span class="fu">$</span> writeTVar wt w</a>
+<a class="sourceLine" id="cb3-54" data-line-number="54"></a>
+<a class="sourceLine" id="cb3-55" data-line-number="55">  modifyWorld fn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-56" data-line-number="56">    (_, wt) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-57" data-line-number="57">    lift <span class="fu">.</span> atomically <span class="fu">$</span> modifyTVar' wt fn</a>
+<a class="sourceLine" id="cb3-58" data-line-number="58">  </a>
+<a class="sourceLine" id="cb3-59" data-line-number="59">  debugPrint <span class="fu">=</span> putText</a></code></pre></div>
+<p>Layer 2 has <em>handleCommand</em>, <em>runCmd</em> and <em>sendConfig</em>. The functions that need to deal with the external service and call functions from level 3.</p>
+<h6 id="structuresrcgameengine.hs-183-to-266">20_structure/src/GameEngine.hs (183 to 266)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">handleCommand ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m (<span class="dt">Maybe</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">handleCommand t <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="kw">case</span> parseCommand t <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> pure <span class="fu">.</span> <span class="dt">Just</span> <span class="fu">$</span> <span class="st">&quot;error parsing: &quot;</span> <span class="fu">&lt;&gt;</span> t</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="dt">Just</span> (cmd, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">      runCmd cmd cmdData</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">      pure <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="ot">runCmd ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">runCmd cmd cmdData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-12" data-line-number="12">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb4-14" data-line-number="14">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendHostError <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb4-16" data-line-number="16">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-17" data-line-number="17">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
+<a class="sourceLine" id="cb4-18" data-line-number="18">          world <span class="ot">&lt;-</span> askWorld</a>
+<a class="sourceLine" id="cb4-19" data-line-number="19">          sendHostData <span class="fu">$</span> Ae.encodeText (drawAndSend world)</a>
+<a class="sourceLine" id="cb4-20" data-line-number="20">          sendHostLog <span class="st">&quot;draw&quot;</span></a>
+<a class="sourceLine" id="cb4-21" data-line-number="21">      </a>
+<a class="sourceLine" id="cb4-22" data-line-number="22">    <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-23" data-line-number="23">      <span class="co">-- Handle the key press</span></a>
+<a class="sourceLine" id="cb4-24" data-line-number="24">      modifyWorld (\w <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb4-25" data-line-number="25">                     <span class="co">-- Do the actions as if they will succeed</span></a>
+<a class="sourceLine" id="cb4-26" data-line-number="26">                     <span class="kw">let</span> pendingWorld <span class="fu">=</span> runActions w <span class="fu">$</span> handleKey w cmdData <span class="kw">in</span></a>
+<a class="sourceLine" id="cb4-27" data-line-number="27">                     <span class="co">-- Apply, if the move is allowed</span></a>
+<a class="sourceLine" id="cb4-28" data-line-number="28">                     <span class="co">-- Cost is hard-coded to 100 for now, this will be fixed later</span></a>
+<a class="sourceLine" id="cb4-29" data-line-number="29">                     playerMoving <span class="dv">100</span> pendingWorld w</a>
+<a class="sourceLine" id="cb4-30" data-line-number="30">                  )</a>
+<a class="sourceLine" id="cb4-31" data-line-number="31"></a>
+<a class="sourceLine" id="cb4-32" data-line-number="32">      <span class="co">-- Get the updated world</span></a>
+<a class="sourceLine" id="cb4-33" data-line-number="33">      w2 <span class="ot">&lt;-</span> askWorld</a>
+<a class="sourceLine" id="cb4-34" data-line-number="34"></a>
+<a class="sourceLine" id="cb4-35" data-line-number="35">      <span class="co">-- Handle the annotations</span></a>
+<a class="sourceLine" id="cb4-36" data-line-number="36">      <span class="co">-- This is not terribly pretty as its doing a select for update, but its good enough for debugging</span></a>
+<a class="sourceLine" id="cb4-37" data-line-number="37">      <span class="co">-- the annotation code can be removed once everything is working</span></a>
+<a class="sourceLine" id="cb4-38" data-line-number="38">      <span class="kw">let</span> annotations <span class="fu">=</span> w2 <span class="fu">^.</span> wdUtilBrainAnnotations </a>
+<a class="sourceLine" id="cb4-39" data-line-number="39">      modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">.~</span> [])</a>
+<a class="sourceLine" id="cb4-40" data-line-number="40">      printAnnotations annotations</a>
+<a class="sourceLine" id="cb4-41" data-line-number="41"></a>
+<a class="sourceLine" id="cb4-42" data-line-number="42">      <span class="co">-- Draw</span></a>
+<a class="sourceLine" id="cb4-43" data-line-number="43">      w3 <span class="ot">&lt;-</span> askWorld</a>
+<a class="sourceLine" id="cb4-44" data-line-number="44">      sendHostData <span class="fu">$</span> Ae.encodeText (drawAndSend w3)</a>
+<a class="sourceLine" id="cb4-45" data-line-number="45"></a>
+<a class="sourceLine" id="cb4-46" data-line-number="46">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb4-47" data-line-number="47">      sendHostError <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
+<a class="sourceLine" id="cb4-48" data-line-number="48"></a>
+<a class="sourceLine" id="cb4-49" data-line-number="49">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb4-50" data-line-number="50">    updatePlayer f <span class="fu">=</span> modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a>
+<a class="sourceLine" id="cb4-51" data-line-number="51"></a>
+<a class="sourceLine" id="cb4-52" data-line-number="52">    printAnnotations as <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-53" data-line-number="53">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-54" data-line-number="54">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-55" data-line-number="55">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-56" data-line-number="56">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-57" data-line-number="57">      debugPrint <span class="st">&quot;***** Utility Annotations **************&quot;</span></a>
+<a class="sourceLine" id="cb4-58" data-line-number="58">      traverse_ printAnnotation as</a>
+<a class="sourceLine" id="cb4-59" data-line-number="59">      debugPrint <span class="st">&quot;****************************************&quot;</span></a>
+<a class="sourceLine" id="cb4-60" data-line-number="60">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-61" data-line-number="61"></a>
+<a class="sourceLine" id="cb4-62" data-line-number="62">    printAnnotation (e, assess, top)  <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-63" data-line-number="63">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-64" data-line-number="64">      debugPrint <span class="fu">$</span> <span class="st">&quot;-----------------------&quot;</span> <span class="fu">&lt;&gt;</span> show e</a>
+<a class="sourceLine" id="cb4-65" data-line-number="65">      debugPrint <span class="st">&quot;  -- assess --&quot;</span></a>
+<a class="sourceLine" id="cb4-66" data-line-number="66">      debugPrint <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> assess</a>
+<a class="sourceLine" id="cb4-67" data-line-number="67">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-68" data-line-number="68">      debugPrint <span class="st">&quot;  -- top --&quot;</span></a>
+<a class="sourceLine" id="cb4-69" data-line-number="69">      debugPrint <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> top</a>
+<a class="sourceLine" id="cb4-70" data-line-number="70">      debugPrint <span class="st">&quot;-----------------------&quot;</span></a>
+<a class="sourceLine" id="cb4-71" data-line-number="71"></a>
+<a class="sourceLine" id="cb4-72" data-line-number="72"><span class="ot">    showEntries ::</span> <span class="dt">UtilAnnotationEntry</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb4-73" data-line-number="73">    showEntries e <span class="fu">=</span></a>
+<a class="sourceLine" id="cb4-74" data-line-number="74">      <span class="kw">case</span> e <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-75" data-line-number="75">        <span class="dt">UeAt</span> a <span class="ot">-&gt;</span> <span class="st">&quot;    At: &quot;</span> <span class="fu">&lt;&gt;</span> a</a>
+<a class="sourceLine" id="cb4-76" data-line-number="76">        <span class="dt">UeSelectTopNone</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    No utils: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
+<a class="sourceLine" id="cb4-77" data-line-number="77">        <span class="dt">UeSelectTopAbove</span> f  <span class="ot">-&gt;</span> <span class="st">&quot;    Top above: &quot;</span> <span class="fu">&lt;&gt;</span> showF f</a>
+<a class="sourceLine" id="cb4-78" data-line-number="78">        <span class="dt">UeSelectTopOne</span> val n i d <span class="ot">-&gt;</span> <span class="st">&quot;    Select top one: &quot;</span> <span class="fu">&lt;&gt;</span> n <span class="fu">&lt;&gt;</span> <span class="st">&quot;, impulse=&quot;</span> <span class="fu">&lt;&gt;</span> show i <span class="fu">&lt;&gt;</span> <span class="st">&quot;, score=&quot;</span> <span class="fu">&lt;&gt;</span> showF val <span class="fu">&lt;&gt;</span> <span class="st">&quot;,&quot;</span> <span class="fu">&lt;&gt;</span> d</a>
+<a class="sourceLine" id="cb4-79" data-line-number="79">        <span class="dt">UeNote</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    Note: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
+<a class="sourceLine" id="cb4-80" data-line-number="80"></a>
+<a class="sourceLine" id="cb4-81" data-line-number="81">  </a>
+<a class="sourceLine" id="cb4-82" data-line-number="82"><span class="ot">sendConfig ::</span> (<span class="dt">MonadHost</span> m) <span class="ot">=&gt;</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb4-83" data-line-number="83">sendConfig config <span class="fu">=</span></a>
+<a class="sourceLine" id="cb4-84" data-line-number="84">  sendHostData <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> (buildConfig config)</a></code></pre></div>
+<h2 id="level-3">Level 3</h2>
+<p>Level 3 has everything else.</p>
+<h1 id="structure-done">Structure done</h1>
+<p>I think this new structure nicely separates the different concerns. It also makes it clear what should be pure code and its nice to see how much of the code is pure.</p>
+<p>Adopting this structure is not required but I think it is worth considering as your game gets more complicated</p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_19.html">prev</a> <a href="2018-04-02-haskell-rogue-like_fin.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 19_story/src/GameEngine.hs 20_structure/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 19_story/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 20_structure/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -2,6 +2,8 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE MultiWayIf #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE FlexibleInstances #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE GeneralizedNewtypeDeriving #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> module GameEngine where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -20,8 +22,10 @@</pre>
+<pre class="diffpre context"> import qualified System.Random as Rnd</pre>
+<pre class="diffpre context"> import           Control.Lens (at, _1, (^.), (.~), (%~))</pre>
+<pre class="diffpre context"> import qualified Control.Arrow as Ar</pre>
+<pre class="diffpre insert">+import           Control.Monad.Trans (lift)</pre>
+<pre class="diffpre insert">+import           Control.Monad.Reader (ask, runReaderT, ReaderT, MonadReader, MonadTrans)</pre>
+<pre class="diffpre context"> import           Control.Monad.Writer.Strict (runWriter)</pre>
+<pre class="diffpre delete">-import           Control.Concurrent.STM (atomically, readTVar, newTVar, modifyTVar', TVar)</pre>
+<pre class="diffpre insert">+import           Control.Concurrent.STM (atomically, readTVar, writeTVar, newTVar, modifyTVar', TVar)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import qualified Memory as M</pre>
+<pre class="diffpre context"> import           GameCore</pre>
+<pre class="diffpre info">@@ -33,8 +37,13 @@</pre>
+<pre class="diffpre context"> import qualified UtilityBrain as UB</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+-- L0 Hosting</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre context"> runGame :: (Levels -&gt; Level) -&gt; IO ()</pre>
+<pre class="diffpre delete">-runGame getLevel = Host.runHost (manageConnection getLevel)</pre>
+<pre class="diffpre insert">+runGame getLevel = </pre>
+<pre class="diffpre insert">+  Host.runHost $ manageConnection getLevel</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre context"> manageConnection :: (Levels -&gt; Level) -&gt; Host.Connection -&gt; IO ()</pre>
+<pre class="diffpre info">@@ -45,26 +54,223 @@</pre>
+<pre class="diffpre context">     Just ("init", cmdData) -&gt; do</pre>
+<pre class="diffpre context">       std &lt;- Rnd.getStdGen</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre delete">-      case initialiseConnection conn cmdData std getLevel of</pre>
+<pre class="diffpre insert">+      case initialiseConnection conn cmdData std getLevel of -- initialiseConnection is L3</pre>
+<pre class="diffpre context">         Right world -&gt; do</pre>
+<pre class="diffpre delete">-          worldV &lt;- atomically $ newTVar world</pre>
+<pre class="diffpre delete">-          sendConfig conn $ world ^. wdConfig</pre>
+<pre class="diffpre delete">-          runConnection worldV</pre>
+<pre class="diffpre insert">+          app &lt;- atomically $ AppState &lt;$&gt; newTVar conn &lt;*&gt; newTVar world</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+          -- Start the AppT pipeline</pre>
+<pre class="diffpre insert">+          runReaderT (unAppT $ initialiseConfig &gt;&gt; startGame) app</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">         Left e -&gt;</pre>
+<pre class="diffpre delete">-          sendError conn e</pre>
+<pre class="diffpre insert">+          runReaderT (sendHostError e) conn</pre>
+<pre class="diffpre context">         </pre>
+<pre class="diffpre context">     _ -&gt;</pre>
+<pre class="diffpre context">       pass</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  where</pre>
+<pre class="diffpre delete">-    runConnection worldV = </pre>
+<pre class="diffpre delete">-      forever $ do</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+-- L1 App (orchestration)</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+data AppState = AppState { appConnection :: !(TVar Host.Connection)</pre>
+<pre class="diffpre insert">+                         , appWorld :: !(TVar World)</pre>
+<pre class="diffpre insert">+                         } </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+newtype AppT m a = AppT { unAppT :: ReaderT AppState m a </pre>
+<pre class="diffpre insert">+                        } deriving (Functor, Applicative, Monad, MonadReader AppState, MonadTrans)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+askApp :: (AppState -&gt; TVar a) -&gt; AppT IO a</pre>
+<pre class="diffpre insert">+askApp getter = do</pre>
+<pre class="diffpre insert">+  app &lt;- ask</pre>
+<pre class="diffpre insert">+  lift . atomically . readTVar $ getter app</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+modifyApp :: (AppState -&gt; TVar a) -&gt; (a -&gt; a) -&gt; AppT IO ()</pre>
+<pre class="diffpre insert">+modifyApp getter modify' = do</pre>
+<pre class="diffpre insert">+  app &lt;- ask</pre>
+<pre class="diffpre insert">+  lift . atomically $ modifyTVar' (getter app) modify'</pre>
+<pre class="diffpre insert">+----</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+initialiseConfig :: AppT IO ()</pre>
+<pre class="diffpre insert">+initialiseConfig = do</pre>
+<pre class="diffpre insert">+  conn &lt;- askApp appConnection</pre>
+<pre class="diffpre insert">+  world &lt;- askApp appWorld</pre>
+<pre class="diffpre insert">+  app &lt;- ask</pre>
+<pre class="diffpre insert">+  lift $ runReaderT (sendConfig $ world ^. wdConfig) (conn, appWorld app)</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+startGame :: AppT IO ()</pre>
+<pre class="diffpre insert">+startGame = do</pre>
+<pre class="diffpre insert">+  app &lt;- ask</pre>
+<pre class="diffpre insert">+  conn &lt;- askApp appConnection</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  lift . forever $ do</pre>
+<pre class="diffpre context">         t &lt;- conn ^. conReceiveText</pre>
+<pre class="diffpre insert">+    r &lt;- runReaderT (handleCommand t) (conn, appWorld app)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    case r of</pre>
+<pre class="diffpre insert">+      Nothing -&gt; pass</pre>
+<pre class="diffpre insert">+      Just e -&gt; putText e</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+-- L2 (bridge / external services)</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+class (Monad m) =&gt; MonadHost m where</pre>
+<pre class="diffpre insert">+  receiveHostText :: m Text</pre>
+<pre class="diffpre insert">+  sendHostData :: Text -&gt; m ()</pre>
+<pre class="diffpre insert">+  sendHostLog :: Text -&gt; m ()</pre>
+<pre class="diffpre insert">+  sendHostError :: Text -&gt; m ()</pre>
+<pre class="diffpre insert">+  sendHostUiConfig :: UiConfigData -&gt; m ()</pre>
+<pre class="diffpre insert">+  compressData :: Text -&gt; m BSL.ByteString</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  --default implementation</pre>
+<pre class="diffpre insert">+  sendHostLog err = sendHostData $ Ae.encodeText $ UiMessage "log" err</pre>
+<pre class="diffpre insert">+  sendHostError err = sendHostData $ Ae.encodeText $ UiMessage "error" err</pre>
+<pre class="diffpre insert">+  sendHostUiConfig config = sendHostData . Ae.encodeText $ UiConfig "config" config</pre>
+<pre class="diffpre insert">+  compressData = pure . Bz.compress . BSL.fromStrict . TxtE.encodeUtf8 </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance MonadHost (ReaderT (Host.Connection, TVar World) IO) where</pre>
+<pre class="diffpre insert">+  receiveHostText = do</pre>
+<pre class="diffpre insert">+    (conn, _) &lt;- ask</pre>
+<pre class="diffpre insert">+    lift $ conn ^. conReceiveText</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  sendHostData t = do</pre>
+<pre class="diffpre insert">+    (conn, _) &lt;- ask</pre>
+<pre class="diffpre insert">+    lz &lt;- compressData t</pre>
+<pre class="diffpre insert">+    lift $ conn ^. conSendData $ lz</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance MonadHost (ReaderT Host.Connection IO) where</pre>
+<pre class="diffpre insert">+  receiveHostText = do</pre>
+<pre class="diffpre insert">+    conn &lt;- ask</pre>
+<pre class="diffpre insert">+    lift $ conn ^. conReceiveText</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  sendHostData t = do</pre>
+<pre class="diffpre insert">+    conn &lt;- ask</pre>
+<pre class="diffpre insert">+    lz &lt;- compressData t</pre>
+<pre class="diffpre insert">+    lift $ conn ^. conSendData $ lz</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+class (Monad m) =&gt; MonadWorld m where</pre>
+<pre class="diffpre insert">+  askWorld :: m World</pre>
+<pre class="diffpre insert">+  putWorld :: World -&gt; m ()</pre>
+<pre class="diffpre insert">+  modifyWorld :: (World -&gt; World) -&gt; m ()</pre>
+<pre class="diffpre insert">+  debugPrint :: Text -&gt; m ()</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance MonadWorld (ReaderT (Host.Connection, TVar World) IO) where</pre>
+<pre class="diffpre insert">+  askWorld = do</pre>
+<pre class="diffpre insert">+    (_, wt) &lt;- ask</pre>
+<pre class="diffpre insert">+    w &lt;- lift . atomically $ readTVar wt</pre>
+<pre class="diffpre insert">+    pure w</pre>
+<pre class="diffpre insert">+    </pre>
+<pre class="diffpre insert">+  putWorld w = do</pre>
+<pre class="diffpre insert">+    (_, wt) &lt;- ask</pre>
+<pre class="diffpre insert">+    lift . atomically $ writeTVar wt w</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  modifyWorld fn = do</pre>
+<pre class="diffpre insert">+    (_, wt) &lt;- ask</pre>
+<pre class="diffpre insert">+    lift . atomically $ modifyTVar' wt fn</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+  debugPrint = putText</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-------------------</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+handleCommand :: (MonadHost m, MonadWorld m) =&gt; Text -&gt; m (Maybe Text)</pre>
+<pre class="diffpre insert">+handleCommand t = </pre>
+<pre class="diffpre context">         case parseCommand t of</pre>
+<pre class="diffpre delete">-          Nothing -&gt; putText $ "error parsing: " &lt;&gt; t</pre>
+<pre class="diffpre delete">-          Just (cmd, cmdData) -&gt; runCmd conn worldV cmd cmdData</pre>
+<pre class="diffpre insert">+    Nothing -&gt; pure . Just $ "error parsing: " &lt;&gt; t</pre>
+<pre class="diffpre insert">+    Just (cmd, cmdData) -&gt; do</pre>
+<pre class="diffpre insert">+      runCmd cmd cmdData</pre>
+<pre class="diffpre insert">+      pure Nothing</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runCmd :: (MonadHost m, MonadWorld m) =&gt; Text -&gt; [Text] -&gt; m ()</pre>
+<pre class="diffpre insert">+runCmd cmd cmdData = </pre>
+<pre class="diffpre insert">+  case cmd of</pre>
+<pre class="diffpre insert">+    "redraw" -&gt; </pre>
+<pre class="diffpre insert">+      case parseScreenSize cmdData of</pre>
+<pre class="diffpre insert">+        Nothing -&gt; sendHostError "missing / invalid screen size"</pre>
+<pre class="diffpre insert">+        Just (sx, sy) -&gt; do</pre>
+<pre class="diffpre insert">+          updatePlayer (plScreenSize .~ (sx, sy))</pre>
+<pre class="diffpre insert">+          world &lt;- askWorld</pre>
+<pre class="diffpre insert">+          sendHostData $ Ae.encodeText (drawAndSend world)</pre>
+<pre class="diffpre insert">+          sendHostLog "draw"</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+    "key" -&gt; do</pre>
+<pre class="diffpre insert">+      -- Handle the key press</pre>
+<pre class="diffpre insert">+      modifyWorld (\w -&gt;</pre>
+<pre class="diffpre insert">+                     -- Do the actions as if they will succeed</pre>
+<pre class="diffpre insert">+                     let pendingWorld = runActions w $ handleKey w cmdData in</pre>
+<pre class="diffpre insert">+                     -- Apply, if the move is allowed</pre>
+<pre class="diffpre insert">+                     -- Cost is hard-coded to 100 for now, this will be fixed later</pre>
+<pre class="diffpre insert">+                     playerMoving 100 pendingWorld w</pre>
+<pre class="diffpre insert">+                  )</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      -- Get the updated world</pre>
+<pre class="diffpre insert">+      w2 &lt;- askWorld</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      -- Handle the annotations</pre>
+<pre class="diffpre insert">+      -- This is not terribly pretty as its doing a select for update, but its good enough for debugging</pre>
+<pre class="diffpre insert">+      -- the annotation code can be removed once everything is working</pre>
+<pre class="diffpre insert">+      let annotations = w2 ^. wdUtilBrainAnnotations </pre>
+<pre class="diffpre insert">+      modifyWorld (\w -&gt; w &amp; wdUtilBrainAnnotations .~ [])</pre>
+<pre class="diffpre insert">+      printAnnotations annotations</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      -- Draw</pre>
+<pre class="diffpre insert">+      w3 &lt;- askWorld</pre>
+<pre class="diffpre insert">+      sendHostData $ Ae.encodeText (drawAndSend w3)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    _ -&gt;</pre>
+<pre class="diffpre insert">+      sendHostError $ "Unknown command: " &lt;&gt; cmd</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    updatePlayer f = modifyWorld (\w -&gt; w &amp; wdPlayer %~ f)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    printAnnotations as = do</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+      debugPrint "***** Utility Annotations **************"</pre>
+<pre class="diffpre insert">+      traverse_ printAnnotation as</pre>
+<pre class="diffpre insert">+      debugPrint "****************************************"</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    printAnnotation (e, assess, top)  = do</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+      debugPrint $ "-----------------------" &lt;&gt; show e</pre>
+<pre class="diffpre insert">+      debugPrint "  -- assess --"</pre>
+<pre class="diffpre insert">+      debugPrint . Txt.intercalate "\n" $ showEntries &lt;$&gt; assess</pre>
+<pre class="diffpre insert">+      debugPrint ""</pre>
+<pre class="diffpre insert">+      debugPrint "  -- top --"</pre>
+<pre class="diffpre insert">+      debugPrint . Txt.intercalate "\n" $ showEntries &lt;$&gt; top</pre>
+<pre class="diffpre insert">+      debugPrint "-----------------------"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    showEntries :: UtilAnnotationEntry -&gt; Text</pre>
+<pre class="diffpre insert">+    showEntries e =</pre>
+<pre class="diffpre insert">+      case e of</pre>
+<pre class="diffpre insert">+        UeAt a -&gt; "    At: " &lt;&gt; a</pre>
+<pre class="diffpre insert">+        UeSelectTopNone n -&gt; "    No utils: " &lt;&gt; n</pre>
+<pre class="diffpre insert">+        UeSelectTopAbove f  -&gt; "    Top above: " &lt;&gt; showF f</pre>
+<pre class="diffpre insert">+        UeSelectTopOne val n i d -&gt; "    Select top one: " &lt;&gt; n &lt;&gt; ", impulse=" &lt;&gt; show i &lt;&gt; ", score=" &lt;&gt; showF val &lt;&gt; "," &lt;&gt; d</pre>
+<pre class="diffpre insert">+        UeNote n -&gt; "    Note: " &lt;&gt; n</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+sendConfig :: (MonadHost m) =&gt; Config -&gt; m ()</pre>
+<pre class="diffpre insert">+sendConfig config =</pre>
+<pre class="diffpre insert">+  sendHostData . Ae.encodeText $ UiConfig "config" (buildConfig config)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+-- L3 (Business logic, pure code only)</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre context">     parseCommand :: Text -&gt; Maybe (Text, [Text])</pre>
+<pre class="diffpre context">     parseCommand t =</pre>
+<pre class="diffpre context">       case Txt.splitOn "|" t of</pre>
+<pre class="diffpre info">@@ -162,91 +367,6 @@</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context">     </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-runCmd :: Host.Connection -&gt; TVar World -&gt; Text -&gt; [Text] -&gt; IO ()</pre>
+<pre class="diffpre delete">-runCmd conn worldV cmd cmdData = </pre>
+<pre class="diffpre delete">-  case cmd of</pre>
+<pre class="diffpre delete">-    "redraw" -&gt; </pre>
+<pre class="diffpre delete">-      case parseScreenSize cmdData of</pre>
+<pre class="diffpre delete">-        Nothing -&gt; sendError conn "missing / invalid screen size"</pre>
+<pre class="diffpre delete">-        Just (sx, sy) -&gt; do</pre>
+<pre class="diffpre delete">-          updatePlayer (plScreenSize .~ (sx, sy))</pre>
+<pre class="diffpre delete">-          w &lt;- atomically $ readTVar worldV</pre>
+<pre class="diffpre delete">-          drawAndSend w</pre>
+<pre class="diffpre delete">-          sendLog conn "draw"</pre>
+<pre class="diffpre delete">-      </pre>
+<pre class="diffpre delete">-    "key" -&gt; do</pre>
+<pre class="diffpre delete">-      -- Handle the key press</pre>
+<pre class="diffpre delete">-      atomically $ modifyTVar' worldV (\w -&gt;</pre>
+<pre class="diffpre delete">-                                         -- Do the actions as if they will succeed</pre>
+<pre class="diffpre delete">-                                         let pendingWorld = runActions w $ handleKey w cmdData in</pre>
+<pre class="diffpre delete">-                                         -- Apply, if the move is allowed</pre>
+<pre class="diffpre delete">-                                         -- Cost is hard-coded to 100 for now, this will be fixed later</pre>
+<pre class="diffpre delete">-                                         playerMoving 100 pendingWorld w</pre>
+<pre class="diffpre delete">-                                      )</pre>
+<pre class="diffpre delete">-      -- Get the updated world</pre>
+<pre class="diffpre delete">-      w2 &lt;- atomically $ readTVar worldV</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-      -- Handle the annotations</pre>
+<pre class="diffpre delete">-      -- This is not terribly pretty as its doing a select for update, but its good enough for debugging</pre>
+<pre class="diffpre delete">-      -- the annotation code can be removed once everything is working</pre>
+<pre class="diffpre delete">-      let annotations = w2 ^. wdUtilBrainAnnotations </pre>
+<pre class="diffpre delete">-      atomically $ modifyTVar' worldV (\w -&gt; w &amp; wdUtilBrainAnnotations .~ [])</pre>
+<pre class="diffpre delete">-      printAnnotations annotations</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-      -- Draw</pre>
+<pre class="diffpre delete">-      drawAndSend w2</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-    _ -&gt;</pre>
+<pre class="diffpre delete">-      sendError conn $ "Unknown command: " &lt;&gt; cmd</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-  where</pre>
+<pre class="diffpre delete">-    updatePlayer f = atomically $ modifyTVar' worldV (\w -&gt; w &amp; wdPlayer %~ f)</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-    printAnnotations as = do</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-      putText "***** Utility Annotations **************"</pre>
+<pre class="diffpre delete">-      traverse_ printAnnotation as</pre>
+<pre class="diffpre delete">-      putText "****************************************"</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-    printAnnotation (e, assess, top)  = do</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-      putText $ "-----------------------" &lt;&gt; show e</pre>
+<pre class="diffpre delete">-      putText "  -- assess --"</pre>
+<pre class="diffpre delete">-      putText . Txt.intercalate "\n" $ showEntries &lt;$&gt; assess</pre>
+<pre class="diffpre delete">-      putText ""</pre>
+<pre class="diffpre delete">-      putText "  -- top --"</pre>
+<pre class="diffpre delete">-      putText . Txt.intercalate "\n" $ showEntries &lt;$&gt; top</pre>
+<pre class="diffpre delete">-      putText "-----------------------"</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-    showEntries :: UtilAnnotationEntry -&gt; Text</pre>
+<pre class="diffpre delete">-    showEntries e =</pre>
+<pre class="diffpre delete">-      case e of</pre>
+<pre class="diffpre delete">-        UeAt a -&gt; "    At: " &lt;&gt; a</pre>
+<pre class="diffpre delete">-        UeSelectTopNone n -&gt; "    No utils: " &lt;&gt; n</pre>
+<pre class="diffpre delete">-        UeSelectTopAbove f  -&gt; "    Top above: " &lt;&gt; showF f</pre>
+<pre class="diffpre delete">-        UeSelectTopOne val n i d -&gt; "    Select top one: " &lt;&gt; n &lt;&gt; ", impulse=" &lt;&gt; show i &lt;&gt; ", score=" &lt;&gt; showF val &lt;&gt; "," &lt;&gt; d</pre>
+<pre class="diffpre delete">-        UeNote n -&gt; "    Note: " &lt;&gt; n</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-  </pre>
+<pre class="diffpre delete">-sendLog :: Host.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre delete">-sendLog conn err =</pre>
+<pre class="diffpre delete">-  sendData conn $ Ae.encodeText $ UiMessage "log" err</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-sendError :: Host.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre delete">-sendError conn err =</pre>
+<pre class="diffpre delete">-  sendData conn $ Ae.encodeText $ UiMessage "error" err</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-sendConfig :: Host.Connection -&gt; Config -&gt; IO ()</pre>
+<pre class="diffpre delete">-sendConfig conn config =</pre>
+<pre class="diffpre delete">-  sendData conn . Ae.encodeText $ UiConfig "config" (buildConfig config)</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> buildConfig :: Config -&gt; UiConfigData</pre>
+<pre class="diffpre context"> buildConfig cfg =</pre>
+<pre class="diffpre context">   UiConfigData { udKeys = buildKeys (cfg ^. cfgKeys)</pre>
+<pre class="diffpre info">@@ -258,12 +378,6 @@</pre>
+<pre class="diffpre context">     buildKey (s, a) = UiKey s a</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-sendData :: Host.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre delete">-sendData conn t = do</pre>
+<pre class="diffpre delete">-  let lz = Bz.compress . BSL.fromStrict . TxtE.encodeUtf8 $ t</pre>
+<pre class="diffpre delete">-  conn ^. conSendData $ lz</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> parseScreenSize :: [Text] -&gt; Maybe (Int, Int)</pre>
+<pre class="diffpre context"> parseScreenSize cmd = do</pre>
+<pre class="diffpre context">   (tx, ty) &lt;- case cmd of</pre>
+<pre class="diffpre info">@@ -275,15 +389,14 @@</pre>
+<pre class="diffpre context">   pure (x, y)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-drawAndSend :: World -&gt; IO ()</pre>
+<pre class="diffpre delete">-drawAndSend world = do</pre>
+<pre class="diffpre delete">-  let layers = drawTilesForPlayer world (world ^. wdMap) </pre>
+<pre class="diffpre insert">+drawAndSend :: World -&gt; UiDrawCommand</pre>
+<pre class="diffpre insert">+drawAndSend world = </pre>
+<pre class="diffpre insert">+  let layers = drawTilesForPlayer world (world ^. wdMap) in</pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre delete">-  let cmd = Ae.encodeText UiDrawCommand { drCmd = "draw"</pre>
+<pre class="diffpre insert">+  UiDrawCommand { drCmd = "draw"</pre>
+<pre class="diffpre context">                                         , drScreenWidth = world ^. wdPlayer ^. plScreenSize ^. _1</pre>
+<pre class="diffpre context">                                         , drMapData = mkDrawMapData &lt;&lt;$&gt;&gt; (Map.toList &lt;$&gt; layers)</pre>
+<pre class="diffpre context">                                         }</pre>
+<pre class="diffpre delete">-  sendData (world ^. wdPlayer ^. plConn) cmd</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     mkDrawMapData :: (PlayerPos, Tile) -&gt; (Int, Int, Int)</pre>
+</div>
+<h2 class=".diffh2">
+src/GameHost.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 19_story/src/GameHost.hs 20_structure/src/GameHost.hs</pre>
+<pre class="diffpre delete">--- 19_story/src/GameHost.hs</pre>
+<pre class="diffpre insert">+++ 20_structure/src/GameHost.hs</pre>
+<pre class="diffpre info">@@ -1,6 +1,8 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE TemplateHaskell #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE FlexibleInstances #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE GeneralizedNewtypeDeriving #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> module GameHost ( runHost</pre>
+<pre class="diffpre context">                 , Connection(..)</pre>
+<pre class="diffpre info">@@ -18,6 +20,9 @@</pre>
+<pre class="diffpre context"> import qualified Network.Wai.Handler.WebSockets as WaiWs</pre>
+<pre class="diffpre context"> import qualified Network.WebSockets as WS</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+-- L0 Hosting</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre context"> data Connection = Connection { _conSendData :: BSL.ByteString -&gt; IO ()</pre>
+<pre class="diffpre context">                              , _conReceiveText :: IO Text</pre>
+<pre class="diffpre context">                              }</pre>
+<pre class="diffpre info">@@ -55,11 +61,12 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre context"> wsapp :: (Connection -&gt; IO ()) -&gt; WS.ServerApp</pre>
+<pre class="diffpre delete">-wsapp startHost pending = do</pre>
+<pre class="diffpre insert">+wsapp runConnection pending = do</pre>
+<pre class="diffpre context">   conn &lt;- WS.acceptRequest pending</pre>
+<pre class="diffpre context">   WS.forkPingThread conn 30</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  startHost Connection { _conSendData = WS.sendBinaryData conn</pre>
+<pre class="diffpre insert">+  let h = Connection { _conSendData = WS.sendBinaryData conn</pre>
+<pre class="diffpre context">                        , _conReceiveText = WS.receiveData conn</pre>
+<pre class="diffpre context">                        }</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre insert">+  runConnection h</pre>
+<pre class="diffpre insert">+----------------------------------------------------------------------------------------------------------------</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_19.html">prev</a> <a href="2018-04-02-haskell-rogue-like_fin.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

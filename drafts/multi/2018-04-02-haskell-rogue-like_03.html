@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Entities & Drawing</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_02.html">prev</a> <a href="2018-04-02-haskell-rogue-like_04.html">next</a></p>
+<h1 id="entities">Entities</h1>
+<p>Having selected a tileset we now need a type to represent a tile. I decided to create two types, a <em>Tile</em> and an <em>Entity</em> type. The <em>Tile</em> type represents a single tile from the tileset. A <em>Entity</em> is a thing that exists in the game world, something what will be stored in the world map. I.e. I’ll work with <em>entities</em> and draw their <em>Tile</em></p>
+<h6 id="tilessrcgamecore.hs-31-to-39">03_tiles/src/GameCore.hs (31 to 39)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Tile</span> <span class="fu">=</span> <span class="dt">Tile</span> {<span class="ot"> _tlName ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">                 ,<span class="ot"> _tlPic ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">                 ,<span class="ot"> _tlId ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">                 } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">data</span> <span class="dt">Entity</span> <span class="fu">=</span> <span class="dt">Entity</span> {<span class="ot"> _enType ::</span> <span class="fu">!</span><span class="dt">E.EntityType</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">                     ,<span class="ot"> _enTile ::</span> <span class="fu">!</span><span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">                     ,<span class="ot"> _enProps ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">                     } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<p>A <em>tile</em> has</p>
+<ul>
+<li>A name</li>
+<li>A (row, column) offset named <em>pic</em></li>
+<li>An id</li>
+</ul>
+<p>An <em>entity</em> has</p>
+<ul>
+<li>A type</li>
+<li>A tile, i.e. the <em>tile</em> to draw for this <em>entity</em></li>
+<li>Properties</li>
+</ul>
+<p>It is possible to combine these two concepts into a single type. I decided to have them separate so that I could have a single entity that changes its tile based on some state.</p>
+<p>Next some basic <em>entity</em> types for a the first world</p>
+<h6 id="tilessrcentitytype.hs-8-to-13">03_tiles/src/EntityType.hs (8 to 13)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span> <span class="dt">EntityType</span> <span class="fu">=</span> <span class="dt">Blank</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">                <span class="fu">|</span> <span class="dt">Door</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">                <span class="fu">|</span> <span class="dt">DoorClosed</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">                <span class="fu">|</span> <span class="dt">Wall</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">                <span class="fu">|</span> <span class="dt">Unknown</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">                <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<h2 id="entity-and-tile-setup">Entity and tile setup</h2>
+<p>As you can see we now have four entity types. We are going to need four tiles to represent the entities in the world and somewhere to store this.</p>
+<p>The code below has two maps, <em>EntityType</em> to <em>Tile</em> (default tile) and one to <em>Entity</em>.</p>
+<h6 id="tilessrcentities.hs-13-to-14">03_tiles/src/Entities.hs (13 to 14)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">tiles ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="ot">entities ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Entity</span></a></code></pre></div>
+<p>In a complete game there could be many tiles, and setting up the <em>tile</em> to <em>entity</em> relationship manually would be tedious, lets not do that.</p>
+<h6 id="tilessrcentities.hs-20-to-24">03_tiles/src/Entities.hs (20 to 24)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>))</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>))</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">           ]</a></code></pre></div>
+<p>Given this setup we need a way to populate the two maps above</p>
+<h6 id="tilessrcentities.hs-18-to-55">03_tiles/src/Entities.hs (18 to 55)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">(tiles, entities) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>))</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>))</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">           ]</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">  <span class="kw">let</span> mkData (typ, pos<span class="fu">@</span>(x, y)) (tiles', entities') <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">        <span class="kw">let</span> (entity, tile) <span class="fu">=</span> mkEntityAndTile (x <span class="fu">*</span> <span class="dv">100</span> <span class="fu">+</span> y) typ pos <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">        ( Map.insert typ tile tiles'</a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">        , Map.insert typ entity entities'</a>
+<a class="sourceLine" id="cb5-12" data-line-number="12">        )</a>
+<a class="sourceLine" id="cb5-13" data-line-number="13">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-14" data-line-number="14">  foldr</a>
+<a class="sourceLine" id="cb5-15" data-line-number="15">    mkData</a>
+<a class="sourceLine" id="cb5-16" data-line-number="16">    ( Map.fromList [(<span class="dt">E.Unknown</span>, tileUnknown)]</a>
+<a class="sourceLine" id="cb5-17" data-line-number="17">    , Map.fromList [(<span class="dt">E.Unknown</span>, entityUnknown)]</a>
+<a class="sourceLine" id="cb5-18" data-line-number="18">    )</a>
+<a class="sourceLine" id="cb5-19" data-line-number="19">    is</a>
+<a class="sourceLine" id="cb5-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb5-21" data-line-number="21"></a>
+<a class="sourceLine" id="cb5-22" data-line-number="22"><span class="ot">getEntity ::</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb5-23" data-line-number="23">getEntity e <span class="fu">=</span> Map.findWithDefault entityUnknown e entities</a>
+<a class="sourceLine" id="cb5-24" data-line-number="24"></a>
+<a class="sourceLine" id="cb5-25" data-line-number="25"><span class="ot">getTile ::</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb5-26" data-line-number="26">getTile e <span class="fu">=</span> Map.findWithDefault tileUnknown e tiles</a>
+<a class="sourceLine" id="cb5-27" data-line-number="27"></a>
+<a class="sourceLine" id="cb5-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb5-29" data-line-number="29"><span class="ot">mkEntityAndTile ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> (<span class="dt">Entity</span>, <span class="dt">Tile</span>)</a>
+<a class="sourceLine" id="cb5-30" data-line-number="30">mkEntityAndTile id typ pic <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-31" data-line-number="31">  <span class="kw">let</span> t <span class="fu">=</span> <span class="dt">Tile</span> { _tlId <span class="fu">=</span> id, _tlName <span class="fu">=</span> show typ, _tlPic <span class="fu">=</span> pic } <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-32" data-line-number="32">  <span class="kw">let</span> a <span class="fu">=</span> <span class="dt">Entity</span> { _enType <span class="fu">=</span> typ, _enTile <span class="fu">=</span> t, _enProps <span class="fu">=</span> Map.empty} <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-33" data-line-number="33">  (a, t)</a>
+<a class="sourceLine" id="cb5-34" data-line-number="34">    </a>
+<a class="sourceLine" id="cb5-35" data-line-number="35"></a>
+<a class="sourceLine" id="cb5-36" data-line-number="36"><span class="ot">tileUnknown ::</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb5-37" data-line-number="37"><span class="ot">entityUnknown ::</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb5-38" data-line-number="38">(entityUnknown, tileUnknown) <span class="fu">=</span> mkEntityAndTile <span class="dv">201</span> <span class="dt">E.Unknown</span> (<span class="dv">2</span>, <span class="dv">1</span>)</a></code></pre></div>
+<p>The code start with <code>(tiles, entities) =</code> does just that.</p>
+<ul>
+<li>It creates both maps</li>
+<li>It creates an id for the tile by using (100 * row + column), e.g. <code>(9, 14)</code> creates an id of 914</li>
+</ul>
+<p>There are also some helper functions <em>getEntity</em> and <em>getTile</em> that lookup a tile/entity and return the “unknown” value if it is not found.</p>
+<h1 id="preparing-to-draw">Preparing to draw</h1>
+<p>First we need a draw command, so that the backend can respond to requests from the UI to start a draw.</p>
+<h6 id="tilessrcgamecore.hs-67-to-70">03_tiles/src/GameCore.hs (67 to 70)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiDrawCommand</span> <span class="fu">=</span> <span class="dt">UiDrawCommand</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">                     {<span class="ot"> drCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">                     ,<span class="ot"> drScreenWidth ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">                     } <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
+<p>Often in a rogue like there will be a default background tile. That is a tile that is used when there are no entities on that position.</p>
+<p>As a starting point for drawing, lets tell the UI what tile that is and have it draw a full grid of that tile. In the next chapter we’ll draw something more interesting</p>
+<h6 id="tilessrcgamecore.hs-49-to-57">03_tiles/src/GameCore.hs (49 to 57)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiConfig</span> <span class="fu">=</span> <span class="dt">UiConfig</span> {<span class="ot"> ucCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">                         ,<span class="ot"> ucData ::</span> <span class="fu">!</span><span class="dt">UiConfigData</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">                         }</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">                         <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="kw">data</span> <span class="dt">UiConfigData</span> <span class="fu">=</span> <span class="dt">UiConfigData</span> {<span class="ot"> udKeys ::</span> <span class="fu">!</span>[<span class="dt">UiKey</span>]</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">                                 ,<span class="ot"> udBlankId ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">                                 }</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9">                                 <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
+<h2 id="responding-to-a-redraw-request">Responding to a redraw request</h2>
+<p><em>buildConfig</em> is changed to send the blank tile</p>
+<h6 id="tilessrcgameengine.hs-124-to-132">03_tiles/src/GameEngine.hs (124 to 132)</h6>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">buildConfig ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">UiConfigData</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">buildConfig cfg <span class="fu">=</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="dt">UiConfigData</span> { udKeys <span class="fu">=</span> buildKeys (cfg <span class="fu">^.</span> cfgKeys)</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">               , udBlankId <span class="fu">=</span> E.getTile <span class="dt">E.Blank</span> <span class="fu">^.</span> tlId</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">               }</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">    buildKeys ks <span class="fu">=</span> buildKey <span class="fu">&lt;$&gt;</span> Map.toList ks</a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">    buildKey (s, a) <span class="fu">=</span> <span class="dt">UiKey</span> s a</a></code></pre></div>
+<p>In the previous version the engine responded with the word “TODO”. Now <em>runCmd</em> gets the most recent world from the TVar <code>w &lt;- atomically $ readTVar worldV</code> and then calls <em>drawAndSend</em></p>
+<p>You’ll see this pattern through the code, the top level functions work with the <em>TVar</em> and thus needs to deal with IO. As far as possible everything else is pure and not in IO.</p>
+<h6 id="tilessrcgameengine.hs-85-to-95">03_tiles/src/GameEngine.hs (85 to 95)</h6>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ot">runCmd ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">runCmd conn worldV cmd cmdData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendError conn <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-8" data-line-number="8">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
+<a class="sourceLine" id="cb9-9" data-line-number="9">          w <span class="ot">&lt;-</span> atomically <span class="fu">$</span> readTVar worldV</a>
+<a class="sourceLine" id="cb9-10" data-line-number="10">          drawAndSend w</a>
+<a class="sourceLine" id="cb9-11" data-line-number="11">          sendLog conn <span class="st">&quot;draw&quot;</span></a></code></pre></div>
+<p>Finally <em>drawAndSend</em> sends a <em>UiDrawCommand</em> with the most recent screen size. <code>_1</code> gets the first value (row) from the (row, column) <em>plScreenSize</em> tuple. This is the same as writing</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1">drScreenWidth <span class="fu">=</span> fst <span class="fu">$</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize</a></code></pre></div>
+<h6 id="tilessrcgameengine.hs-154-to-159">03_tiles/src/GameEngine.hs (154 to 159)</h6>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="ot">drawAndSend ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">drawAndSend world <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="kw">let</span> cmd <span class="fu">=</span> Ae.encodeText <span class="dt">UiDrawCommand</span> { drCmd <span class="fu">=</span> <span class="st">&quot;draw&quot;</span></a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">                                        , drScreenWidth <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize <span class="fu">^.</span> _1</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">                                        }</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">  sendData (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn) cmd</a></code></pre></div>
+<h1 id="tileset-image">Tileset image</h1>
+<p>The UI is going to need the tileset PNG, here a route is added to Scotty to serve the file</p>
+<h6 id="tilessrcgamehost.hs-46-to-47">03_tiles/src/GameHost.hs (46 to 47)</h6>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">  Sc.get <span class="st">&quot;/tiles.png&quot;</span> <span class="fu">$</span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">    Sc.file <span class="st">&quot;html/DungeonCrawl_ProjectUtumnoTileset_0.png&quot;</span></a></code></pre></div>
+<p>The frontend needs to load the tiles so they are available for drawing. A hidden image tag handles this</p>
+<h6 id="tileshtmlrogue.html-46-to-47">03_tiles/html/rogue.html (46 to 47)</h6>
+<div class="sourceCode" id="cb13"><pre class="sourceCode html"><code class="sourceCode html"><a class="sourceLine" id="cb13-1" data-line-number="1">  <span class="co">&lt;!-- load the tiles as an image--&gt;</span></a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">  <span class="kw">&lt;img</span><span class="ot"> src=</span><span class="st">&quot;tiles.png&quot;</span><span class="ot"> style=</span><span class="st">&quot;display:none&quot;</span><span class="ot"> id=</span><span class="st">&quot;tilesMain&quot;</span><span class="kw">/&gt;</span></a></code></pre></div>
+<h1 id="drawing-the-tiles">Drawing the tiles</h1>
+<p>The UI needs to store the Id of the blank tile when it gets a <em>config</em> command</p>
+<h6 id="tileshtmlrogue.js-93-to-95">03_tiles/html/rogue.js (93 to 95)</h6>
+<div class="sourceCode" id="cb14"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb14-1" data-line-number="1">  <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">    <span class="va">config</span>.<span class="at">tiles</span> <span class="op">=</span> <span class="op">{};</span></a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">    <span class="va">config</span>.<span class="at">blankId</span> <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">blankId</span><span class="op">;</span></a></code></pre></div>
+<p>The UI must then respond to a <em>draw</em> command</p>
+<ul>
+<li>Get a unique id for this draw session</li>
+<li>Get a drawing context for the canvas</li>
+<li>Draw the background in a single draw to fill the screen from a cached image</li>
+</ul>
+<h6 id="tileshtmlrogue.js-122-to-132">03_tiles/html/rogue.js (122 to 132)</h6>
+<div class="sourceCode" id="cb15"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb15-1" data-line-number="1">      <span class="cf">case</span> <span class="st">&quot;draw&quot;</span><span class="op">:</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2">        <span class="va">config</span>.<span class="at">drawId</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">random</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">        </a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">        <span class="kw">const</span> colWidth <span class="op">=</span> <span class="va">cmd</span>.<span class="at">screenWidth</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb15-5" data-line-number="5">        <span class="kw">const</span> ctx <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>).<span class="at">getContext</span>(<span class="st">&quot;2d&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb15-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb15-7" data-line-number="7">        <span class="co">//Draw background image of blank tiles</span></a>
+<a class="sourceLine" id="cb15-8" data-line-number="8">        <span class="va">ctx</span>.<span class="at">drawImage</span>( <span class="at">getCachedBlankCanvas</span>()<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb15-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb15-10" data-line-number="10">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb15-11" data-line-number="11">      <span class="op">}</span></a></code></pre></div>
+<p>To create the cached background image</p>
+<ul>
+<li>Get the size of the real canvas</li>
+<li>Create a new in memory canvas <em>cbg</em></li>
+<li>For every row*column draw the blank tile</li>
+<li>Store the cached canvas for the next call</li>
+</ul>
+<h6 id="tileshtmlrogue.js-31-to-58">03_tiles/html/rogue.js (31 to 58)</h6>
+<div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="kw">function</span> <span class="at">tileFromTileId</span>( id )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2">  <span class="kw">const</span> x <span class="op">=</span> <span class="va">Math</span>.<span class="at">trunc</span>( id / <span class="dv">100</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">  <span class="kw">const</span> y <span class="op">=</span> id <span class="op">-</span> (x <span class="op">*</span> <span class="dv">100</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">  <span class="cf">return</span> [x<span class="op">,</span> y]<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5"><span class="op">}</span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="kw">function</span> <span class="at">getCachedBlankCanvas</span>()<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-8" data-line-number="8">  <span class="cf">if</span>( <span class="op">!</span><span class="va">config</span>.<span class="at">blank</span> )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-9" data-line-number="9">    <span class="kw">const</span> ctxMain <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb16-11" data-line-number="11">    <span class="co">//Create a grid of blank cells for the background</span></a>
+<a class="sourceLine" id="cb16-12" data-line-number="12">    <span class="kw">var</span> cbg <span class="op">=</span> <span class="va">document</span>.<span class="at">createElement</span>(<span class="st">'canvas'</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-13" data-line-number="13">    <span class="va">cbg</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">ctxMain</span>.<span class="at">width</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-14" data-line-number="14">    <span class="va">cbg</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">ctxMain</span>.<span class="at">height</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-15" data-line-number="15">    <span class="kw">var</span> ctxbg <span class="op">=</span> <span class="va">cbg</span>.<span class="at">getContext</span>(<span class="st">'2d'</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-16" data-line-number="16">    <span class="kw">var</span> [blankX<span class="op">,</span> blankY] <span class="op">=</span> <span class="at">tileFromTileId</span>( <span class="va">config</span>.<span class="at">blankId</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-17" data-line-number="17"></a>
+<a class="sourceLine" id="cb16-18" data-line-number="18">    <span class="cf">for</span>( x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> x <span class="op">&lt;</span> <span class="va">config</span>.<span class="at">gridWidth</span><span class="op">;</span> <span class="op">++</span>x )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-19" data-line-number="19">      <span class="cf">for</span>( y <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> y <span class="op">&lt;</span> <span class="va">config</span>.<span class="at">gridHeight</span><span class="op">;</span> <span class="op">++</span>y )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-20" data-line-number="20">        <span class="at">drawTile</span>( ctxbg<span class="op">,</span> tilesMain<span class="op">,</span> <span class="va">config</span>.<span class="at">tileWidth</span><span class="op">,</span> <span class="va">config</span>.<span class="at">tileHeight</span><span class="op">,</span> x<span class="op">,</span> y<span class="op">,</span> blankX<span class="op">,</span> blankY )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-21" data-line-number="21">      <span class="op">}</span></a>
+<a class="sourceLine" id="cb16-22" data-line-number="22">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb16-23" data-line-number="23"></a>
+<a class="sourceLine" id="cb16-24" data-line-number="24">    <span class="va">config</span>.<span class="at">blank</span> <span class="op">=</span> cbg<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-25" data-line-number="25">  <span class="op">}</span></a>
+<a class="sourceLine" id="cb16-26" data-line-number="26"></a>
+<a class="sourceLine" id="cb16-27" data-line-number="27">  <span class="cf">return</span> <span class="va">config</span>.<span class="at">blank</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-28" data-line-number="28"><span class="op">}</span></a></code></pre></div>
+<p>Lastly the code that draws a tile is just a wrapper over the canvas <em>drawImage</em> function. All it does is translate from (row, column) to (x, y) by using the configured tile size</p>
+<h6 id="tileshtmlrogue.js-14-to-26">03_tiles/html/rogue.js (14 to 26)</h6>
+<div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="kw">function</span> <span class="at">drawTile</span>( ctx<span class="op">,</span> img<span class="op">,</span> twidth<span class="op">,</span> theight<span class="op">,</span> dx<span class="op">,</span> dy<span class="op">,</span> trow<span class="op">,</span> tcol )<span class="op">{</span></a>
+<a class="sourceLine" id="cb17-2" data-line-number="2">  <span class="va">ctx</span>.<span class="at">drawImage</span>(</a>
+<a class="sourceLine" id="cb17-3" data-line-number="3">    img<span class="op">,</span>             <span class="co">//img</span></a>
+<a class="sourceLine" id="cb17-4" data-line-number="4">    trow <span class="op">*</span> twidth<span class="op">,</span>   <span class="co">//sx</span></a>
+<a class="sourceLine" id="cb17-5" data-line-number="5">    tcol <span class="op">*</span> theight<span class="op">,</span>  <span class="co">//sy</span></a>
+<a class="sourceLine" id="cb17-6" data-line-number="6">    twidth<span class="op">,</span>          <span class="co">//sWidth</span></a>
+<a class="sourceLine" id="cb17-7" data-line-number="7">    theight<span class="op">,</span>         <span class="co">//sHeight</span></a>
+<a class="sourceLine" id="cb17-8" data-line-number="8">    dx <span class="op">*</span> twidth<span class="op">,</span>     <span class="co">//dx</span></a>
+<a class="sourceLine" id="cb17-9" data-line-number="9">    dy <span class="op">*</span> theight<span class="op">,</span>    <span class="co">//dy</span></a>
+<a class="sourceLine" id="cb17-10" data-line-number="10">    twidth<span class="op">,</span>          <span class="co">//dWidth</span></a>
+<a class="sourceLine" id="cb17-11" data-line-number="11">    theight          <span class="co">//dHeight</span></a>
+<a class="sourceLine" id="cb17-12" data-line-number="12">  )<span class="op">;</span></a>
+<a class="sourceLine" id="cb17-13" data-line-number="13"><span class="op">}</span></a></code></pre></div>
+<p>If you run this project (<code>stack run</code>) and browse to <code>http://localhost:61492/</code>, you should see a grid of the blank tiles</p>
+<p><img src="../../images/rogue_blank_tiles.png" /></p>
+<p>While this may not see that impressive, it does mean that the vast majority of the frontend code is now complete. There will be very few additions to the frontend logic from now on.</p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_02.html">prev</a> <a href="2018-04-02-haskell-rogue-like_04.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<p>As mentioned in the introduction, each chapter will end by showing the full set of code changes from the previous chapter. This should help give you an idea of what changed. Ignore these patch files if you don’t find them useful.</p>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/Entities.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 01_web_ui/src/Entities.hs 03_tiles/src/Entities.hs</pre>
+<pre class="diffpre delete">--- 01_web_ui/src/Entities.hs</pre>
+<pre class="diffpre insert">+++ 03_tiles/src/Entities.hs</pre>
+<pre class="diffpre info">@@ -0,0 +1,58 @@</pre>
+<pre class="diffpre insert">+{-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+module Entities where</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import Protolude hiding (Map)</pre>
+<pre class="diffpre insert">+import           Data.Map.Strict (Map)</pre>
+<pre class="diffpre insert">+import qualified Data.Map.Strict as Map</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import           GameCore</pre>
+<pre class="diffpre insert">+import qualified EntityType as E</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+tiles :: Map E.EntityType Tile</pre>
+<pre class="diffpre insert">+entities :: Map E.EntityType Entity</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+(tiles, entities) =</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  let is = [ (E.Blank     , (41, 13))</pre>
+<pre class="diffpre insert">+           , (E.Door      , (26, 15))</pre>
+<pre class="diffpre insert">+           , (E.DoorClosed, (21, 15))</pre>
+<pre class="diffpre insert">+           , (E.Wall      , ( 9, 14))</pre>
+<pre class="diffpre insert">+           ]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre insert">+  let mkData (typ, pos@(x, y)) (tiles', entities') =</pre>
+<pre class="diffpre insert">+        let (entity, tile) = mkEntityAndTile (x * 100 + y) typ pos in</pre>
+<pre class="diffpre insert">+        ( Map.insert typ tile tiles'</pre>
+<pre class="diffpre insert">+        , Map.insert typ entity entities'</pre>
+<pre class="diffpre insert">+        )</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre insert">+  foldr</pre>
+<pre class="diffpre insert">+    mkData</pre>
+<pre class="diffpre insert">+    ( Map.fromList [(E.Unknown, tileUnknown)]</pre>
+<pre class="diffpre insert">+    , Map.fromList [(E.Unknown, entityUnknown)]</pre>
+<pre class="diffpre insert">+    )</pre>
+<pre class="diffpre insert">+    is</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+getEntity :: E.EntityType -&gt; Entity</pre>
+<pre class="diffpre insert">+getEntity e = Map.findWithDefault entityUnknown e entities</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+getTile :: E.EntityType -&gt; Tile</pre>
+<pre class="diffpre insert">+getTile e = Map.findWithDefault tileUnknown e tiles</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+mkEntityAndTile :: Int -&gt; E.EntityType -&gt; (Int, Int) -&gt; (Entity, Tile)</pre>
+<pre class="diffpre insert">+mkEntityAndTile id typ pic =</pre>
+<pre class="diffpre insert">+  let t = Tile { _tlId = id, _tlName = show typ, _tlPic = pic } in</pre>
+<pre class="diffpre insert">+  let a = Entity { _enType = typ, _enTile = t, _enProps = Map.empty} in</pre>
+<pre class="diffpre insert">+  (a, t)</pre>
+<pre class="diffpre insert">+    </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+tileUnknown :: Tile</pre>
+<pre class="diffpre insert">+entityUnknown :: Entity</pre>
+<pre class="diffpre insert">+(entityUnknown, tileUnknown) = mkEntityAndTile 201 E.Unknown (2, 1)</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+src/EntityType.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 01_web_ui/src/EntityType.hs 03_tiles/src/EntityType.hs</pre>
+<pre class="diffpre delete">--- 01_web_ui/src/EntityType.hs</pre>
+<pre class="diffpre insert">+++ 03_tiles/src/EntityType.hs</pre>
+<pre class="diffpre info">@@ -0,0 +1,14 @@</pre>
+<pre class="diffpre insert">+{-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+module EntityType where</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import Protolude</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data EntityType = Blank</pre>
+<pre class="diffpre insert">+                | Door</pre>
+<pre class="diffpre insert">+                | DoorClosed</pre>
+<pre class="diffpre insert">+                | Wall</pre>
+<pre class="diffpre insert">+                | Unknown</pre>
+<pre class="diffpre insert">+                deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 01_web_ui/src/GameCore.hs 03_tiles/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 01_web_ui/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 03_tiles/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -14,7 +14,7 @@</pre>
+<pre class="diffpre context"> import           Control.Lens.TH (makeLenses)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import qualified GameHost as Host</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre insert">+import qualified EntityType as E</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Player = Player { _plConn :: !Host.Connection</pre>
+<pre class="diffpre context">                      , _plScreenSize :: !(Int, Int)</pre>
+<pre class="diffpre info">@@ -28,6 +28,16 @@</pre>
+<pre class="diffpre context">                         }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+data Tile = Tile { _tlName :: !Text</pre>
+<pre class="diffpre insert">+                 , _tlPic :: !(Int, Int)</pre>
+<pre class="diffpre insert">+                 , _tlId :: !Int</pre>
+<pre class="diffpre insert">+                 } deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data Entity = Entity { _enType :: !E.EntityType</pre>
+<pre class="diffpre insert">+                     , _enTile :: !Tile</pre>
+<pre class="diffpre insert">+                     , _enProps :: !(Map Text Text)</pre>
+<pre class="diffpre insert">+                     } deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data UiMessage = UiMessage { umCmd :: !Text</pre>
+<pre class="diffpre info">@@ -35,12 +45,14 @@</pre>
+<pre class="diffpre context">                            }</pre>
+<pre class="diffpre context">                            deriving (Generic)</pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data UiConfig = UiConfig { ucCmd :: !Text</pre>
+<pre class="diffpre context">                          , ucData :: !UiConfigData</pre>
+<pre class="diffpre context">                          }</pre>
+<pre class="diffpre context">                          deriving (Generic)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-newtype UiConfigData = UiConfigData { udKeys :: [UiKey]</pre>
+<pre class="diffpre insert">+data UiConfigData = UiConfigData { udKeys :: ![UiKey]</pre>
+<pre class="diffpre insert">+                                 , udBlankId :: !Int</pre>
+<pre class="diffpre context">                                     }</pre>
+<pre class="diffpre context">                                     deriving (Generic)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -44,12 +56,21 @@</pre>
+<pre class="diffpre context">                                     }</pre>
+<pre class="diffpre context">                                     deriving (Generic)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data UiKey = UiKey { ukShortcut :: !Text</pre>
+<pre class="diffpre context">                    , ukAction :: !Text</pre>
+<pre class="diffpre context">                    }</pre>
+<pre class="diffpre context">                    deriving (Generic)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data UiDrawCommand = UiDrawCommand</pre>
+<pre class="diffpre insert">+                     { drCmd :: !Text</pre>
+<pre class="diffpre insert">+                     , drScreenWidth :: !Int</pre>
+<pre class="diffpre insert">+                     } deriving (Generic)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> instance Ae.ToJSON UiMessage where</pre>
+<pre class="diffpre context">   toJSON = Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -62,6 +83,9 @@</pre>
+<pre class="diffpre context"> instance Ae.ToJSON UiKey where</pre>
+<pre class="diffpre context">   toJSON = Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+instance Ae.ToJSON UiDrawCommand where</pre>
+<pre class="diffpre insert">+  toJSON = Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> -- | drop prefix, and then lower case</pre>
+<pre class="diffpre context"> -- | renField 3 "tskBla" == "bla"</pre>
+<pre class="diffpre info">@@ -72,9 +96,8 @@</pre>
+<pre class="diffpre context">     mkLower t = Txt.toLower (Txt.take 1 t) &lt;&gt; Txt.drop 1 t</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> makeLenses ''World</pre>
+<pre class="diffpre context"> makeLenses ''Config</pre>
+<pre class="diffpre context"> makeLenses ''Player</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre insert">+makeLenses ''Entity</pre>
+<pre class="diffpre insert">+makeLenses ''Tile</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 01_web_ui/src/GameEngine.hs 03_tiles/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 01_web_ui/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 03_tiles/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -11,12 +11,14 @@</pre>
+<pre class="diffpre context"> import qualified Data.Aeson.Text.Extended as Ae</pre>
+<pre class="diffpre context"> import qualified Data.ByteString.Lazy as BSL</pre>
+<pre class="diffpre context"> import qualified Codec.Compression.BZip as Bz</pre>
+<pre class="diffpre delete">-import           Control.Lens ((^.), (.~), (%~))</pre>
+<pre class="diffpre delete">-import           Control.Concurrent.STM (atomically, newTVar, modifyTVar', TVar)</pre>
+<pre class="diffpre insert">+import           Control.Lens (_1, (^.), (.~), (%~))</pre>
+<pre class="diffpre insert">+import           Control.Concurrent.STM (atomically, readTVar, newTVar, modifyTVar', TVar)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import           GameCore</pre>
+<pre class="diffpre context"> import qualified GameHost as Host</pre>
+<pre class="diffpre context"> import           GameHost (conSendData, conReceiveText)</pre>
+<pre class="diffpre insert">+import qualified Entities as E</pre>
+<pre class="diffpre insert">+import qualified EntityType as E</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> runGame :: IO ()</pre>
+<pre class="diffpre info">@@ -95,7 +90,10 @@</pre>
+<pre class="diffpre context">         Nothing -&gt; sendError conn "missing / invalid screen size"</pre>
+<pre class="diffpre context">         Just (sx, sy) -&gt; do</pre>
+<pre class="diffpre context">           updatePlayer (plScreenSize .~ (sx, sy))</pre>
+<pre class="diffpre delete">-          sendLog conn $ "TODO: " &lt;&gt; cmd</pre>
+<pre class="diffpre insert">+          w &lt;- atomically $ readTVar worldV</pre>
+<pre class="diffpre insert">+          drawAndSend w</pre>
+<pre class="diffpre insert">+          sendLog conn "draw"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre context">     "key" -&gt;</pre>
+<pre class="diffpre context">       sendLog conn $ "TODO: " &lt;&gt; cmd &lt;&gt; ": " &lt;&gt; show cmdData</pre>
+<pre class="diffpre info">@@ -124,9 +120,12 @@</pre>
+<pre class="diffpre context">   sendData conn . Ae.encodeText $ UiConfig "config" (buildConfig config)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> buildConfig :: Config -&gt; UiConfigData</pre>
+<pre class="diffpre context"> buildConfig cfg =</pre>
+<pre class="diffpre delete">-  UiConfigData $ buildKeys (cfg ^. cfgKeys)</pre>
+<pre class="diffpre insert">+  UiConfigData { udKeys = buildKeys (cfg ^. cfgKeys)</pre>
+<pre class="diffpre insert">+               , udBlankId = E.getTile E.Blank ^. tlId</pre>
+<pre class="diffpre insert">+               }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     buildKeys ks = buildKey &lt;$&gt; Map.toList ks</pre>
+<pre class="diffpre info">@@ -153,3 +150,11 @@</pre>
+<pre class="diffpre context">   pure (x, y)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+drawAndSend :: World -&gt; IO ()</pre>
+<pre class="diffpre insert">+drawAndSend world = do</pre>
+<pre class="diffpre insert">+  let cmd = Ae.encodeText UiDrawCommand { drCmd = "draw"</pre>
+<pre class="diffpre insert">+                                        , drScreenWidth = world ^. wdPlayer ^. plScreenSize ^. _1</pre>
+<pre class="diffpre insert">+                                        }</pre>
+<pre class="diffpre insert">+  sendData (world ^. wdPlayer ^. plConn) cmd</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+html/rogue.js
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 01_web_ui/src/GameHost.hs 03_tiles/src/GameHost.hs</pre>
+<pre class="diffpre delete">--- 01_web_ui/src/GameHost.hs</pre>
+<pre class="diffpre insert">+++ 03_tiles/src/GameHost.hs</pre>
+<pre class="diffpre info">@@ -49,6 +42,11 @@</pre>
+<pre class="diffpre context">     Sc.get "/ping" $</pre>
+<pre class="diffpre context">       Sc.text "pong"</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    Sc.get "/tiles.png" $</pre>
+<pre class="diffpre insert">+      Sc.file "html/DungeonCrawl_ProjectUtumnoTileset_0.png"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">     Sc.get "/:res" $ do</pre>
+<pre class="diffpre context">       res &lt;- Sc.param "res"</pre>
+<pre class="diffpre context">       Sc.file $ "html/" &lt;&gt; res</pre>
+<pre class="diffpre delete">--- 01_web_ui/html/rogue.html</pre>
+<pre class="diffpre insert">+++ 03_tiles/html/rogue.html</pre>
+<pre class="diffpre info">@@ -42,6 +41,11 @@</pre>
+<pre class="diffpre context">       &lt;!-- layer for mouse clicks etc, on top of all drawing layers --&gt;</pre>
+<pre class="diffpre context">       &lt;div id="topInteractionLayer" style="display:block; position: absolute; left: 0; top: 0; z-index: 1000;"&gt;&lt;/div&gt;</pre>
+<pre class="diffpre context">     &lt;/div&gt;</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    </pre>
+<pre class="diffpre insert">+    &lt;!-- load the tiles as an image--&gt;</pre>
+<pre class="diffpre insert">+    &lt;img src="tiles.png" style="display:none" id="tilesMain"/&gt;</pre>
+<pre class="diffpre insert">+    </pre>
+<pre class="diffpre context">   &lt;/body&gt;</pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre context"> &lt;/html&gt;</pre>
+<pre class="diffpre delete">--- 01_web_ui/html/rogue.js</pre>
+<pre class="diffpre insert">+++ 03_tiles/html/rogue.js</pre>
+<pre class="diffpre info">@@ -1,9 +1,9 @@</pre>
+<pre class="diffpre context"> var sendCmd = ( c, d ) =&gt; {}</pre>
+<pre class="diffpre context"> var tilesMain = null;</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> var config = { "drawId": 0,</pre>
+<pre class="diffpre context">                "help": "",</pre>
+<pre class="diffpre insert">+               "blank": null,</pre>
+<pre class="diffpre context">                "tileWidth": 32,</pre>
+<pre class="diffpre context">                "tileHeight": 32,</pre>
+<pre class="diffpre context">                "gridWidth": 0,</pre>
+<pre class="diffpre info">@@ -11,6 +11,52 @@</pre>
+<pre class="diffpre context">              };</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+function drawTile( ctx, img, twidth, theight, dx, dy, trow, tcol ){</pre>
+<pre class="diffpre insert">+  ctx.drawImage(</pre>
+<pre class="diffpre insert">+    img,             //img</pre>
+<pre class="diffpre insert">+    trow * twidth,   //sx</pre>
+<pre class="diffpre insert">+    tcol * theight,  //sy</pre>
+<pre class="diffpre insert">+    twidth,          //sWidth</pre>
+<pre class="diffpre insert">+    theight,         //sHeight</pre>
+<pre class="diffpre insert">+    dx * twidth,     //dx</pre>
+<pre class="diffpre insert">+    dy * theight,    //dy</pre>
+<pre class="diffpre insert">+    twidth,          //dWidth</pre>
+<pre class="diffpre insert">+    theight          //dHeight</pre>
+<pre class="diffpre insert">+  );</pre>
+<pre class="diffpre insert">+}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+function tileFromTileId( id ){</pre>
+<pre class="diffpre insert">+  const x = Math.trunc( id / 100 );</pre>
+<pre class="diffpre insert">+  const y = id - (x * 100);</pre>
+<pre class="diffpre insert">+  return [x, y];</pre>
+<pre class="diffpre insert">+}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+function getCachedBlankCanvas(){</pre>
+<pre class="diffpre insert">+  if( !config.blank ){</pre>
+<pre class="diffpre insert">+    const ctxMain = document.getElementById("tilesCanvas");</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    //Create a grid of blank cells for the background</pre>
+<pre class="diffpre insert">+    var cbg = document.createElement('canvas');</pre>
+<pre class="diffpre insert">+    cbg.width = ctxMain.width;</pre>
+<pre class="diffpre insert">+    cbg.height = ctxMain.height;</pre>
+<pre class="diffpre insert">+    var ctxbg = cbg.getContext('2d');</pre>
+<pre class="diffpre insert">+    var [blankX, blankY] = tileFromTileId( config.blankId );</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    for( x = 0; x &lt; config.gridWidth; ++x ){</pre>
+<pre class="diffpre insert">+      for( y = 0; y &lt; config.gridHeight; ++y ){</pre>
+<pre class="diffpre insert">+        drawTile( ctxbg, tilesMain, config.tileWidth, config.tileHeight, x, y, blankX, blankY );</pre>
+<pre class="diffpre insert">+      }</pre>
+<pre class="diffpre insert">+    }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    config.blank = cbg;</pre>
+<pre class="diffpre insert">+  }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  return config.blank;</pre>
+<pre class="diffpre insert">+}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> function sendKey(k){</pre>
+<pre class="diffpre info">@@ -42,17 +83,18 @@</pre>
+<pre class="diffpre context">     sendCmd("init", gridSizeStr());</pre>
+<pre class="diffpre context">   };</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context">   ws.onmessage = function (evt) { </pre>
+<pre class="diffpre context">     var bytes = new Uint8Array(evt.data);</pre>
+<pre class="diffpre context">     var m = bzip2.simple(bzip2.array(bytes));</pre>
+<pre class="diffpre context">     cmd = JSON.parse(m);</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+    switch( cmd.cmd ){</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      case "config": {</pre>
+<pre class="diffpre insert">+        config.tiles = {};</pre>
+<pre class="diffpre insert">+        config.blankId = cmd.data.blankId;</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-    switch( cmd.cmd ){</pre>
+<pre class="diffpre delete">-      case "config":</pre>
+<pre class="diffpre context">         //Load keys</pre>
+<pre class="diffpre context">         config.help = "";</pre>
+<pre class="diffpre context">         for( var i in cmd.data.keys ){</pre>
+<pre class="diffpre info">@@ -64,17 +106,33 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">         sendCmd("redraw", gridSizeStr());</pre>
+<pre class="diffpre context">         break;</pre>
+<pre class="diffpre insert">+      }</pre>
+<pre class="diffpre context">         </pre>
+<pre class="diffpre delete">-      case "log":</pre>
+<pre class="diffpre insert">+      case "log": {</pre>
+<pre class="diffpre context">         console.log( cmd.message );</pre>
+<pre class="diffpre context">         break;</pre>
+<pre class="diffpre insert">+      }</pre>
+<pre class="diffpre context">         </pre>
+<pre class="diffpre delete">-      case "error":</pre>
+<pre class="diffpre insert">+      case "error": {</pre>
+<pre class="diffpre context">         alert( cmd.message );</pre>
+<pre class="diffpre context">         break;</pre>
+<pre class="diffpre context">     }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     </pre>
+<pre class="diffpre insert">+      case "draw": {</pre>
+<pre class="diffpre insert">+        config.drawId = Math.random();</pre>
+<pre class="diffpre insert">+        </pre>
+<pre class="diffpre insert">+        const colWidth = cmd.screenWidth;</pre>
+<pre class="diffpre insert">+        const ctx = document.getElementById("tilesCanvas").getContext("2d");</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+        //Draw background image of blank tiles</pre>
+<pre class="diffpre insert">+        ctx.drawImage( getCachedBlankCanvas(), 0, 0 );</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+        break;</pre>
+<pre class="diffpre insert">+      }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    }</pre>
+<pre class="diffpre insert">+    </pre>
+<pre class="diffpre context">     Mousetrap.unpause();</pre>
+<pre class="diffpre context">   };</pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre info">@@ -144,10 +196,6 @@</pre>
+<pre class="diffpre context">   };</pre>
+<pre class="diffpre context"> }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-window.addEventListener('resize', debounce(resizeCanvas, 250), false);</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+window.addEventListener('resize', debounce(resizeCanvas, 250), false);</pre>
+<pre class="diffpre context"> Mousetrap.bind( "?", () =&gt; alert( config.help ) ); </pre>
+<pre class="diffpre delete">-</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_02.html">prev</a> <a href="2018-04-02-haskell-rogue-like_04.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

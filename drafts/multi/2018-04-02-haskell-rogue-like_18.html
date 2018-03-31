@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Multiple levels</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_17.html">prev</a> <a href="2018-04-02-haskell-rogue-like_19.html">next</a></p>
+<h1 id="a-second-level">A second level</h1>
+<p>Supporting only a single level is not much of an improvement. Lets look at what is required to support multiple levels and changing levels on some event.</p>
+<h2 id="stairs">Stairs</h2>
+<p><img src="../../images/rogue_18_stairs.png" /></p>
+<p>In this example the player is going to move from level one to level two by going down the stairs</p>
+<h6 id="multi_levelsrcentitytype.hs-8-to-18">18_multi_level/src/EntityType.hs (8 to 18)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">EntityType</span> <span class="fu">=</span> <span class="dt">Blank</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">                <span class="fu">|</span> <span class="dt">Door</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">                <span class="fu">|</span> <span class="dt">DoorClosed</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">                <span class="fu">|</span> <span class="dt">Wall</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">                <span class="fu">|</span> <span class="dt">Player</span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">                <span class="fu">|</span> <span class="dt">Bug</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">                <span class="fu">|</span> <span class="dt">Snake</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">                <span class="fu">|</span> <span class="dt">Dark</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">                <span class="fu">|</span> <span class="dt">Stairs</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">                <span class="fu">|</span> <span class="dt">Unknown</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">                <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<h6 id="multi_levelsrcentities.hs-27-to-27">18_multi_level/src/Entities.hs (27 to 27)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  , (<span class="dt">E.Stairs</span>    , (<span class="dv">56</span>, <span class="dv">44</span>), <span class="dt">Just</span> <span class="st">&quot;s&quot;</span>)</a></code></pre></div>
+<h2 id="level-two">Level two</h2>
+<p>The world now needs to track which level is currently active.</p>
+<h6 id="multi_levelsrcgamecore.hs-79-to-79">18_multi_level/src/GameCore.hs (79 to 79)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1">  ,<span class="ot"> _wdLevel ::</span> <span class="fu">!</span><span class="dt">Level</span></a></code></pre></div>
+<p>As there are two possible levels.</p>
+<h6 id="multi_levelsrcgamecore.hs-107-to-108">18_multi_level/src/GameCore.hs (107 to 108)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Levels</span> <span class="fu">=</span> <span class="dt">Levels01</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">            <span class="fu">|</span> <span class="dt">Levels02</span></a></code></pre></div>
+<h2 id="handling-events">Handling events</h2>
+<p>Levels will have different entities and different interactions rules. There is no way a global handler should try to keep track of all of this.</p>
+<p>Previously <em>tryMoveActor</em> in GameEngine.hs did the collision detection etc. To support the levels this code is removed and each level gets to decide what is allowed.</p>
+<p>Each level has its own <em>tryMove</em> function</p>
+<h6 id="multi_levelsrcgamecore.hs-99-to-103">18_multi_level/src/GameCore.hs (99 to 103)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Level</span> <span class="fu">=</span> <span class="dt">Level</span> {<span class="ot"> _lvlName ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">                   ,<span class="ot"> _lvlBoot ::</span> <span class="fu">!</span>(<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">                   ,<span class="ot"> _lvlMapText ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">                   ,<span class="ot"> _lvlTryMove ::</span> <span class="fu">!</span>([<span class="dt">Actor</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>])</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">                   }</a></code></pre></div>
+<p><em>ActMoveActor</em> and <em>ActGotoLevel</em> are added as actions. These are new actions that the level can request.</p>
+<h6 id="multi_levelsrcgamecore.hs-115-to-119">18_multi_level/src/GameCore.hs (115 to 119)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">data</span> <span class="dt">RogueAction</span> <span class="fu">=</span> <span class="dt">ActMovePlayer</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">                 <span class="fu">|</span> <span class="dt">ActMoveActor</span> <span class="dt">Actor</span> <span class="dt">WorldPos</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">                 <span class="fu">|</span> <span class="dt">ActSetPlayerViewPortStyle</span> <span class="dt">ViewPortStyle</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">                 <span class="fu">|</span> <span class="dt">ActTogglePlayerProp</span> <span class="dt">Text</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">                 <span class="fu">|</span> <span class="dt">ActGotoLevel</span> <span class="dt">Levels</span></a></code></pre></div>
+<p>These actions are returned when GameEngine’s <em>tryMoveActor</em> calls the current level’s <em>lvlTryMove</em> and are passed to <em>runActions</em> for execution as before.</p>
+<h6 id="multi_levelsrcgameengine.hs-484-to-487">18_multi_level/src/GameEngine.hs (484 to 487)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1">     <span class="co">-- Get actions</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">     actions <span class="fu">=</span> (world <span class="fu">^.</span> wdLevel <span class="fu">^.</span> lvlTryMove) destActors destEntityType world tryWorldTo' actor</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">  <span class="dt">Just</span> <span class="fu">$</span> runActions world actions </a></code></pre></div>
+<h3 id="moves">Moves</h3>
+<p>Handling moves is nothing new, just the code that was in <em>tryMoveActor</em> moved out to the <em>ActMoveActor</em> case</p>
+<h6 id="multi_levelsrcgameengine.hs-435-to-441">18_multi_level/src/GameEngine.hs (435 to 441)</h6>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1">  <span class="dt">ActMoveActor</span> actor worldPos <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">    <span class="kw">let</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">      movedActor <span class="fu">=</span> actor <span class="fu">&amp;</span> acWorldPos <span class="fu">.~</span> worldPos</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">      w2 <span class="fu">=</span> updatePlayerViewport <span class="fu">$</span> updateActor world movedActor</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">      pa <span class="fu">=</span> w2 <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">    <span class="kw">in</span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">      updateActor w2 (updateActorFov w2 pa)</a></code></pre></div>
+<h3 id="changing-levels">Changing levels</h3>
+<p>Changing levels is then a call to <em>bootWorld</em> with the requested level and the existing connection, screen size and stdGen properties.</p>
+<h6 id="multi_levelsrcgameengine.hs-445-to-451">18_multi_level/src/GameEngine.hs (445 to 451)</h6>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1">  <span class="dt">ActGotoLevel</span> l <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">    bootWorld</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">      (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn)</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">      (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize)</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">      (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor <span class="fu">^.</span> acStdGen)</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">      (world <span class="fu">^.</span> wdGetLevel)</a>
+<a class="sourceLine" id="cb9-7" data-line-number="7">      l</a></code></pre></div>
+<h1 id="levels">Levels</h1>
+<h2 id="level-one">Level one</h2>
+<p>The only addition to level one is <em>tryMove</em>, which does the collision detection. If the player steps on the stairs then it returns <em>ActGotoLevel</em></p>
+<h6 id="multi_levelsrclevelslevel01.hs-69-to-77">18_multi_level/src/Levels/Level01.hs (69 to 77)</h6>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ot">tryMove ::</span> [<span class="dt">Actor</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>]</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">tryMove destActors destEntityType _ posTo movingActor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="co">-- Is the move allowed</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="kw">case</span> (destActors, destEntityType) <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">    ([], <span class="dt">Just</span> <span class="dt">E.Blank</span>) <span class="ot">-&gt;</span> [<span class="dt">ActMoveActor</span> movingActor posTo]</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">    ([], <span class="dt">Just</span> <span class="dt">E.Door</span>) <span class="ot">-&gt;</span> [<span class="dt">ActMoveActor</span> movingActor posTo]</a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">    ([], <span class="dt">Nothing</span>) <span class="ot">-&gt;</span> [<span class="dt">ActMoveActor</span> movingActor posTo]</a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">    (_, <span class="dt">Just</span> <span class="dt">E.Stairs</span>) <span class="ot">-&gt;</span> [<span class="dt">ActGotoLevel</span> <span class="dt">Levels02</span>]</a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">    _ <span class="ot">-&gt;</span> []</a></code></pre></div>
+<h2 id="level-two-1">Level two</h2>
+<p>Level two does nothing exiting</p>
+<h6 id="multi_levelsrclevelslevel02.hs-12-to-30">18_multi_level/src/Levels/Level02.hs (12 to 30)</h6>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="ot">mkLevel ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Level</span></a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">mkLevel mapData <span class="fu">=</span> <span class="dt">Level</span> { _lvlName <span class="fu">=</span> <span class="st">&quot;L02&quot;</span></a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">                        , _lvlBoot <span class="fu">=</span> bootLevel </a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">                        , _lvlMapText <span class="fu">=</span> mapData</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">                        , _lvlTryMove <span class="fu">=</span> tryMove</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">                        }</a>
+<a class="sourceLine" id="cb11-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb11-8" data-line-number="8"><span class="ot">bootLevel ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb11-9" data-line-number="9">bootLevel w <span class="fu">=</span> w</a>
+<a class="sourceLine" id="cb11-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb11-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb11-12" data-line-number="12"><span class="ot">tryMove ::</span> [<span class="dt">Actor</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>]</a>
+<a class="sourceLine" id="cb11-13" data-line-number="13">tryMove destActors destEntityType _ posTo movingActor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-14" data-line-number="14">  <span class="co">-- Is the move allowed</span></a>
+<a class="sourceLine" id="cb11-15" data-line-number="15">  <span class="kw">case</span> (destActors, destEntityType) <span class="kw">of</span></a>
+<a class="sourceLine" id="cb11-16" data-line-number="16">    ([], <span class="dt">Just</span> <span class="dt">E.Blank</span>) <span class="ot">-&gt;</span> [<span class="dt">ActMoveActor</span> movingActor posTo]</a>
+<a class="sourceLine" id="cb11-17" data-line-number="17">    ([], <span class="dt">Just</span> <span class="dt">E.Door</span>) <span class="ot">-&gt;</span> [<span class="dt">ActMoveActor</span> movingActor posTo]</a>
+<a class="sourceLine" id="cb11-18" data-line-number="18">    ([], <span class="dt">Nothing</span>) <span class="ot">-&gt;</span> [<span class="dt">ActMoveActor</span> movingActor posTo]</a>
+<a class="sourceLine" id="cb11-19" data-line-number="19">    _ <span class="ot">-&gt;</span> []</a></code></pre></div>
+<h1 id="main">Main</h1>
+<p>Finally the <em>main</em> function loads the maps as before</p>
+<h6 id="multi_levelappmain.hs-15-to-23">18_multi_level/app/Main.hs (15 to 23)</h6>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">main <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">  map01 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">  map02 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/level02.csv&quot;</span></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">  GE.runGame (getLevel map01 map02)</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7"><span class="ot">getLevel ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">GC.Levels</span> <span class="ot">-&gt;</span> <span class="dt">GC.Level</span></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">getLevel map01 _ <span class="dt">GC.Levels01</span> <span class="fu">=</span> L01.mkLevel map01</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">getLevel _ map02 <span class="dt">GC.Levels02</span> <span class="fu">=</span> L02.mkLevel map02</a></code></pre></div>
+<h1 id="levels-1">Levels</h1>
+<p>That is it, we now support multiple levels and each level can have its own collision logic.</p>
+<p><img src="../../images/rogue_18_levels.gif" /></p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_17.html">prev</a> <a href="2018-04-02-haskell-rogue-like_19.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/Entities.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/src/Entities.hs 18_multi_level/src/Entities.hs</pre>
+<pre class="diffpre delete">--- 17_levels/src/Entities.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/src/Entities.hs</pre>
+<pre class="diffpre info">@@ -23,6 +23,9 @@</pre>
+<pre class="diffpre context">            , (E.Bug       , (25,  3), Nothing)</pre>
+<pre class="diffpre context">            , (E.Snake     , (38,  4), Nothing)</pre>
+<pre class="diffpre context">            , (E.Dark      , (43, 11), Nothing)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+           , (E.Stairs    , (56, 44), Just "s")</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">            ]</pre>
+<pre class="diffpre context">   in</pre>
+<pre class="diffpre context">   let mkData (typ, pos@(x, y), l) (tiles', entities', loads') =</pre>
+</div>
+<h2 class=".diffh2">
+src/EntityType.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/src/EntityType.hs 18_multi_level/src/EntityType.hs</pre>
+<pre class="diffpre delete">--- 17_levels/src/EntityType.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/src/EntityType.hs</pre>
+<pre class="diffpre info">@@ -12,5 +13,7 @@</pre>
+<pre class="diffpre context">                 | Bug</pre>
+<pre class="diffpre context">                 | Snake</pre>
+<pre class="diffpre context">                 | Dark</pre>
+<pre class="diffpre insert">+                | Stairs</pre>
+<pre class="diffpre context">                 | Unknown</pre>
+<pre class="diffpre context">                 deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/src/GameCore.hs 18_multi_level/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 17_levels/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -74,9 +74,10 @@</pre>
+<pre class="diffpre context">                    , _wdMinMoveEnergy :: !Int   -- ^ min energy required before any more, regardless of cost, can be attempted</pre>
+<pre class="diffpre context">                    , _wdEnergyIncrements :: !Int -- ^ amount of energy that is added per game loop</pre>
+<pre class="diffpre context">                    , _wdUtilBrainAnnotations :: ![(E.EntityType, [UtilAnnotationEntry], [UtilAnnotationEntry])]</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context">                    , _wdGetLevel :: !(Levels -&gt; Level)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+                   , _wdLevel :: !Level</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">                    }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Config = Config { _cfgKeys :: !(Map Text Text)</pre>
+<pre class="diffpre info">@@ -98,11 +99,13 @@</pre>
+<pre class="diffpre context"> data Level = Level { _lvlName :: !Text</pre>
+<pre class="diffpre context">                    , _lvlBoot :: !(World -&gt; World)</pre>
+<pre class="diffpre context">                    , _lvlMapText :: !Text</pre>
+<pre class="diffpre insert">+                   , _lvlTryMove :: !([Actor] -&gt; Maybe E.EntityType -&gt; World -&gt; WorldPos -&gt; Actor -&gt; [RogueAction])</pre>
+<pre class="diffpre context">                    }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Levels = Levels01</pre>
+<pre class="diffpre insert">+            | Levels02</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> newtype WorldPos = WorldPos (Int, Int) deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre info">@@ -108,9 +111,12 @@</pre>
+<pre class="diffpre context"> newtype WorldPos = WorldPos (Int, Int) deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre context"> newtype PlayerPos = PlayerPos (Int, Int) deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data RogueAction = ActMovePlayer (Int, Int)</pre>
+<pre class="diffpre insert">+                 | ActMoveActor Actor WorldPos</pre>
+<pre class="diffpre context">                  | ActSetPlayerViewPortStyle ViewPortStyle</pre>
+<pre class="diffpre context">                  | ActTogglePlayerProp Text Text</pre>
+<pre class="diffpre insert">+                 | ActGotoLevel Levels</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data ViewPortStyle = ViewPortCentre</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/src/GameEngine.hs 18_multi_level/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 17_levels/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -79,15 +79,14 @@</pre>
+<pre class="diffpre context">       Left "missing / invalid screen size"</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     Just (width, height) -&gt;</pre>
+<pre class="diffpre delete">-      Right $ bootWorld conn (width, height) std getLevel</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre insert">+      Right $ bootWorld conn (width, height) std getLevel Levels01</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Rnd.StdGen -&gt; (Levels -&gt; Level) -&gt; World</pre>
+<pre class="diffpre delete">-bootWorld conn screenSize std getLevel = </pre>
+<pre class="diffpre insert">+bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Rnd.StdGen -&gt; (Levels -&gt; Level) -&gt; Levels -&gt; World</pre>
+<pre class="diffpre insert">+bootWorld conn screenSize std getLevel startLevel = </pre>
+<pre class="diffpre context">   let</pre>
+<pre class="diffpre context">     config = mkConfig</pre>
+<pre class="diffpre delete">-    level = getLevel Levels01</pre>
+<pre class="diffpre insert">+    level = getLevel startLevel</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     w1 = World { _wdPlayer = mkPlayer</pre>
+<pre class="diffpre context">                , _wdConfig = config</pre>
+<pre class="diffpre info">@@ -97,6 +96,7 @@</pre>
+<pre class="diffpre context">                , _wdEnergyIncrements = 20</pre>
+<pre class="diffpre context">                , _wdUtilBrainAnnotations = []</pre>
+<pre class="diffpre context">                , _wdGetLevel = getLevel</pre>
+<pre class="diffpre insert">+               , _wdLevel = level</pre>
+<pre class="diffpre context">                }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     w2 = level ^. lvlBoot $ w1</pre>
+<pre class="diffpre info">@@ -432,6 +431,26 @@</pre>
+<pre class="diffpre context">     ActTogglePlayerProp prop valEnabled -&gt;</pre>
+<pre class="diffpre context">       world &amp; (wdPlayer . plActor . acProps) %~ Map.alter (toggleMapProp valEnabled) prop</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    ActMoveActor actor worldPos -&gt;</pre>
+<pre class="diffpre insert">+      let</pre>
+<pre class="diffpre insert">+        movedActor = actor &amp; acWorldPos .~ worldPos</pre>
+<pre class="diffpre insert">+        w2 = updatePlayerViewport $ updateActor world movedActor</pre>
+<pre class="diffpre insert">+        pa = w2 ^. wdPlayer ^. plActor</pre>
+<pre class="diffpre insert">+      in</pre>
+<pre class="diffpre insert">+        updateActor w2 (updateActorFov w2 pa)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    ActGotoLevel l -&gt;</pre>
+<pre class="diffpre insert">+      bootWorld</pre>
+<pre class="diffpre insert">+        (world ^. wdPlayer ^. plConn)</pre>
+<pre class="diffpre insert">+        (world ^. wdPlayer ^. plScreenSize)</pre>
+<pre class="diffpre insert">+        (world ^. wdPlayer ^. plActor ^. acStdGen)</pre>
+<pre class="diffpre insert">+        (world ^. wdGetLevel)</pre>
+<pre class="diffpre insert">+        l</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     toggleMapProp v Nothing = Just v</pre>
+<pre class="diffpre context">     toggleMapProp _ (Just _) = Nothing</pre>
+<pre class="diffpre info">@@ -461,23 +480,13 @@</pre>
+<pre class="diffpre context">       destEntityType = _enType &lt;$&gt; destEntity</pre>
+<pre class="diffpre context">       -- Actors at destination</pre>
+<pre class="diffpre context">       destActors = filter (\a -&gt; a ^. acWorldPos == tryWorldTo') (getAllActors world)</pre>
+<pre class="diffpre delete">-      -- Is the move allowed</pre>
+<pre class="diffpre delete">-      canMove = case (destActors, destEntityType) of</pre>
+<pre class="diffpre delete">-                  ([], Just E.Blank) -&gt; True</pre>
+<pre class="diffpre delete">-                  ([], Just E.Door) -&gt; True</pre>
+<pre class="diffpre delete">-                  ([], Nothing) -&gt; True</pre>
+<pre class="diffpre delete">-                  _ -&gt; False</pre>
+<pre class="diffpre delete">-      in</pre>
+<pre class="diffpre delete">-      if canMove</pre>
+<pre class="diffpre delete">-      then</pre>
+<pre class="diffpre delete">-        let</pre>
+<pre class="diffpre delete">-          movedActor = actor &amp; acWorldPos .~ tryWorldTo'</pre>
+<pre class="diffpre delete">-          w2 = updatePlayerViewport $ updateActor world movedActor</pre>
+<pre class="diffpre delete">-          pa = w2 ^. wdPlayer ^. plActor</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      -- Get actions</pre>
+<pre class="diffpre insert">+      actions = (world ^. wdLevel ^. lvlTryMove) destActors destEntityType world tryWorldTo' actor</pre>
+<pre class="diffpre context">         in</pre>
+<pre class="diffpre delete">-          Just $ updateActor w2 (updateActorFov w2 pa)</pre>
+<pre class="diffpre delete">-      else</pre>
+<pre class="diffpre delete">-        Nothing</pre>
+<pre class="diffpre insert">+   Just $ runActions world actions </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> updateActorFov :: World -&gt; Actor -&gt; Actor</pre>
+<pre class="diffpre context"> updateActorFov w a =</pre>
+</div>
+<h2 class=".diffh2">
+src/Levels/Level01.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/src/Levels/Level01.hs 18_multi_level/src/Levels/Level01.hs</pre>
+<pre class="diffpre delete">--- 17_levels/src/Levels/Level01.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/src/Levels/Level01.hs</pre>
+<pre class="diffpre info">@@ -21,6 +20,7 @@</pre>
+<pre class="diffpre context"> mkLevel mapData = Level { _lvlName = "L01"</pre>
+<pre class="diffpre context">                         , _lvlBoot = bootLevel </pre>
+<pre class="diffpre context">                         , _lvlMapText = mapData</pre>
+<pre class="diffpre insert">+                        , _lvlTryMove = tryMove</pre>
+<pre class="diffpre context">                         }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> bootLevel :: World -&gt; World</pre>
+<pre class="diffpre info">@@ -65,3 +65,14 @@</pre>
+<pre class="diffpre context">             , _acProps = Map.empty</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+tryMove :: [Actor] -&gt; Maybe E.EntityType -&gt; World -&gt; WorldPos -&gt; Actor -&gt; [RogueAction]</pre>
+<pre class="diffpre insert">+tryMove destActors destEntityType _ posTo movingActor =</pre>
+<pre class="diffpre insert">+  -- Is the move allowed</pre>
+<pre class="diffpre insert">+  case (destActors, destEntityType) of</pre>
+<pre class="diffpre insert">+    ([], Just E.Blank) -&gt; [ActMoveActor movingActor posTo]</pre>
+<pre class="diffpre insert">+    ([], Just E.Door) -&gt; [ActMoveActor movingActor posTo]</pre>
+<pre class="diffpre insert">+    ([], Nothing) -&gt; [ActMoveActor movingActor posTo]</pre>
+<pre class="diffpre insert">+    (_, Just E.Stairs) -&gt; [ActGotoLevel Levels02]</pre>
+<pre class="diffpre insert">+    _ -&gt; []</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+src/Levels/Level02.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/src/Levels/Level02.hs 18_multi_level/src/Levels/Level02.hs</pre>
+<pre class="diffpre delete">--- 17_levels/src/Levels/Level02.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/src/Levels/Level02.hs</pre>
+<pre class="diffpre info">@@ -0,0 +1,31 @@</pre>
+<pre class="diffpre insert">+{-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+module Levels.Level02 where</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import           Protolude</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import           GameCore</pre>
+<pre class="diffpre insert">+import qualified EntityType as E</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+mkLevel :: Text -&gt; Level</pre>
+<pre class="diffpre insert">+mkLevel mapData = Level { _lvlName = "L02"</pre>
+<pre class="diffpre insert">+                        , _lvlBoot = bootLevel </pre>
+<pre class="diffpre insert">+                        , _lvlMapText = mapData</pre>
+<pre class="diffpre insert">+                        , _lvlTryMove = tryMove</pre>
+<pre class="diffpre insert">+                        }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+bootLevel :: World -&gt; World</pre>
+<pre class="diffpre insert">+bootLevel w = w</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+tryMove :: [Actor] -&gt; Maybe E.EntityType -&gt; World -&gt; WorldPos -&gt; Actor -&gt; [RogueAction]</pre>
+<pre class="diffpre insert">+tryMove destActors destEntityType _ posTo movingActor =</pre>
+<pre class="diffpre insert">+  -- Is the move allowed</pre>
+<pre class="diffpre insert">+  case (destActors, destEntityType) of</pre>
+<pre class="diffpre insert">+    ([], Just E.Blank) -&gt; [ActMoveActor movingActor posTo]</pre>
+<pre class="diffpre insert">+    ([], Just E.Door) -&gt; [ActMoveActor movingActor posTo]</pre>
+<pre class="diffpre insert">+    ([], Nothing) -&gt; [ActMoveActor movingActor posTo]</pre>
+<pre class="diffpre insert">+    _ -&gt; []</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+app/Main.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 17_levels/app/Main.hs 18_multi_level/app/Main.hs</pre>
+<pre class="diffpre delete">--- 17_levels/app/Main.hs</pre>
+<pre class="diffpre insert">+++ 18_multi_level/app/Main.hs</pre>
+<pre class="diffpre info">@@ -9,14 +9,16 @@</pre>
+<pre class="diffpre context"> import qualified GameCore as GC</pre>
+<pre class="diffpre context"> import qualified GameEngine as GE</pre>
+<pre class="diffpre context"> import qualified Levels.Level01 as L01</pre>
+<pre class="diffpre insert">+import qualified Levels.Level02 as L02</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> main :: IO ()</pre>
+<pre class="diffpre context"> main = do</pre>
+<pre class="diffpre context">   map01 &lt;- Txt.readFile "worlds/simple.csv"</pre>
+<pre class="diffpre delete">-  GE.runGame (getLevel map01)</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-getLevel :: Text -&gt; GC.Levels -&gt; GC.Level</pre>
+<pre class="diffpre delete">-getLevel map01 GC.Levels01 = L01.mkLevel map01</pre>
+<pre class="diffpre insert">+  map02 &lt;- Txt.readFile "worlds/level02.csv"</pre>
+<pre class="diffpre insert">+  GE.runGame (getLevel map01 map02)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+getLevel :: Text -&gt; Text -&gt; GC.Levels -&gt; GC.Level</pre>
+<pre class="diffpre insert">+getLevel map01 _ GC.Levels01 = L01.mkLevel map01</pre>
+<pre class="diffpre insert">+getLevel _ map02 GC.Levels02 = L02.mkLevel map02</pre>
+<pre class="diffpre context"> </pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_17.html">prev</a> <a href="2018-04-02-haskell-rogue-like_19.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

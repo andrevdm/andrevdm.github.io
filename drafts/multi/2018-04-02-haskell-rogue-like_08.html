@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Layers</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_07.html">prev</a> <a href="2018-04-02-haskell-rogue-like_09.html">next</a></p>
+<h1 id="something-wrong">Something wrong</h1>
+<p>If you move the player over an open door, you may notice that something is not quite right.</p>
+<p><img src="../../images/rogue_08_layer_issue.gif" /></p>
+<p>When the player is at the same position as the door, the door disappears. Whats interesting is that this does not happen to the background tiles.</p>
+<p>Looking at the tile for the player <img src="../../images/rogue_07_player.png" />, you can see that it has a transparent background. The UI drawing logic first draws the background tiles and then draws whatever tile we tell it to on top of that. When the player is on a blank tile you then get the player drawn with the background showing through. But when the player is on the door, then the current drawing logic replaces the door entity with the actor entity and so only the player’s tile is show.</p>
+<p>However it is clear that the UI supports layering of images, so lets make use of this fact.</p>
+<h1 id="layers">Layers</h1>
+<p>Rather than sending a single set of entities to draw, lets send an array of layers. So change <em>drMapData</em> from a <code>[(Int, Int, Int)]</code> to a <code>[[(Int, Int, Int)]]</code>. I.e. from an list of positions to an array (layers) of list of positions.</p>
+<h6 id="layerssrcgamecore.hs-88-to-92">08_layers/src/GameCore.hs (88 to 92)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiDrawCommand</span> <span class="fu">=</span> <span class="dt">UiDrawCommand</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">                     {<span class="ot"> drCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">                     ,<span class="ot"> drScreenWidth ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">                     ,<span class="ot"> drMapData ::</span> <span class="fu">!</span>[[(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)]]</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">                     } <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
+<p>Then the UI draws each layer in order, i.e. the first layer is at the bottom the last is the top. This is achieved by adding a loop over the layers list and the drawing each layer as we did before.</p>
+<h6 id="layershtmlrogue.js-115-to-135">08_layers/html/rogue.js (115 to 135)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb2-1" data-line-number="1">      <span class="cf">case</span> <span class="st">&quot;draw&quot;</span><span class="op">:</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">        <span class="va">config</span>.<span class="at">drawId</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">random</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">        </a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">        <span class="kw">const</span> colWidth <span class="op">=</span> <span class="va">cmd</span>.<span class="at">screenWidth</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">        <span class="kw">const</span> ctx <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>).<span class="at">getContext</span>(<span class="st">&quot;2d&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">        <span class="co">//Draw background image of blank tiles</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">        <span class="va">ctx</span>.<span class="at">drawImage</span>( <span class="at">getCachedBlankCanvas</span>()<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">        <span class="va">R</span>.<span class="at">forEach</span>( layer <span class="op">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">          <span class="va">R</span>.<span class="at">forEach</span>( ([atX<span class="op">,</span> atY<span class="op">,</span> tid]) <span class="op">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">            <span class="kw">const</span> [tX<span class="op">,</span> tY] <span class="op">=</span> <span class="at">tileFromTileId</span>( tid )<span class="op">;</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">            </a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">            <span class="co">//function drawTile( ctx, img, twidth, theight, dx, dy, trow, tcol ){</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">            <span class="at">drawTile</span>( ctx<span class="op">,</span> tilesMain<span class="op">,</span> <span class="va">config</span>.<span class="at">tileWidth</span><span class="op">,</span> <span class="va">config</span>.<span class="at">tileHeight</span><span class="op">,</span> atX<span class="op">,</span> atY<span class="op">,</span> tX<span class="op">,</span> tY )<span class="op">;</span></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb2-17" data-line-number="17">          <span class="op">},</span> layer )</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18">        <span class="op">},</span> <span class="va">cmd</span>.<span class="at">mapData</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb2-20" data-line-number="20">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb2-21" data-line-number="21">      <span class="op">}</span></a></code></pre></div>
+<h2 id="drawandsend">drawAndSend</h2>
+<p><em>drawAndSend</em> is changed to return an array of layers. I.e. from</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"> drMapData <span class="fu">=</span> mkDrawMapData <span class="fu">&lt;$&gt;</span> Map.toList playerTiles</a></code></pre></div>
+<p>to</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"> drMapData <span class="fu">=</span> mkDrawMapData <span class="fu">&lt;&lt;$&gt;&gt;</span> (Map.toList <span class="fu">&lt;$&gt;</span> layers)</a></code></pre></div>
+<p><code>&lt;&lt;$&gt;&gt;</code> is Protolude’s infix for <code>(fmap . fmap)</code>. So here each layer is converted to a list, and then <em>mkDrawMapData</em> is called for each <code>(PlayerPos, Tile)</code> in each list.</p>
+<h6 id="layerssrcgameengine.hs-211-to-223">08_layers/src/GameEngine.hs (211 to 223)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">drawAndSend ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">drawAndSend world <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">  <span class="kw">let</span> layers <span class="fu">=</span> drawTilesForPlayer world (world <span class="fu">^.</span> wdMap) </a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">  </a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">  <span class="kw">let</span> cmd <span class="fu">=</span> Ae.encodeText <span class="dt">UiDrawCommand</span> { drCmd <span class="fu">=</span> <span class="st">&quot;draw&quot;</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">                                        , drScreenWidth <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize <span class="fu">^.</span> _1</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">                                        , drMapData <span class="fu">=</span> mkDrawMapData <span class="fu">&lt;&lt;$&gt;&gt;</span> (Map.toList <span class="fu">&lt;$&gt;</span> layers)</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">                                        }</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">  sendData (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn) cmd</a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="ot">    mkDrawMapData ::</span> (<span class="dt">PlayerPos</span>, <span class="dt">Tile</span>) <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb5-13" data-line-number="13">    mkDrawMapData (<span class="dt">PlayerPos</span> (x, y), tile) <span class="fu">=</span> (x, y, tile <span class="fu">^.</span> tlId)</a></code></pre></div>
+<h2 id="drawtileforplayer">drawTileForPlayer</h2>
+<p><em>drawTilesForPlayer</em> does the work of creating the layers</p>
+<h6 id="layerssrcgameengine.hs-262-to-303">08_layers/src/GameEngine.hs (262 to 303)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">drawTilesForPlayer ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> [<span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span>]</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">drawTilesForPlayer world entityMap <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="co">-- Entity base layer</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">    entityLayer <span class="fu">=</span> mkLayer entityMap</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">    <span class="co">-- Actor layer on top</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">    actorMap <span class="fu">=</span> Map.fromList <span class="fu">$</span> (\a <span class="ot">-&gt;</span> (a <span class="fu">^.</span> acWorldPos, a <span class="fu">^.</span> acEntity)) <span class="fu">&lt;$&gt;</span> getAllActors world</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">    visibleActorMap <span class="fu">=</span> Map.filterWithKey inView actorMap</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">    actorLayer <span class="fu">=</span> mkLayer visibleActorMap</a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">    [entityLayer, actorLayer]</a>
+<a class="sourceLine" id="cb6-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb6-14" data-line-number="14">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-15" data-line-number="15">    player <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer</a>
+<a class="sourceLine" id="cb6-16" data-line-number="16">    </a>
+<a class="sourceLine" id="cb6-17" data-line-number="17">    <span class="co">-- Top left of player's grid</span></a>
+<a class="sourceLine" id="cb6-18" data-line-number="18">    (<span class="dt">WorldPos</span> (topX, topY)) <span class="fu">=</span> player <span class="fu">^.</span> plWorldTopLeft </a>
+<a class="sourceLine" id="cb6-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb6-20" data-line-number="20">    <span class="co">-- Players screen/grid dimensions</span></a>
+<a class="sourceLine" id="cb6-21" data-line-number="21">    (screenX, screenY) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize </a>
+<a class="sourceLine" id="cb6-22" data-line-number="22"></a>
+<a class="sourceLine" id="cb6-23" data-line-number="23">    <span class="co">-- Bottom right corner</span></a>
+<a class="sourceLine" id="cb6-24" data-line-number="24">    (bottomX, bottomY) <span class="fu">=</span> (topX <span class="fu">+</span> screenX, topY <span class="fu">-</span> screenY) </a>
+<a class="sourceLine" id="cb6-25" data-line-number="25"></a>
+<a class="sourceLine" id="cb6-26" data-line-number="26">    inView (<span class="dt">WorldPos</span> (x, y)) _ <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-27" data-line-number="27">      x <span class="fu">&gt;=</span> topX <span class="fu">&amp;&amp;</span> x <span class="fu">&lt;</span> bottomX <span class="fu">&amp;&amp;</span> y <span class="fu">&gt;</span> bottomY <span class="fu">&amp;&amp;</span> y <span class="fu">&lt;=</span> topY</a>
+<a class="sourceLine" id="cb6-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb6-29" data-line-number="29"><span class="ot">    mkLayer ::</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb6-30" data-line-number="30">    mkLayer entities <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-31" data-line-number="31">      <span class="kw">let</span></a>
+<a class="sourceLine" id="cb6-32" data-line-number="32">        <span class="co">-- Filter out blank</span></a>
+<a class="sourceLine" id="cb6-33" data-line-number="33">        noEmptyMap <span class="fu">=</span> Map.filter (\e <span class="ot">-&gt;</span> e <span class="fu">^.</span> enTile <span class="fu">^.</span> tlName <span class="fu">/=</span> <span class="st">&quot;blank&quot;</span>) entities </a>
+<a class="sourceLine" id="cb6-34" data-line-number="34"></a>
+<a class="sourceLine" id="cb6-35" data-line-number="35">        <span class="co">-- Only get the entitys that are at positions on the player's screen</span></a>
+<a class="sourceLine" id="cb6-36" data-line-number="36">        visibleEntitys <span class="fu">=</span> Map.filterWithKey inView noEmptyMap</a>
+<a class="sourceLine" id="cb6-37" data-line-number="37"></a>
+<a class="sourceLine" id="cb6-38" data-line-number="38">        <span class="co">-- Get the tile for each entity</span></a>
+<a class="sourceLine" id="cb6-39" data-line-number="39">        tileMap <span class="fu">=</span> (<span class="fu">^.</span> enTile) <span class="fu">&lt;$&gt;</span> visibleEntitys </a>
+<a class="sourceLine" id="cb6-40" data-line-number="40">      <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-41" data-line-number="41">      <span class="co">-- Get it with player positions</span></a>
+<a class="sourceLine" id="cb6-42" data-line-number="42">      Map.mapKeys (worldCoordToPlayer <span class="fu">$</span> player <span class="fu">^.</span> plWorldTopLeft) tileMap</a></code></pre></div>
+<p>To fix the issues only two layers are required. The bottom layer has the entities, and the top layer has the actors. The code for getting entities remains pretty much the same as before. The code for the actors is changed to create a separate layer for them.</p>
+<h6 id="layerssrcgameengine.hs-265-to-274">08_layers/src/GameEngine.hs (265 to 274)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">    <span class="co">-- Entity base layer</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">    entityLayer <span class="fu">=</span> mkLayer entityMap</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">    <span class="co">-- Actor layer on top</span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">    actorMap <span class="fu">=</span> Map.fromList <span class="fu">$</span> (\a <span class="ot">-&gt;</span> (a <span class="fu">^.</span> acWorldPos, a <span class="fu">^.</span> acEntity)) <span class="fu">&lt;$&gt;</span> getAllActors world</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">    visibleActorMap <span class="fu">=</span> Map.filterWithKey inView actorMap</a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">    actorLayer <span class="fu">=</span> mkLayer visibleActorMap</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10">    [entityLayer, actorLayer]</a></code></pre></div>
+<p>And it works</p>
+<p><img src="../../images/rogue_08_layer_fixed.gif" /></p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_07.html">prev</a> <a href="2018-04-02-haskell-rogue-like_09.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 07_collisions/src/GameCore.hs 08_layers/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 07_collisions/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 08_layers/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -86,10 +84,11 @@</pre>
+<pre class="diffpre context">                    deriving (Generic)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data UiDrawCommand = UiDrawCommand</pre>
+<pre class="diffpre context">                      { drCmd :: !Text</pre>
+<pre class="diffpre context">                      , drScreenWidth :: !Int</pre>
+<pre class="diffpre delete">-                     , drMapData :: ![(Int, Int, Int)]</pre>
+<pre class="diffpre insert">+                     , drMapData :: ![[(Int, Int, Int)]]</pre>
+<pre class="diffpre context">                      } deriving (Generic)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+</div>
+<h2 class=".diffh2">
+html/rogue.js
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 07_collisions/src/GameEngine.hs 08_layers/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 07_collisions/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 08_layers/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -210,13 +207,14 @@</pre>
+<pre class="diffpre context">   pure (x, y)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> drawAndSend :: World -&gt; IO ()</pre>
+<pre class="diffpre context"> drawAndSend world = do</pre>
+<pre class="diffpre delete">-  let playerTiles = drawTilesForPlayer world (world ^. wdMap) </pre>
+<pre class="diffpre insert">+  let layers = drawTilesForPlayer world (world ^. wdMap) </pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre context">   let cmd = Ae.encodeText UiDrawCommand { drCmd = "draw"</pre>
+<pre class="diffpre context">                                         , drScreenWidth = world ^. wdPlayer ^. plScreenSize ^. _1</pre>
+<pre class="diffpre delete">-                                        , drMapData = mkDrawMapData &lt;$&gt; Map.toList playerTiles</pre>
+<pre class="diffpre insert">+                                        , drMapData = mkDrawMapData &lt;&lt;$&gt;&gt; (Map.toList &lt;$&gt; layers)</pre>
+<pre class="diffpre context">                                         }</pre>
+<pre class="diffpre context">   sendData (world ^. wdPlayer ^. plConn) cmd</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -259,9 +258,23 @@</pre>
+<pre class="diffpre context">    PlayerPos (worldX - worldTopX, -(worldY - worldTopY))</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre delete">-drawTilesForPlayer :: World -&gt; Map WorldPos Entity -&gt; Map PlayerPos Tile</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+drawTilesForPlayer :: World -&gt; Map WorldPos Entity -&gt; [Map PlayerPos Tile]</pre>
+<pre class="diffpre context"> drawTilesForPlayer world entityMap =</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   let</pre>
+<pre class="diffpre insert">+    -- Entity base layer</pre>
+<pre class="diffpre insert">+    entityLayer = mkLayer entityMap</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    -- Actor layer on top</pre>
+<pre class="diffpre insert">+    actorMap = Map.fromList $ (\a -&gt; (a ^. acWorldPos, a ^. acEntity)) &lt;$&gt; getAllActors world</pre>
+<pre class="diffpre insert">+    visibleActorMap = Map.filterWithKey inView actorMap</pre>
+<pre class="diffpre insert">+    actorLayer = mkLayer visibleActorMap</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre insert">+    [entityLayer, actorLayer]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre context">     player = world ^. wdPlayer</pre>
+<pre class="diffpre context">     </pre>
+<pre class="diffpre context">     -- Top left of player's grid</pre>
+<pre class="diffpre info">@@ -273,22 +286,17 @@</pre>
+<pre class="diffpre context">     -- Bottom right corner</pre>
+<pre class="diffpre context">     (bottomX, bottomY) = (topX + screenX, topY - screenY) </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-    -- Filter out blank</pre>
+<pre class="diffpre delete">-    noEmptyMap = Map.filter (\e -&gt; e ^. enTile ^. tlName /= "blank") entityMap </pre>
+<pre class="diffpre insert">+    inView (WorldPos (x, y)) _ =</pre>
+<pre class="diffpre insert">+      x &gt;= topX &amp;&amp; x &lt; bottomX &amp;&amp; y &gt; bottomY &amp;&amp; y &lt;= topY</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-    -- Add the actors to the map.</pre>
+<pre class="diffpre delete">-    -- Notice that this will replace whatever entity was there (for this draw)</pre>
+<pre class="diffpre delete">-    -- This fold works by</pre>
+<pre class="diffpre delete">-    --    - Starting with the map of entities that are not blank</pre>
+<pre class="diffpre delete">-    --    - Inserting each actor into the updated map (the accumulator)</pre>
+<pre class="diffpre delete">-    -- getAllActors is called to get the player's actor and all other actors</pre>
+<pre class="diffpre delete">-    noEmptyMapWithActors = foldr</pre>
+<pre class="diffpre delete">-                           (\actor accum -&gt; Map.insert (actor ^. acWorldPos) (actor ^. acEntity) accum)</pre>
+<pre class="diffpre delete">-                           noEmptyMap</pre>
+<pre class="diffpre delete">-                           (getAllActors world)</pre>
+<pre class="diffpre insert">+    mkLayer :: Map WorldPos Entity -&gt; Map PlayerPos Tile</pre>
+<pre class="diffpre insert">+    mkLayer entities =</pre>
+<pre class="diffpre insert">+      let</pre>
+<pre class="diffpre insert">+        -- Filter out blank</pre>
+<pre class="diffpre insert">+        noEmptyMap = Map.filter (\e -&gt; e ^. enTile ^. tlName /= "blank") entities </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     -- Only get the entitys that are at positions on the player's screen</pre>
+<pre class="diffpre delete">-    visibleEntitys = Map.filterWithKey (inView topX topY bottomX bottomY) noEmptyMapWithActors</pre>
+<pre class="diffpre insert">+        visibleEntitys = Map.filterWithKey inView noEmptyMap</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     -- Get the tile for each entity</pre>
+<pre class="diffpre context">     tileMap = (^. enTile) &lt;$&gt; visibleEntitys </pre>
+<pre class="diffpre info">@@ -296,10 +304,6 @@</pre>
+<pre class="diffpre context">   -- Get it with player positions</pre>
+<pre class="diffpre context">   Map.mapKeys (worldCoordToPlayer $ player ^. plWorldTopLeft) tileMap</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  where</pre>
+<pre class="diffpre delete">-    inView topX topY bottomX bottomY (WorldPos (x, y)) _ =</pre>
+<pre class="diffpre delete">-      x &gt;= topX &amp;&amp; x &lt; bottomX &amp;&amp; y &gt; bottomY &amp;&amp; y &lt;= topY</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> getAllActors :: World -&gt; [Actor]</pre>
+<pre class="diffpre context"> getAllActors world =</pre>
+<pre class="diffpre delete">--- 07_collisions/html/rogue.js</pre>
+<pre class="diffpre insert">+++ 08_layers/html/rogue.js</pre>
+<pre class="diffpre info">@@ -120,12 +121,14 @@</pre>
+<pre class="diffpre context">         //Draw background image of blank tiles</pre>
+<pre class="diffpre context">         ctx.drawImage( getCachedBlankCanvas(), 0, 0 );</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+        R.forEach( layer =&gt; {</pre>
+<pre class="diffpre context">         R.forEach( ([atX, atY, tid]) =&gt; {</pre>
+<pre class="diffpre context">           const [tX, tY] = tileFromTileId( tid );</pre>
+<pre class="diffpre context">           </pre>
+<pre class="diffpre context">           //function drawTile( ctx, img, twidth, theight, dx, dy, trow, tcol ){</pre>
+<pre class="diffpre context">           drawTile( ctx, tilesMain, config.tileWidth, config.tileHeight, atX, atY, tX, tY );</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+          }, layer )</pre>
+<pre class="diffpre context">         }, cmd.mapData );</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">         break;</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_07.html">prev</a> <a href="2018-04-02-haskell-rogue-like_09.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

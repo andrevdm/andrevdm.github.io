@@ -106,14 +106,14 @@
 <a class="sourceLine" id="cb4-7" data-line-number="7">            <span class="fu">&gt;&gt;=</span> relativizeUrls</a></code></pre></div>
 <p>Lets modify this route to use a new compiler named <strong>includeCodeCompiler</strong> and pipe that output through pandoc</p>
 <h6 id="site.hs-32-to-39">site.hs (32 to 39)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">    match <span class="st">&quot;posts/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">        route <span class="fu">$</span> setExtension <span class="st">&quot;html&quot;</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">        compile <span class="fu">$</span> includeCodeCompiler</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">            <span class="fu">&gt;&gt;=</span> renderPandoc</a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">            <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/post.html&quot;</span>    postCtx</a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">            <span class="fu">&gt;&gt;=</span> saveSnapshot <span class="st">&quot;content&quot;</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">            <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/default.html&quot;</span> postCtx</a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">            <span class="fu">&gt;&gt;=</span> relativizeUrls</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">  match <span class="st">&quot;posts/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">      route <span class="fu">$</span> setExtension <span class="st">&quot;html&quot;</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">      compile <span class="fu">$</span> includeCodeCompiler</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">          <span class="fu">&gt;&gt;=</span> renderPandoc</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">          <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/post.html&quot;</span>    postCtx</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">          <span class="fu">&gt;&gt;=</span> saveSnapshot <span class="st">&quot;content&quot;</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">          <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/default.html&quot;</span> postCtx</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">          <span class="fu">&gt;&gt;=</span> relativizeUrls</a></code></pre></div>
 <p>The two changes to notice are</p>
 <ol type="1">
 <li>Call <strong>includeCompiler</strong> rather than <strong>pandocCompiler</strong></li>
@@ -261,23 +261,23 @@
 <h2 id="details">Details</h2>
 <p>Loading the config is done quite simply by filtering the source lines</p>
 <h6 id="site.hs-126-to-142">site.hs (126 to 142)</h6>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">    getConfig ls <span class="fu">=</span></a>
-<a class="sourceLine" id="cb12-2" data-line-number="2">      <span class="kw">let</span></a>
-<a class="sourceLine" id="cb12-3" data-line-number="3">        cfgPath <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.path&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-4" data-line-number="4">        cfgRepo <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.repo&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-5" data-line-number="5">        cfgSha <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.sha&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-6" data-line-number="6">        cfgRun <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.run&gt;]&quot;</span></a>
-<a class="sourceLine" id="cb12-7" data-line-number="7">        path <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgPath) ls)</a>
-<a class="sourceLine" id="cb12-8" data-line-number="8">        repo <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgRepo) ls)</a>
-<a class="sourceLine" id="cb12-9" data-line-number="9">        sha <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgSha) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgSha) ls)</a>
-<a class="sourceLine" id="cb12-10" data-line-number="10">        run <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRun) <span class="fu">&lt;$&gt;</span> filter (Txt.isPrefixOf cfgRun) ls</a>
-<a class="sourceLine" id="cb12-11" data-line-number="11">      <span class="kw">in</span></a>
-<a class="sourceLine" id="cb12-12" data-line-number="12">      (filter (not <span class="fu">.</span> Txt.isPrefixOf <span class="st">&quot;[&lt;code setup.&quot;</span>) ls, repo, sha, run, path)</a>
-<a class="sourceLine" id="cb12-13" data-line-number="13">        </a>
-<a class="sourceLine" id="cb12-14" data-line-number="14">    removeDirectoryRecursiveIfExists p <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb12-15" data-line-number="15">      Dir.doesDirectoryExist p <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
-<a class="sourceLine" id="cb12-16" data-line-number="16">        <span class="dt">True</span> <span class="ot">-&gt;</span> Dir.removeDirectoryRecursive p</a>
-<a class="sourceLine" id="cb12-17" data-line-number="17">        <span class="dt">False</span> <span class="ot">-&gt;</span> pass</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">  getConfig ls <span class="fu">=</span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">    <span class="kw">let</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">      cfgPath <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.path&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">      cfgRepo <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.repo&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">      cfgSha <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.sha&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">      cfgRun <span class="fu">=</span> <span class="st">&quot;[&lt;code setup.run&gt;]&quot;</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">      path <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgPath) ls)</a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">      repo <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRepo) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgRepo) ls)</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">      sha <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgSha) <span class="fu">&lt;$&gt;</span> headMay (filter (Txt.isPrefixOf cfgSha) ls)</a>
+<a class="sourceLine" id="cb12-10" data-line-number="10">      run <span class="fu">=</span> Txt.strip <span class="fu">.</span> Txt.drop (Txt.length cfgRun) <span class="fu">&lt;$&gt;</span> filter (Txt.isPrefixOf cfgRun) ls</a>
+<a class="sourceLine" id="cb12-11" data-line-number="11">    <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-12" data-line-number="12">    (filter (not <span class="fu">.</span> Txt.isPrefixOf <span class="st">&quot;[&lt;code setup.&quot;</span>) ls, repo, sha, run, path)</a>
+<a class="sourceLine" id="cb12-13" data-line-number="13">      </a>
+<a class="sourceLine" id="cb12-14" data-line-number="14">  removeDirectoryRecursiveIfExists p <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb12-15" data-line-number="15">    Dir.doesDirectoryExist p <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
+<a class="sourceLine" id="cb12-16" data-line-number="16">      <span class="dt">True</span> <span class="ot">-&gt;</span> Dir.removeDirectoryRecursive p</a>
+<a class="sourceLine" id="cb12-17" data-line-number="17">      <span class="dt">False</span> <span class="ot">-&gt;</span> pass</a></code></pre></div>
 <p>And once the sections have been loaded from the source code the tags can be replaced in the markdown. Each <code>[&lt;code&gt;]</code> tag is replaced by a markdown code block, a title showing the source file and offset.</p>
 <h6 id="site.hs-147-to-175">site.hs (147 to 175)</h6>
 <div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="ot">    replaceCodeLineSection ::</span> FilePath <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">Text</span> (FilePath, <span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Text</span>, [<span class="dt">Text</span>]) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">Text</span>]</a>

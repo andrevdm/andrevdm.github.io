@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Moving the player</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_05.html">prev</a> <a href="2018-04-02-haskell-rogue-like_07.html">next</a></p>
+<h1 id="moving">Moving</h1>
+<p>The previous chapter ended with three actors being drawn on the world map (a bug, a snake and the player). Now lets look at what is required to handle moving the player.</p>
+<h2 id="key-bindings">Key bindings</h2>
+<p>I wanted to support both strait and diagonal movement. This RogueBasin article has a good set of key bindings to use: <a href="http://www.roguebasin.com/index.php?title=Preferred_Key_Controls">Preferred Key Controls</a>.</p>
+<pre><code> y k u     home ^ pgup    
+  \|/          \|/        
+ h-+-l        &lt;-+-&gt;       
+  /|\          /|\        
+ b j n      end v pgdn    
+                          
+vi-keys       numpad      </code></pre>
+<p>The standard arrow keys and VIM hjkl keys are supported. Then yubn and the keypad are used for diagonal movement.</p>
+<p>Which is easy enough to configure in the backend</p>
+<h6 id="movingsrcgameengine.hs-97-to-114">06_moving/src/GameEngine.hs (97 to 114)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [ (<span class="st">&quot;up&quot;</span>      , <span class="st">&quot;Move:up&quot;</span>)</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">                                   , (<span class="st">&quot;k&quot;</span>       , <span class="st">&quot;Move:up&quot;</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">                                   , (<span class="st">&quot;down&quot;</span>    , <span class="st">&quot;Move:down&quot;</span>)</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">                                   , (<span class="st">&quot;j&quot;</span>       , <span class="st">&quot;Move:down&quot;</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">                                   , (<span class="st">&quot;left&quot;</span>    , <span class="st">&quot;Move:left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">                                   , (<span class="st">&quot;h&quot;</span>       , <span class="st">&quot;Move:left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">                                   , (<span class="st">&quot;right&quot;</span>   , <span class="st">&quot;Move:right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">                                   , (<span class="st">&quot;l&quot;</span>       , <span class="st">&quot;Move:right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">                                   , (<span class="st">&quot;u&quot;</span>       , <span class="st">&quot;Move:up-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">                                   , (<span class="st">&quot;pageup&quot;</span>  , <span class="st">&quot;Move:up-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">                                   , (<span class="st">&quot;y&quot;</span>       , <span class="st">&quot;Move:up-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">                                   , (<span class="st">&quot;home&quot;</span>    , <span class="st">&quot;Move:up-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">                                   , (<span class="st">&quot;n&quot;</span>       , <span class="st">&quot;Move:down-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">                                   , (<span class="st">&quot;end&quot;</span>     , <span class="st">&quot;Move:down-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">                                   , (<span class="st">&quot;b&quot;</span>       , <span class="st">&quot;Move:down-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">                                   , (<span class="st">&quot;pagedown&quot;</span>, <span class="st">&quot;Move:down-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-17" data-line-number="17">                                   ]</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18">         }</a></code></pre></div>
+<h2 id="handling-the-key-press-command">Handling the key press command</h2>
+<p>The key handling code is changed to handle the key press</p>
+<h6 id="movingsrcgameengine.hs-154-to-160">06_moving/src/GameEngine.hs (154 to 160)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1">  <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">    <span class="co">-- Handle the key press</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">    atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> runActions w <span class="fu">$</span> handleKey cmdData)</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">    <span class="co">-- Get the updated world</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">    w2 <span class="ot">&lt;-</span> atomically <span class="fu">$</span> readTVar worldV</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">    <span class="co">-- Draw</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">    drawAndSend w2</a></code></pre></div>
+<p>This is similar to the “redraw” handler</p>
+<ul>
+<li>Get and modify the current world (using <em>modifyTVar’) by calling </em>runActions*</li>
+<li>Get the updated world</li>
+<li>Draw</li>
+</ul>
+<p>Notice the use of <code>modifyTVar'</code> rather than <code>modifyTVar</code>. The former is strict and what you probably want to be using by default.</p>
+<h2 id="actions">Actions</h2>
+<p>The code above is calling a function named <em>runActions</em> with the result of <em>handleKey</em>. <em>handleKey</em> looks like this</p>
+<h6 id="movingsrcgameengine.hs-310-to-322">06_moving/src/GameEngine.hs (310 to 322)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">handleKey ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>]</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">handleKey (cmd<span class="fu">:</span>_) <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">    <span class="st">&quot;Move:up&quot;</span>         <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">0</span>,  <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="st">&quot;Move:down&quot;</span>       <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">0</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">    <span class="st">&quot;Move:left&quot;</span>       <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>,  <span class="dv">0</span>)]</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">    <span class="st">&quot;Move:right&quot;</span>      <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>,  <span class="dv">0</span>)]</a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">    <span class="st">&quot;Move:up-right&quot;</span>   <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>,  <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-9" data-line-number="9">    <span class="st">&quot;Move:up-left&quot;</span>    <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>,  <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">    <span class="st">&quot;Move:down-right&quot;</span> <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">    <span class="st">&quot;Move:down-left&quot;</span>  <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-12" data-line-number="12">    _                 <span class="ot">-&gt;</span> []</a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">handleKey _ <span class="fu">=</span> []</a></code></pre></div>
+<h6 id="movingsrcgamecore.hs-63-to-63">06_moving/src/GameCore.hs (63 to 63)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">newtype</span> <span class="dt">RogueAction</span> <span class="fu">=</span> <span class="dt">ActMovePlayer</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a></code></pre></div>
+<p>And then <em>runActions</em> and <em>runAction</em> actually do the work of moving the player</p>
+<h6 id="movingsrcgameengine.hs-327-to-336">06_moving/src/GameEngine.hs (327 to 336)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">runActions ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>] <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">runActions world actions <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  foldl' runAction world actions</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="ot">runAction ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">RogueAction</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">runAction world action <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">  <span class="kw">case</span> action <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">    <span class="dt">ActMovePlayer</span> (dx, dy) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">      world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acWorldPos) <span class="fu">%~</span> (\(<span class="dt">WorldPos</span> (x, y)) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> (x <span class="fu">+</span> dx, y <span class="fu">+</span> dy))</a></code></pre></div>
+<p>Notice that <em>handleKey</em> returns an array of <em>RogueAction</em>. There is a bit of indirection here, <em>handleKey</em> could simply implement the movement logic. The advantages of having actions like this is that as the game gets more complicated it keeps a clean separation between code asking for actions and the code that performs them. The array of actions means that an event (like a key press) can have more than one action.</p>
+<p>This line of code may be worth discussing quickly, as there are a few things going on</p>
+<h6 id="movingsrcgameengine.hs-337-to-337">06_moving/src/GameEngine.hs (337 to 337)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1">  world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acWorldPos) <span class="fu">%~</span> (\(<span class="dt">WorldPos</span> (x, y)) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> (x <span class="fu">+</span> dx, y <span class="fu">+</span> dy))</a></code></pre></div>
+<ol type="1">
+<li><code>world &amp; (wdPlayer . plActor . acWorldPos)</code> is a lens to get to the player’s world position</li>
+<li><code>%~</code> is going to update that position by sending it to a function</li>
+<li><code>(\(WorldPos (x, y)) -&gt; WorldPos (x + dx, y + dy))</code> is the lambda function being called.
+<ol type="a">
+<li>Destructure the <em>WorldPos</em> to get the (x, y)</li>
+<li>Created a new <em>WorldPos</em> adding the delta-x and delta-y from the <em>ActMovePlayer</em></li>
+</ol></li>
+</ol>
+<p>And with that the player can now be moved around the world. Not too bad for the few lines of code we needed to add, and its worth pointing out that no front-end changes were required.</p>
+<p><img src="../../images/rogue_06_moving.gif" /></p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_05.html">prev</a> <a href="2018-04-02-haskell-rogue-like_07.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 05_actors/src/GameCore.hs 06_moving/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 05_actors/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 06_moving/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -66,6 +60,10 @@</pre>
+<pre class="diffpre context"> newtype PlayerPos = PlayerPos (Int, Int) deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+newtype RogueAction = ActMovePlayer (Int, Int)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data UiMessage = UiMessage { umCmd :: !Text</pre>
+<pre class="diffpre context">                            , umMessage :: !Text</pre>
+<pre class="diffpre context">                            }</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 05_actors/src/GameEngine.hs 06_moving/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 05_actors/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 06_moving/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -94,7 +93,26 @@</pre>
+<pre class="diffpre context">         }</pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     mkConfig =</pre>
+<pre class="diffpre delete">-      Config { _cfgKeys = Map.fromList [("t", "test")] }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      Config { _cfgKeys = Map.fromList [ ("up"      , "Move:up")</pre>
+<pre class="diffpre insert">+                                       , ("k"       , "Move:up")</pre>
+<pre class="diffpre insert">+                                       , ("down"    , "Move:down")</pre>
+<pre class="diffpre insert">+                                       , ("j"       , "Move:down")</pre>
+<pre class="diffpre insert">+                                       , ("left"    , "Move:left")</pre>
+<pre class="diffpre insert">+                                       , ("h"       , "Move:left")</pre>
+<pre class="diffpre insert">+                                       , ("right"   , "Move:right")</pre>
+<pre class="diffpre insert">+                                       , ("l"       , "Move:right")</pre>
+<pre class="diffpre insert">+                                       , ("u"       , "Move:up-right")</pre>
+<pre class="diffpre insert">+                                       , ("pageup"  , "Move:up-right")</pre>
+<pre class="diffpre insert">+                                       , ("y"       , "Move:up-left")</pre>
+<pre class="diffpre insert">+                                       , ("home"    , "Move:up-left")</pre>
+<pre class="diffpre insert">+                                       , ("n"       , "Move:down-right")</pre>
+<pre class="diffpre insert">+                                       , ("end"     , "Move:down-left")</pre>
+<pre class="diffpre insert">+                                       , ("b"       , "Move:down-left")</pre>
+<pre class="diffpre insert">+                                       , ("pagedown", "Move:down-right")</pre>
+<pre class="diffpre insert">+                                       ]</pre>
+<pre class="diffpre insert">+             }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     mkPlayer =</pre>
+<pre class="diffpre context">       Player { _plConn = conn</pre>
+<pre class="diffpre info">@@ -133,8 +150,15 @@</pre>
+<pre class="diffpre context">           drawAndSend w</pre>
+<pre class="diffpre context">           sendLog conn "draw"</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre delete">-    "key" -&gt;</pre>
+<pre class="diffpre delete">-      sendLog conn $ "TODO: " &lt;&gt; cmd &lt;&gt; ": " &lt;&gt; show cmdData</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    "key" -&gt; do</pre>
+<pre class="diffpre insert">+      -- Handle the key press</pre>
+<pre class="diffpre insert">+      atomically $ modifyTVar' worldV (\w -&gt; runActions w $ handleKey cmdData)</pre>
+<pre class="diffpre insert">+      -- Get the updated world</pre>
+<pre class="diffpre insert">+      w2 &lt;- atomically $ readTVar worldV</pre>
+<pre class="diffpre insert">+      -- Draw</pre>
+<pre class="diffpre insert">+      drawAndSend w2</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     _ -&gt;</pre>
+<pre class="diffpre context">       sendError conn $ "Unknown command: " &lt;&gt; cmd</pre>
+<pre class="diffpre info">@@ -278,9 +301,39 @@</pre>
+<pre class="diffpre context">       x &gt;= topX &amp;&amp; x &lt; bottomX &amp;&amp; y &gt; bottomY &amp;&amp; y &lt;= topY</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> getAllActors :: World -&gt; [Actor]</pre>
+<pre class="diffpre context"> getAllActors world =</pre>
+<pre class="diffpre context">   world ^. wdPlayer ^. plActor : Map.elems (world ^. wdActors)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+handleKey :: [Text] -&gt; [RogueAction]</pre>
+<pre class="diffpre insert">+handleKey (cmd:_) = </pre>
+<pre class="diffpre insert">+  case cmd of</pre>
+<pre class="diffpre insert">+    "Move:up"         -&gt; [ActMovePlayer ( 0,  1)]</pre>
+<pre class="diffpre insert">+    "Move:down"       -&gt; [ActMovePlayer ( 0, -1)]</pre>
+<pre class="diffpre insert">+    "Move:left"       -&gt; [ActMovePlayer (-1,  0)]</pre>
+<pre class="diffpre insert">+    "Move:right"      -&gt; [ActMovePlayer ( 1,  0)]</pre>
+<pre class="diffpre insert">+    "Move:up-right"   -&gt; [ActMovePlayer ( 1,  1)]</pre>
+<pre class="diffpre insert">+    "Move:up-left"    -&gt; [ActMovePlayer (-1,  1)]</pre>
+<pre class="diffpre insert">+    "Move:down-right" -&gt; [ActMovePlayer ( 1, -1)]</pre>
+<pre class="diffpre insert">+    "Move:down-left"  -&gt; [ActMovePlayer (-1, -1)]</pre>
+<pre class="diffpre insert">+    _                 -&gt; []</pre>
+<pre class="diffpre insert">+handleKey _ = []</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runActions :: World -&gt; [RogueAction] -&gt; World</pre>
+<pre class="diffpre insert">+runActions world actions =</pre>
+<pre class="diffpre insert">+  foldl' runAction world actions</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runAction :: World -&gt; RogueAction -&gt; World</pre>
+<pre class="diffpre insert">+runAction world action =</pre>
+<pre class="diffpre insert">+  case action of</pre>
+<pre class="diffpre insert">+    ActMovePlayer (dx, dy) -&gt;</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      world &amp; (wdPlayer . plActor . acWorldPos) %~ (\(WorldPos (x, y)) -&gt; WorldPos (x + dx, y + dy))</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_05.html">prev</a> <a href="2018-04-02-haskell-rogue-like_07.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

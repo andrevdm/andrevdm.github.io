@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<h1 id="introduction">Introduction</h1>
+<p>In this series of posts I’m going to discuss some of the major design decisions that you will need to consider when making a Haskell roguelike game. I’ll be talking about how the code is implemented as well as the decisions I took along the way and why.</p>
+<p>See the chapter list below to get an idea of what topics I’ll be covering.</p>
+<h2 id="what-is-a-roguelike">What is a roguelike?</h2>
+<p><img src="../images/rogue_full_view.png" /></p>
+<p><a href="http://www.roguebasin.com/index.php?title=Main_Page">RogueBasin</a> defines a roguelike as</p>
+<blockquote>
+<p>A Roguelike is usually described as a free turn-based computer game with a strong focus on intricate gameplay and replayability, and an abstract world representation using ASCII-based display, as opposed to 3D graphics. Of course, as with any genre, there are deviations from the norm.</p>
+</blockquote>
+<h2 id="other-roguelike-tutorials-and-engines">Other roguelike tutorials and engines</h2>
+<p>There are several good Haskell roguelike tutorials and tools. The ones I know about are</p>
+<ul>
+<li><a href="https://github.com/LambdaHack/LambdaHack/blob/master/README.md">Haskell game engine library for ASCII roguelike games</a></li>
+<li><a href="http://jamiltron.com/2012/07/Code_Us_Some_Roguelike_in_Haskell.html">Code Us Some Roguelike in Haskell!</a></li>
+<li><a href="https://lokathor.gitbooks.io/using-haskell/content/roguelike/">Complete Roguelike Tutorial</a></li>
+<li><a href="http://www.roguebasin.com/index.php?title=Haskell">Haskell category on rogue basin</a></li>
+<li><a href="http://haskellroguelike.com/">Haskell roguelike</a></li>
+</ul>
+<p>Each of the tutorials takes a different approach, cover different topics and address different levels of familiarity with haskell. The more the merrier! If you are interested in building a roguelike, or just looking for ideas for writing games in Haskell, then looking at the links above as well as this series seems like a good idea.</p>
+<p><a href="https://github.com/LambdaHack/LambdaHack/blob/master/README.md">LambdaHack</a> is a game engine for making ASCII roguelike games. It is definitely worth taking a look at. For this series I decided not to use LambdaHack as it already implements many of the things I was interested in learning about. This is a trade-off you’ll have to make. Are you currently more interested in learning how to build the game or more interested in getting a robust game together? I’d suggest learning with a small roguelike first as you’ll then have a much better idea of what a game engine offers or how it may constrain you.</p>
+<p><a href="http://www.roguebasin.com/index.php?title=Articles">RogueBasin</a> has a vast amount of detail on creating roguelike games. Its well worth your time to look at for ideas. I’ll be referring to articles from roguebasin throughout the series</p>
+<h1 id="the-series">The series</h1>
+<h2 id="why-read-this-series">Why read this series?</h2>
+<p>Apart from just being another perspective, I think that these are some reasons you may want to continue reading</p>
+<ul>
+<li>Discussion of all the basics since I’m not using a game engine</li>
+<li>UI style</li>
+<li>Reasonably simple Haskell (I hope!)</li>
+<li>In total the game is under 1500 lines of haskell with all the features mentioned below</li>
+<li>AI implementation</li>
+<li>Decisions about energy systems, viewport scrolling, levels and managing a plot</li>
+</ul>
+<p>Also I’m not a gamer and this is the first game I’ve ever written, so that should bring a slightly different perspective ;)</p>
+<h2 id="structure">Structure</h2>
+<p>There are 20 “chapters”. Each chapter builds on the previous one. Each chapter’s code is available on <a href="https://github.com/andrevdm/haskellRogueLike">github</a> and has a working example. At the end of each chapter is a patch file that shows what was added/changed.</p>
+<h2 id="notes-on-the-code">Notes on the code</h2>
+<p>I’ve tried to keep the Haskell code simple, hopefully it is easy to follow even if you don’t have much experience. E.g. There is only one transformer used (chapter 14) and that is entirely optional.</p>
+<p>I am using <a href="https://github.com/sdiehl/protolude/">Protolude</a> as my prelude. It should be fairly easy to switch to something else. Note that protolude defines <code>&lt;&lt;$&gt;&gt;</code> which is the same as <code>(fmap . fmap)</code> or <code>&lt;$$&gt;</code> from <a href="https://hackage.haskell.org/package/composition-extra">composition-extra</a></p>
+<h3 id="lenses">Lenses</h3>
+<p>I am using lenses, since there are several nested record types I use. If you have not used <a href="https://hackage.haskell.org/package/lens">lens</a> before it may seem odd. I’m mostly using only three lenses, so you should be able to follow along without worrying about them too much.</p>
+<p>Here are a few quick examples that may help you get a sense for what they do.</p>
+<p>Given this definition</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="ot">{-# LANGUAGE TemplateHaskell #-}</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">import</span> <span class="dt">Protolude</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Text</span> <span class="kw">as</span> <span class="dt">Txt</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="kw">import</span>           <span class="dt">Control.Lens</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="kw">import</span>           <span class="dt">Control.Lens.TH</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="kw">data</span> <span class="dt">Parent</span> <span class="fu">=</span> <span class="dt">Parent</span> {<span class="ot"> _pName ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">                     ,<span class="ot"> _pChild ::</span> <span class="dt">Child</span></a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">                     } <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">            </a>
+<a class="sourceLine" id="cb1-15" data-line-number="15"><span class="kw">data</span> <span class="dt">Child</span> <span class="fu">=</span> <span class="dt">Child</span> {<span class="ot"> _cName ::</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">                   } <span class="kw">deriving</span> (<span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17"></a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">makeLenses <span class="ch">''</span><span class="dt">Parent</span></a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">makeLenses <span class="ch">''</span><span class="dt">Child</span></a>
+<a class="sourceLine" id="cb1-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb1-21" data-line-number="21"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">main <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">  <span class="kw">let</span> parent <span class="fu">=</span> <span class="dt">Parent</span> { _pName <span class="fu">=</span> <span class="st">&quot;parent1&quot;</span></a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">                      , _pChild <span class="fu">=</span> <span class="dt">Child</span> { _cName <span class="fu">=</span> <span class="st">&quot;child1&quot;</span> }</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">                      }</a></code></pre></div>
+<h4 id="section">^.</h4>
+<p>The <code>^.</code> lens acts as a field getter</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  <span class="fu">#</span> <span class="dt">With</span> lens</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">  putText <span class="fu">$</span> parent <span class="fu">^.</span> pName</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  putText <span class="fu">$</span> parent <span class="fu">^.</span> pChild <span class="fu">^.</span> cName</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="fu">#</span> <span class="dt">Without</span> lens</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">  putText <span class="fu">$</span> _pName parent</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">  putText <span class="fu">$</span> _cName <span class="fu">.</span> _pChild <span class="fu">$</span> parent</a></code></pre></div>
+<p>Which both print</p>
+<pre><code>parent1
+child1</code></pre>
+<p>There is not too much difference between the two styles, yet.</p>
+<h4 id="section-1">.~</h4>
+<p>The <code>.~</code> lens acts as a field setter</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1">  <span class="fu">#</span> <span class="dt">With</span> lens</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">  print <span class="fu">$</span> parent <span class="fu">&amp;</span> pName <span class="fu">.~</span> <span class="st">&quot;newName&quot;</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  print <span class="fu">$</span> parent <span class="fu">&amp;</span> (pChild <span class="fu">.</span> cName) <span class="fu">.~</span> <span class="st">&quot;new childName&quot;</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">  <span class="fu">#</span> <span class="dt">Without</span> lens</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">  print <span class="fu">$</span> parent { _pName <span class="fu">=</span> <span class="st">&quot;newName&quot;</span> }</a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">  print <span class="fu">$</span> parent { _pChild <span class="fu">=</span> (_pChild parent) { _cName <span class="fu">=</span> <span class="st">&quot;new childName&quot;</span> } }</a></code></pre></div>
+<p>Which both print</p>
+<pre><code>Parent {_pName = &quot;newName&quot;, _pChild = Child {_cName = &quot;child1&quot;}}
+Parent {_pName = &quot;parent1&quot;, _pChild = Child {_cName = &quot;new childName&quot;}}</code></pre>
+<p>Once you start updating nested records, I think the lens code is much easier to read. The deeper the nesting the more true this is.</p>
+<h4 id="section-2">%~</h4>
+<p>The <code>%~</code> lens acts as a field updater that works by sending the current value through a function</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1">  <span class="fu">#</span> <span class="dt">With</span> lens</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">  print <span class="fu">$</span> parent <span class="fu">&amp;</span> pName <span class="fu">%~</span> Txt.toUpper</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  print <span class="fu">$</span> parent <span class="fu">&amp;</span> (pChild <span class="fu">.</span> cName) <span class="fu">%~</span> Txt.toUpper</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">  <span class="fu">#</span> <span class="dt">Without</span> lens</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">  print <span class="fu">$</span> parent { _pName <span class="fu">=</span> Txt.toUpper <span class="fu">.</span> _pName <span class="fu">$</span> parent }</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">  print <span class="fu">$</span> parent { _pChild <span class="fu">=</span> (_pChild parent) { _cName <span class="fu">=</span> Txt.toUpper <span class="fu">.</span> _cName <span class="fu">.</span> _pChild <span class="fu">$</span> parent  } }</a></code></pre></div>
+<p>Which both print</p>
+<pre><code>Parent {_pName = &quot;PARENT1&quot;, _pChild = Child {_cName = &quot;child1&quot;}}
+Parent {_pName = &quot;parent1&quot;, _pChild = Child {_cName = &quot;CHILD1&quot;}}</code></pre>
+<p>Here I’d say the lens code is significantly easier to read, i.e. the intent is much clearer.</p>
+<p>Quite often you’ll end up combining these three lenses and the alternative, in my view, is way too noisy. There are some tradeoffs using lens, e.g. template haskell but I feel that it is justified by the resulting code. Obviously if you prefer not to use lens you can do everything reasonably easily without it.</p>
+<h1 id="chapters">Chapters</h1>
+<ul>
+<li><a href="multi/2018-04-02-haskell-rogue-like_01.html">01 - UI &amp; tiles</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_02.html">02 - UI Code</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_03.html">03 - Entities &amp; Drawing</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_04.html">04 - Map loading</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_05.html">05 - Actors</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_06.html">06 - Moving the player</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_07.html">07 - Collisions</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_08.html">08 - Layers</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_09.html">09 - Viewport scrolling</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_10.html">10 - Field of view</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_11.html">11 - Sticky light</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_12.html">12 - Energy</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_13.html">13 - Utility AI</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_14.html">14 - Utility AI annotations</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_15.html">15 - Memory</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_16.html">16 - Debugging</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_17.html">17 - Levels</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_18.html">18 - Mutliple levels</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_19.html">19 - Story</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_20.html">20 - Structure</a></li>
+<li><a href="multi/2018-04-02-haskell-rogue-like_fin.html">21 - Conclusion</a></li>
+</ul>
+<h1 id="links">Links</h1>
+<ul>
+<li><a href="multi/2018-04-02-haskell-rogue-like_01.html">Chapter 1 - UI &amp; tiles</a></li>
+<li><p><a href="https://github.com/andrevdm/haskellRogueLike">Code on github</a></p></li>
+<li><a href="https://github.com/LambdaHack/LambdaHack/blob/master/README.md">Haskell game engine library for ASCII roguelike games</a></li>
+<li><a href="http://jamiltron.com/2012/07/Code_Us_Some_Roguelike_in_Haskell.html">Code Us Some Roguelike in Haskell!</a></li>
+<li><a href="https://lokathor.gitbooks.io/using-haskell/content/roguelike/">Complete Roguelike Tutorial</a></li>
+<li><a href="http://www.roguebasin.com/index.php?title=Haskell">Haskell category on rogue basin</a></li>
+<li><a href="http://haskellroguelike.com/">Haskell roguelike</a></li>
+<li><p><a href="http://www.roguebasin.com/index.php?title=How_to_Write_a_Roguelike_in_15_Steps">How to Write a Roguelike in 15 Steps</a></p></li>
+</ul>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

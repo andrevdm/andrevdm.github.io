@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Actors</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_04.html">prev</a> <a href="2018-04-02-haskell-rogue-like_06.html">next</a></p>
+<h1 id="actors">Actors</h1>
+<p>The game is going to need some other characters to interact with. I’ve called these <em>actors</em>. Lets add two actors a bug and a snake.</p>
+<p>We start by adding the entity types</p>
+<h6 id="actorssrcentitytype.hs-8-to-16">05_actors/src/EntityType.hs (8 to 16)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">EntityType</span> <span class="fu">=</span> <span class="dt">Blank</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">                <span class="fu">|</span> <span class="dt">Door</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">                <span class="fu">|</span> <span class="dt">DoorClosed</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">                <span class="fu">|</span> <span class="dt">Wall</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">                <span class="fu">|</span> <span class="dt">Player</span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">                <span class="fu">|</span> <span class="dt">Bug</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">                <span class="fu">|</span> <span class="dt">Snake</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">                <span class="fu">|</span> <span class="dt">Unknown</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">                <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<p>associate them with tiles</p>
+<h6 id="actorssrcentities.hs-19-to-26">05_actors/src/Entities.hs (19 to 26)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>), <span class="dt">Nothing</span>)</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>), <span class="dt">Just</span> <span class="st">&quot;+&quot;</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>), <span class="dt">Just</span> <span class="st">&quot;-&quot;</span>)</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>), <span class="dt">Just</span> <span class="st">&quot;w&quot;</span>)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">           , (<span class="dt">E.Player</span>    , ( <span class="dv">8</span>,  <span class="dv">3</span>), <span class="dt">Nothing</span>)</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">           , (<span class="dt">E.Bug</span>       , (<span class="dv">25</span>,  <span class="dv">3</span>), <span class="dt">Nothing</span>)</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">           , (<span class="dt">E.Snake</span>     , (<span class="dv">38</span>,  <span class="dv">4</span>), <span class="dt">Nothing</span>)</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">           ]</a></code></pre></div>
+<p>and add the actor types.</p>
+<ul>
+<li><em>ActorClass</em> is the type of actor. This allows us to treat different actors the same way based on a class</li>
+<li><em>Aid</em> is a unique identifier per actor</li>
+<li><em>Actor</em> the main actor type</li>
+</ul>
+<p>The actor has a <code>System.Random.StdGen</code> property <em>acStdGen</em>, this will be used later when random behaviour is required.</p>
+<h6 id="actorssrcgamecore.hs-21-to-32">05_actors/src/GameCore.hs (21 to 32)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">data</span> <span class="dt">ActorClass</span> <span class="fu">=</span> <span class="dt">ClassPlayer</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">                <span class="fu">|</span> <span class="dt">ClassEnemy</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">                <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="kw">newtype</span> <span class="dt">Aid</span> <span class="fu">=</span> <span class="dt">Aid</span> <span class="dt">Text</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="kw">data</span> <span class="dt">Actor</span> <span class="fu">=</span> <span class="dt">Actor</span> {<span class="ot"> _acId ::</span> <span class="fu">!</span><span class="dt">Aid</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">                   ,<span class="ot"> _acClass ::</span> <span class="fu">!</span><span class="dt">ActorClass</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">                   ,<span class="ot"> _acEntity ::</span> <span class="fu">!</span><span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">                   ,<span class="ot"> _acWorldPos ::</span> <span class="fu">!</span><span class="dt">WorldPos</span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">                   ,<span class="ot"> _acStdGen ::</span> <span class="fu">!</span><span class="dt">Rnd.StdGen</span></a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">                   }</a></code></pre></div>
+<h2 id="accessing-actors">Accessing actors</h2>
+<p>You could make actors a special type of entity, in which case you would not need a separate actor store. The problem is that you often need to work only with actors and scanning the entity map each time is very inefficient. I’ve chosen to keep actors separate in <em>wdActors</em>. This means that a single position in the world could have both and entity and a tile, which makes sense e.g. an actor standing on a floor tile.</p>
+<h6 id="actorssrcgamecore.hs-44-to-48">05_actors/src/GameCore.hs (44 to 48)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">data</span> <span class="dt">World</span> <span class="fu">=</span> <span class="dt">World</span> {<span class="ot"> _wdPlayer ::</span> <span class="fu">!</span><span class="dt">Player</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">                   ,<span class="ot"> _wdConfig ::</span> <span class="fu">!</span><span class="dt">Config</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">                   ,<span class="ot"> _wdMap ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span>)</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">                   ,<span class="ot"> _wdActors ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Aid</span> <span class="dt">Actor</span>)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">                   }</a></code></pre></div>
+<h2 id="player-andor-actor">Player and/or actor?</h2>
+<p>Another decision you need to make is if the player is simply another actor or something special. If the player is simply an actor then, as above, each time you need to work with the player you need to scan <em>wdActors</em>. If you have it separate then whenever you need to perform an operation on all actors then you need to work on <em>wdActors</em> and the player. Neither are ideal but I found that have the player have its own separate actor to be much simpler. A helper function that gets the player’s actor and the other actors, removes all the issues.</p>
+<h6 id="actorssrcgamecore.hs-36-to-40">05_actors/src/GameCore.hs (36 to 40)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Player</span> <span class="fu">=</span> <span class="dt">Player</span> {<span class="ot"> _plConn ::</span> <span class="fu">!</span><span class="dt">Host.Connection</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">                     ,<span class="ot"> _plActor ::</span> <span class="fu">!</span><span class="dt">Actor</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">                     ,<span class="ot"> _plScreenSize ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">                     ,<span class="ot"> _plWorldTopLeft ::</span> <span class="fu">!</span><span class="dt">WorldPos</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">                     }</a></code></pre></div>
+<h6 id="actorssrcgameengine.hs-283-to-285">05_actors/src/GameEngine.hs (283 to 285)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">getAllActors ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> [<span class="dt">Actor</span>]</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">getAllActors world <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor <span class="fu">:</span> Map.elems (world <span class="fu">^.</span> wdActors)</a></code></pre></div>
+<h1 id="adding-actors">Adding actors</h1>
+<p>You could add a load text and have the world CSV parse know how to create actors. However I’ve chosen to manually add actors in <em>bootWorld</em>, along with the player’s actor.</p>
+<h6 id="actorssrcgameengine.hs-80-to-120">05_actors/src/GameEngine.hs (80 to 120)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Rnd.StdGen</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">bootWorld conn screenSize mapData std <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">    config <span class="fu">=</span> mkConfig</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">    bug <span class="fu">=</span> mkEnemyActor <span class="st">&quot;bug1&quot;</span> <span class="dt">E.Bug</span> (<span class="dv">6</span>, <span class="fu">-</span><span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">    snake <span class="fu">=</span> mkEnemyActor <span class="st">&quot;snake1&quot;</span> <span class="dt">E.Snake</span> (<span class="dv">8</span>, <span class="fu">-</span><span class="dv">4</span>)</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">   </a>
+<a class="sourceLine" id="cb7-9" data-line-number="9">  <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
+<a class="sourceLine" id="cb7-10" data-line-number="10">        , _wdConfig <span class="fu">=</span> config</a>
+<a class="sourceLine" id="cb7-11" data-line-number="11">        , _wdMap <span class="fu">=</span> loadWorld E.loadTexts mapData</a>
+<a class="sourceLine" id="cb7-12" data-line-number="12">        , _wdActors <span class="fu">=</span> Map.fromList [ (bug <span class="fu">^.</span> acId, bug)</a>
+<a class="sourceLine" id="cb7-13" data-line-number="13">                                   , (snake <span class="fu">^.</span> acId, snake)</a>
+<a class="sourceLine" id="cb7-14" data-line-number="14">                                   ]</a>
+<a class="sourceLine" id="cb7-15" data-line-number="15">        }</a>
+<a class="sourceLine" id="cb7-16" data-line-number="16">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb7-17" data-line-number="17">    mkConfig <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-18" data-line-number="18">      <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [(<span class="st">&quot;t&quot;</span>, <span class="st">&quot;test&quot;</span>)] }</a>
+<a class="sourceLine" id="cb7-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb7-20" data-line-number="20">    mkPlayer <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-21" data-line-number="21">      <span class="dt">Player</span> { _plConn <span class="fu">=</span> conn</a>
+<a class="sourceLine" id="cb7-22" data-line-number="22">             , _plScreenSize <span class="fu">=</span> screenSize</a>
+<a class="sourceLine" id="cb7-23" data-line-number="23">             , _plWorldTopLeft <span class="fu">=</span> <span class="dt">WorldPos</span> (<span class="dv">0</span>, <span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb7-24" data-line-number="24">             , _plActor <span class="fu">=</span> mkPlayersActor</a>
+<a class="sourceLine" id="cb7-25" data-line-number="25">             }</a>
+<a class="sourceLine" id="cb7-26" data-line-number="26"></a>
+<a class="sourceLine" id="cb7-27" data-line-number="27">    mkPlayersActor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-28" data-line-number="28">      <span class="dt">Actor</span> { _acId <span class="fu">=</span> <span class="dt">Aid</span> <span class="st">&quot;player&quot;</span></a>
+<a class="sourceLine" id="cb7-29" data-line-number="29">            , _acClass <span class="fu">=</span> <span class="dt">ClassPlayer</span></a>
+<a class="sourceLine" id="cb7-30" data-line-number="30">            , _acEntity <span class="fu">=</span> E.getEntity <span class="dt">E.Player</span></a>
+<a class="sourceLine" id="cb7-31" data-line-number="31">            , _acWorldPos <span class="fu">=</span> <span class="dt">WorldPos</span> (<span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb7-32" data-line-number="32">            , _acStdGen <span class="fu">=</span> std</a>
+<a class="sourceLine" id="cb7-33" data-line-number="33">            }</a>
+<a class="sourceLine" id="cb7-34" data-line-number="34"></a>
+<a class="sourceLine" id="cb7-35" data-line-number="35">    mkEnemyActor aid e (x, y) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-36" data-line-number="36">      <span class="dt">Actor</span> { _acId <span class="fu">=</span> <span class="dt">Aid</span> aid</a>
+<a class="sourceLine" id="cb7-37" data-line-number="37">            , _acClass <span class="fu">=</span> <span class="dt">ClassEnemy</span></a>
+<a class="sourceLine" id="cb7-38" data-line-number="38">            , _acEntity <span class="fu">=</span> E.getEntity e</a>
+<a class="sourceLine" id="cb7-39" data-line-number="39">            , _acWorldPos <span class="fu">=</span> <span class="dt">WorldPos</span> (x, y)</a>
+<a class="sourceLine" id="cb7-40" data-line-number="40">            , _acStdGen <span class="fu">=</span> std</a>
+<a class="sourceLine" id="cb7-41" data-line-number="41">            }</a></code></pre></div>
+<h1 id="draw">Draw!</h1>
+<p>Now to draw the actors</p>
+<h6 id="actorssrcgameengine.hs-239-to-278">05_actors/src/GameEngine.hs (239 to 278)</h6>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">drawTilesForPlayer ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">drawTilesForPlayer world entityMap <span class="fu">=</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">    player <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">    </a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">    <span class="co">-- Top left of player's grid</span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">    (<span class="dt">WorldPos</span> (topX, topY)) <span class="fu">=</span> player <span class="fu">^.</span> plWorldTopLeft </a>
+<a class="sourceLine" id="cb8-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">    <span class="co">-- Players screen/grid dimensions</span></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10">    (screenX, screenY) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize </a>
+<a class="sourceLine" id="cb8-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12">    <span class="co">-- Bottom right corner</span></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">    (bottomX, bottomY) <span class="fu">=</span> (topX <span class="fu">+</span> screenX, topY <span class="fu">-</span> screenY) </a>
+<a class="sourceLine" id="cb8-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15">    <span class="co">-- Filter out blank</span></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16">    noEmptyMap <span class="fu">=</span> Map.filter (\e <span class="ot">-&gt;</span> e <span class="fu">^.</span> enTile <span class="fu">^.</span> tlName <span class="fu">/=</span> <span class="st">&quot;blank&quot;</span>) entityMap </a>
+<a class="sourceLine" id="cb8-17" data-line-number="17"></a>
+<a class="sourceLine" id="cb8-18" data-line-number="18">    <span class="co">-- Add the actors to the map.</span></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19">    <span class="co">-- Notice that this will replace whatever entity was there (for this draw)</span></a>
+<a class="sourceLine" id="cb8-20" data-line-number="20">    <span class="co">-- This fold works by</span></a>
+<a class="sourceLine" id="cb8-21" data-line-number="21">    <span class="co">--    - Starting with the map of entities that are not blank</span></a>
+<a class="sourceLine" id="cb8-22" data-line-number="22">    <span class="co">--    - Inserting each actor into the updated map (the accumulator)</span></a>
+<a class="sourceLine" id="cb8-23" data-line-number="23">    <span class="co">-- getAllActors is called to get the player's actor and all other actors</span></a>
+<a class="sourceLine" id="cb8-24" data-line-number="24">    noEmptyMapWithActors <span class="fu">=</span> foldr</a>
+<a class="sourceLine" id="cb8-25" data-line-number="25">                           (\actor accum <span class="ot">-&gt;</span> Map.insert (actor <span class="fu">^.</span> acWorldPos) (actor <span class="fu">^.</span> acEntity) accum)</a>
+<a class="sourceLine" id="cb8-26" data-line-number="26">                           noEmptyMap</a>
+<a class="sourceLine" id="cb8-27" data-line-number="27">                           (getAllActors world)</a>
+<a class="sourceLine" id="cb8-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb8-29" data-line-number="29">    <span class="co">-- Only get the entitys that are at positions on the player's screen</span></a>
+<a class="sourceLine" id="cb8-30" data-line-number="30">    visibleEntitys <span class="fu">=</span> Map.filterWithKey (inView topX topY bottomX bottomY) noEmptyMapWithActors</a>
+<a class="sourceLine" id="cb8-31" data-line-number="31"></a>
+<a class="sourceLine" id="cb8-32" data-line-number="32">    <span class="co">-- Get the tile for each entity</span></a>
+<a class="sourceLine" id="cb8-33" data-line-number="33">    tileMap <span class="fu">=</span> (<span class="fu">^.</span> enTile) <span class="fu">&lt;$&gt;</span> visibleEntitys </a>
+<a class="sourceLine" id="cb8-34" data-line-number="34">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb8-35" data-line-number="35">  <span class="co">-- Get it with player positions</span></a>
+<a class="sourceLine" id="cb8-36" data-line-number="36">  Map.mapKeys (worldCoordToPlayer <span class="fu">$</span> player <span class="fu">^.</span> plWorldTopLeft) tileMap</a>
+<a class="sourceLine" id="cb8-37" data-line-number="37"></a>
+<a class="sourceLine" id="cb8-38" data-line-number="38">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb8-39" data-line-number="39">    inView topX topY bottomX bottomY (<span class="dt">WorldPos</span> (x, y)) _ <span class="fu">=</span></a>
+<a class="sourceLine" id="cb8-40" data-line-number="40">      x <span class="fu">&gt;=</span> topX <span class="fu">&amp;&amp;</span> x <span class="fu">&lt;</span> bottomX <span class="fu">&amp;&amp;</span> y <span class="fu">&gt;</span> bottomY <span class="fu">&amp;&amp;</span> y <span class="fu">&lt;=</span> topY</a></code></pre></div>
+<ul>
+<li>The change here is getting <em>noEmptyMapWithActors</em> and then getting <em>visibleEntities</em> from that (see the patch below).</li>
+<li>The actors’ entities, including the player’s actors’ entity, are added to (a copy) of the world map</li>
+<li>Notice that the player replace the entity at that position, this will be addressed in later chapters</li>
+</ul>
+<p><img src="../../images/rogue_05_actors.png" /></p>
+<p>Player: <img src="../../images/rogue_05_player.png" /></p>
+<p>Snake: <img src="../../images/rogue_05_snake.png" /></p>
+<p>Bug: <img src="../../images/rogue_05_bug.png" /></p>
+<p>Door - open: <img src="../../images/rogue_05_door_open.png" /></p>
+<p>Door - closed: <img src="../../images/rogue_05_door_closed.png" /></p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_04.html">prev</a> <a href="2018-04-02-haskell-rogue-like_06.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/Entities.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 04_load_map/src/Entities.hs 05_actors/src/Entities.hs</pre>
+<pre class="diffpre delete">--- 04_load_map/src/Entities.hs</pre>
+<pre class="diffpre insert">+++ 05_actors/src/Entities.hs</pre>
+<pre class="diffpre info">@@ -16,11 +15,16 @@</pre>
+<pre class="diffpre context"> loadTexts :: Map Text Entity</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> (tiles, entities, loadTexts) =</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   let is = [ (E.Blank     , (41, 13), Nothing)</pre>
+<pre class="diffpre context">            , (E.Door      , (26, 15), Just "+")</pre>
+<pre class="diffpre context">            , (E.DoorClosed, (21, 15), Just "-")</pre>
+<pre class="diffpre context">            , (E.Wall      , ( 9, 14), Just "w")</pre>
+<pre class="diffpre insert">+           , (E.Player    , ( 8,  3), Nothing)</pre>
+<pre class="diffpre insert">+           , (E.Bug       , (25,  3), Nothing)</pre>
+<pre class="diffpre insert">+           , (E.Snake     , (38,  4), Nothing)</pre>
+<pre class="diffpre context">            ]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   in</pre>
+<pre class="diffpre context">   let mkData (typ, pos@(x, y), l) (tiles', entities', loads') =</pre>
+<pre class="diffpre context">         let (entity, tile) = mkEntityAndTile (x * 100 + y) typ pos in</pre>
+</div>
+<h2 class=".diffh2">
+src/EntityType.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 04_load_map/src/EntityType.hs 05_actors/src/EntityType.hs</pre>
+<pre class="diffpre delete">--- 04_load_map/src/EntityType.hs</pre>
+<pre class="diffpre insert">+++ 05_actors/src/EntityType.hs</pre>
+<pre class="diffpre info">@@ -4,9 +4,14 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import Protolude</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data EntityType = Blank</pre>
+<pre class="diffpre context">                 | Door</pre>
+<pre class="diffpre context">                 | DoorClosed</pre>
+<pre class="diffpre context">                 | Wall</pre>
+<pre class="diffpre insert">+                | Player</pre>
+<pre class="diffpre insert">+                | Bug</pre>
+<pre class="diffpre insert">+                | Snake</pre>
+<pre class="diffpre context">                 | Unknown</pre>
+<pre class="diffpre context">                 deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 04_load_map/src/GameCore.hs 05_actors/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 04_load_map/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 05_actors/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -11,13 +11,30 @@</pre>
+<pre class="diffpre context"> import qualified Data.Text as Txt</pre>
+<pre class="diffpre context"> import           Data.Map.Strict (Map)</pre>
+<pre class="diffpre context"> import qualified Data.Aeson as Ae</pre>
+<pre class="diffpre insert">+import qualified System.Random as Rnd</pre>
+<pre class="diffpre context"> import           Control.Lens.TH (makeLenses)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import qualified GameHost as Host</pre>
+<pre class="diffpre context"> import qualified EntityType as E</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+data ActorClass = ClassPlayer</pre>
+<pre class="diffpre insert">+                | ClassEnemy</pre>
+<pre class="diffpre insert">+                deriving (Show, Eq)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+newtype Aid = Aid Text deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data Actor = Actor { _acId :: !Aid</pre>
+<pre class="diffpre insert">+                   , _acClass :: !ActorClass</pre>
+<pre class="diffpre insert">+                   , _acEntity :: !Entity</pre>
+<pre class="diffpre insert">+                   , _acWorldPos :: !WorldPos</pre>
+<pre class="diffpre insert">+                   , _acStdGen :: !Rnd.StdGen</pre>
+<pre class="diffpre insert">+                   }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data Player = Player { _plConn :: !Host.Connection</pre>
+<pre class="diffpre insert">+                     , _plActor :: !Actor</pre>
+<pre class="diffpre context">                      , _plScreenSize :: !(Int, Int)</pre>
+<pre class="diffpre context">                      , _plWorldTopLeft :: !WorldPos</pre>
+<pre class="diffpre context">                      }</pre>
+<pre class="diffpre info">@@ -24,10 +41,10 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> data World = World { _wdPlayer :: !Player</pre>
+<pre class="diffpre context">                    , _wdConfig :: !Config</pre>
+<pre class="diffpre context">                    , _wdMap :: !(Map WorldPos Entity)</pre>
+<pre class="diffpre insert">+                   , _wdActors :: !(Map Aid Actor)</pre>
+<pre class="diffpre context">                    }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -111,3 +124,4 @@</pre>
+<pre class="diffpre context"> makeLenses ''Player</pre>
+<pre class="diffpre context"> makeLenses ''Entity</pre>
+<pre class="diffpre context"> makeLenses ''Tile</pre>
+<pre class="diffpre insert">+makeLenses ''Actor</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 04_load_map/src/GameEngine.hs 05_actors/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 04_load_map/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 05_actors/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -14,6 +14,7 @@</pre>
+<pre class="diffpre context"> import qualified Data.Aeson.Text.Extended as Ae</pre>
+<pre class="diffpre context"> import qualified Data.ByteString.Lazy as BSL</pre>
+<pre class="diffpre context"> import qualified Codec.Compression.BZip as Bz</pre>
+<pre class="diffpre insert">+import qualified System.Random as Rnd</pre>
+<pre class="diffpre context"> import           Control.Lens (_1, (^.), (.~), (%~))</pre>
+<pre class="diffpre context"> import qualified Control.Arrow as Ar</pre>
+<pre class="diffpre context"> import           Control.Concurrent.STM (atomically, readTVar, newTVar, modifyTVar', TVar)</pre>
+<pre class="diffpre info">@@ -37,9 +37,9 @@</pre>
+<pre class="diffpre context">   case parseCommand initCmd of</pre>
+<pre class="diffpre context">     Just ("init", cmdData) -&gt; do</pre>
+<pre class="diffpre context">       mapData &lt;- Txt.readFile "worlds/simple.csv"</pre>
+<pre class="diffpre insert">+      std &lt;- Rnd.getStdGen</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre delete">-      case initialiseConnection conn cmdData mapData of</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre insert">+      case initialiseConnection conn cmdData mapData std of</pre>
+<pre class="diffpre context">         Right world -&gt; do</pre>
+<pre class="diffpre context">           worldV &lt;- atomically $ newTVar world</pre>
+<pre class="diffpre context">           sendConfig conn $ world ^. wdConfig</pre>
+<pre class="diffpre info">@@ -66,24 +66,31 @@</pre>
+<pre class="diffpre context">         _ -&gt; Nothing</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-initialiseConnection :: Host.Connection -&gt; [Text] -&gt; Text -&gt; Either Text World</pre>
+<pre class="diffpre delete">-initialiseConnection conn cmdData mapData = </pre>
+<pre class="diffpre insert">+initialiseConnection :: Host.Connection -&gt; [Text] -&gt; Text -&gt; Rnd.StdGen -&gt; Either Text World</pre>
+<pre class="diffpre insert">+initialiseConnection conn cmdData mapData std = </pre>
+<pre class="diffpre context">   case parseScreenSize cmdData of</pre>
+<pre class="diffpre context">     Nothing -&gt;</pre>
+<pre class="diffpre context">       Left "missing / invalid screen size"</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     Just (width, height) -&gt;</pre>
+<pre class="diffpre delete">-      Right $ bootWorld conn (width, height) mapData</pre>
+<pre class="diffpre insert">+      Right $ bootWorld conn (width, height) mapData std</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Text -&gt; World</pre>
+<pre class="diffpre delete">-bootWorld conn screenSize mapData = </pre>
+<pre class="diffpre delete">-  let config = mkConfig in</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Text -&gt; Rnd.StdGen -&gt; World</pre>
+<pre class="diffpre insert">+bootWorld conn screenSize mapData std = </pre>
+<pre class="diffpre insert">+  let</pre>
+<pre class="diffpre insert">+    config = mkConfig</pre>
+<pre class="diffpre insert">+    bug = mkEnemyActor "bug1" E.Bug (6, -2)</pre>
+<pre class="diffpre insert">+    snake = mkEnemyActor "snake1" E.Snake (8, -4)</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre context">    </pre>
+<pre class="diffpre context">   World { _wdPlayer = mkPlayer</pre>
+<pre class="diffpre context">         , _wdConfig = config</pre>
+<pre class="diffpre context">         , _wdMap = loadWorld E.loadTexts mapData</pre>
+<pre class="diffpre insert">+        , _wdActors = Map.fromList [ (bug ^. acId, bug)</pre>
+<pre class="diffpre insert">+                                   , (snake ^. acId, snake)</pre>
+<pre class="diffpre insert">+                                   ]</pre>
+<pre class="diffpre context">         }</pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     mkConfig =</pre>
+<pre class="diffpre info">@@ -93,6 +100,23 @@</pre>
+<pre class="diffpre context">       Player { _plConn = conn</pre>
+<pre class="diffpre context">              , _plScreenSize = screenSize</pre>
+<pre class="diffpre context">              , _plWorldTopLeft = WorldPos (0, 0)</pre>
+<pre class="diffpre insert">+             , _plActor = mkPlayersActor</pre>
+<pre class="diffpre insert">+             }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    mkPlayersActor =</pre>
+<pre class="diffpre insert">+      Actor { _acId = Aid "player"</pre>
+<pre class="diffpre insert">+            , _acClass = ClassPlayer</pre>
+<pre class="diffpre insert">+            , _acEntity = E.getEntity E.Player</pre>
+<pre class="diffpre insert">+            , _acWorldPos = WorldPos (1, -1)</pre>
+<pre class="diffpre insert">+            , _acStdGen = std</pre>
+<pre class="diffpre insert">+            }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    mkEnemyActor aid e (x, y) =</pre>
+<pre class="diffpre insert">+      Actor { _acId = Aid aid</pre>
+<pre class="diffpre insert">+            , _acClass = ClassEnemy</pre>
+<pre class="diffpre insert">+            , _acEntity = E.getEntity e</pre>
+<pre class="diffpre insert">+            , _acWorldPos = WorldPos (x, y)</pre>
+<pre class="diffpre insert">+            , _acStdGen = std</pre>
+<pre class="diffpre context">              }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     </pre>
+<pre class="diffpre info">@@ -235,8 +253,19 @@</pre>
+<pre class="diffpre context">       -- Filter out blank</pre>
+<pre class="diffpre context">     noEmptyMap = Map.filter (\e -&gt; e ^. enTile ^. tlName /= "blank") entityMap</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+    -- Add the actors to the map.</pre>
+<pre class="diffpre insert">+    -- Notice that this will replace whatever entity was there (for this draw)</pre>
+<pre class="diffpre insert">+    -- This fold works by</pre>
+<pre class="diffpre insert">+    --    - Starting with the map of entities that are not blank</pre>
+<pre class="diffpre insert">+    --    - Inserting each actor into the updated map (the accumulator)</pre>
+<pre class="diffpre insert">+    -- getAllActors is called to get the player's actor and all other actors</pre>
+<pre class="diffpre insert">+    noEmptyMapWithActors = foldr</pre>
+<pre class="diffpre insert">+                           (\actor accum -&gt; Map.insert (actor ^. acWorldPos) (actor ^. acEntity) accum)</pre>
+<pre class="diffpre insert">+                           noEmptyMap</pre>
+<pre class="diffpre insert">+                           (getAllActors world)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">     -- Only get the entitys that are at positions on the player's screen</pre>
+<pre class="diffpre delete">-    visibleEntitys = Map.filterWithKey (inView topX topY bottomX bottomY) noEmptyMap</pre>
+<pre class="diffpre insert">+    visibleEntitys = Map.filterWithKey (inView topX topY bottomX bottomY) noEmptyMapWithActors</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     -- Get the tile for each entity</pre>
+<pre class="diffpre context">     tileMap = (^. enTile) &lt;$&gt; visibleEntitys</pre>
+<pre class="diffpre info">@@ -248,3 +277,10 @@</pre>
+<pre class="diffpre context">     inView topX topY bottomX bottomY (WorldPos (x, y)) _ =</pre>
+<pre class="diffpre context">       x &gt;= topX &amp;&amp; x &lt; bottomX &amp;&amp; y &gt; bottomY &amp;&amp; y &lt;= topY</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+getAllActors :: World -&gt; [Actor]</pre>
+<pre class="diffpre insert">+getAllActors world =</pre>
+<pre class="diffpre insert">+  world ^. wdPlayer ^. plActor : Map.elems (world ^. wdActors)</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_04.html">prev</a> <a href="2018-04-02-haskell-rogue-like_06.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

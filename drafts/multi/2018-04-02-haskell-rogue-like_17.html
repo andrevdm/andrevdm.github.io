@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Levels</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_16.html">prev</a> <a href="2018-04-02-haskell-rogue-like_18.html">next</a></p>
+<h1 id="levels">Levels</h1>
+<p>Most roguelikes will need to support levels of some sort. This could be traditional levels for progression, levels entered by going “up” or “down” stairs, easy starting / training levels etc.</p>
+<p>The code to implement levels should be roughly the same for all of these scenarios. Lets start by supporting a single level in this chapter.</p>
+<h2 id="what-is-a-level">What is a level</h2>
+<p>For now all a level needs to do is</p>
+<ol type="1">
+<li>Contain the world map</li>
+<li>Create the actors</li>
+</ol>
+<p>Here is Level01, the <em>bootLevel</em> code was moved out of <em>bootWorld</em> from <em>GameEngine.hs</em></p>
+<h6 id="levelssrclevelslevel01.hs-2-to-66">17_levels/src/Levels/Level01.hs (2 to 66)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">module</span> <span class="dt">Levels.Level01</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">import</span> <span class="dt">Protolude</span> <span class="kw">hiding</span> (<span class="dt">Map</span>)</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map.Strict</span> <span class="kw">as</span> <span class="dt">Map</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">System.Random</span> <span class="kw">as</span> <span class="dt">Rnd</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="kw">import</span>           <span class="dt">Control.Lens</span> ((^.), (.~))</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Memory</span> <span class="kw">as</span> <span class="dt">M</span></a>
+<a class="sourceLine" id="cb1-13" data-line-number="13"><span class="kw">import</span>           <span class="dt">GameCore</span></a>
+<a class="sourceLine" id="cb1-14" data-line-number="14"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Entities</span> <span class="kw">as</span> <span class="dt">E</span></a>
+<a class="sourceLine" id="cb1-15" data-line-number="15"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">EntityType</span> <span class="kw">as</span> <span class="dt">E</span></a>
+<a class="sourceLine" id="cb1-16" data-line-number="16"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">BoundedInt</span> <span class="kw">as</span> <span class="dt">B</span></a>
+<a class="sourceLine" id="cb1-17" data-line-number="17"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">UtilityBrain</span> <span class="kw">as</span> <span class="dt">UB</span></a>
+<a class="sourceLine" id="cb1-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb1-19" data-line-number="19"><span class="ot">mkLevel ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Level</span></a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">mkLevel mapData <span class="fu">=</span> <span class="dt">Level</span> { _lvlName <span class="fu">=</span> <span class="st">&quot;L01&quot;</span></a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">                        , _lvlBoot <span class="fu">=</span> bootLevel </a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">                        , _lvlMapText <span class="fu">=</span> mapData</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">                        }</a>
+<a class="sourceLine" id="cb1-24" data-line-number="24"></a>
+<a class="sourceLine" id="cb1-25" data-line-number="25"><span class="ot">bootLevel ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">bootLevel w1 <span class="fu">=</span></a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">    bug <span class="fu">=</span> mkEnemyActor <span class="st">&quot;bug1&quot;</span> <span class="dt">E.Bug</span> (<span class="dv">6</span>, <span class="fu">-</span><span class="dv">2</span>) <span class="fu">&amp;</span> acUtilities <span class="fu">.~</span> [UB.utilityOfInfatuation, UB.utilityOfWander, UB.utilityOfWanderToExit]</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29">                                            <span class="fu">&amp;</span> acDisposition <span class="fu">.~</span> <span class="dt">Disposition</span> { _dsSmitten <span class="fu">=</span> <span class="fl">0.8</span></a>
+<a class="sourceLine" id="cb1-30" data-line-number="30">                                                                           , _dsWanderlust <span class="fu">=</span> <span class="fl">0.35</span></a>
+<a class="sourceLine" id="cb1-31" data-line-number="31">                                                                           , _dsWanderlustToExits <span class="fu">=</span> <span class="fl">0.4</span></a>
+<a class="sourceLine" id="cb1-32" data-line-number="32">                                                                           , _dsSmittenWith <span class="fu">=</span> [<span class="dt">E.Player</span>]</a>
+<a class="sourceLine" id="cb1-33" data-line-number="33">                                                                           }</a>
+<a class="sourceLine" id="cb1-34" data-line-number="34">          </a>
+<a class="sourceLine" id="cb1-35" data-line-number="35">    snake <span class="fu">=</span> mkEnemyActor <span class="st">&quot;snake1&quot;</span> <span class="dt">E.Snake</span> (<span class="dv">8</span>, <span class="fu">-</span><span class="dv">4</span>) <span class="fu">&amp;</span> acUtilities <span class="fu">.~</span> [UB.utilityOfWander, UB.utilityOfWanderToExit]</a>
+<a class="sourceLine" id="cb1-36" data-line-number="36">                                                  <span class="fu">&amp;</span> acDisposition <span class="fu">.~</span> <span class="dt">Disposition</span> { _dsSmitten <span class="fu">=</span> <span class="dv">0</span></a>
+<a class="sourceLine" id="cb1-37" data-line-number="37">                                                                                 , _dsWanderlust <span class="fu">=</span> <span class="fl">0.35</span></a>
+<a class="sourceLine" id="cb1-38" data-line-number="38">                                                                                 , _dsWanderlustToExits <span class="fu">=</span> <span class="fl">0.4</span></a>
+<a class="sourceLine" id="cb1-39" data-line-number="39">                                                                                 , _dsSmittenWith <span class="fu">=</span> []</a>
+<a class="sourceLine" id="cb1-40" data-line-number="40">                                                                                 }</a>
+<a class="sourceLine" id="cb1-41" data-line-number="41"></a>
+<a class="sourceLine" id="cb1-42" data-line-number="42">    w2 <span class="fu">=</span> w1 <span class="fu">&amp;</span> wdActors <span class="fu">.~</span> Map.fromList [ (bug <span class="fu">^.</span> acId, bug)</a>
+<a class="sourceLine" id="cb1-43" data-line-number="43">                                       , (snake <span class="fu">^.</span> acId, snake)</a>
+<a class="sourceLine" id="cb1-44" data-line-number="44">                                       ]</a>
+<a class="sourceLine" id="cb1-45" data-line-number="45">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb1-46" data-line-number="46">  w2</a>
+<a class="sourceLine" id="cb1-47" data-line-number="47"></a>
+<a class="sourceLine" id="cb1-48" data-line-number="48">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb1-49" data-line-number="49">    mkEnemyActor aid e (x, y) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb1-50" data-line-number="50">      <span class="dt">Actor</span> { _acId <span class="fu">=</span> <span class="dt">Aid</span> aid</a>
+<a class="sourceLine" id="cb1-51" data-line-number="51">            , _acClass <span class="fu">=</span> <span class="dt">ClassEnemy</span></a>
+<a class="sourceLine" id="cb1-52" data-line-number="52">            , _acEntity <span class="fu">=</span> E.getEntity e</a>
+<a class="sourceLine" id="cb1-53" data-line-number="53">            , _acWorldPos <span class="fu">=</span> <span class="dt">WorldPos</span> (x, y)</a>
+<a class="sourceLine" id="cb1-54" data-line-number="54">            , _acStdGen <span class="fu">=</span> snd <span class="fu">$</span> Rnd.split (w1 <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor <span class="fu">^.</span> acStdGen)</a>
+<a class="sourceLine" id="cb1-55" data-line-number="55">            , _acFovDistance <span class="fu">=</span> <span class="dv">2</span></a>
+<a class="sourceLine" id="cb1-56" data-line-number="56">            , _acFov <span class="fu">=</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb1-57" data-line-number="57">            , _acFovHistory <span class="fu">=</span> Set.empty</a>
+<a class="sourceLine" id="cb1-58" data-line-number="58">            , _acSkipMove <span class="fu">=</span> <span class="dt">False</span></a>
+<a class="sourceLine" id="cb1-59" data-line-number="59">            , _acMoveEnergyCost <span class="fu">=</span> <span class="dv">150</span></a>
+<a class="sourceLine" id="cb1-60" data-line-number="60">            , _acEnergy <span class="fu">=</span> B.new <span class="dv">180</span> <span class="dv">100</span></a>
+<a class="sourceLine" id="cb1-61" data-line-number="61">            , _acUtilities <span class="fu">=</span> []</a>
+<a class="sourceLine" id="cb1-62" data-line-number="62">            , _acDisposition <span class="fu">=</span> UB.emptyDisposition </a>
+<a class="sourceLine" id="cb1-63" data-line-number="63">            , _acPosMemory <span class="fu">=</span> M.empty</a>
+<a class="sourceLine" id="cb1-64" data-line-number="64">            , _acProps <span class="fu">=</span> Map.empty</a>
+<a class="sourceLine" id="cb1-65" data-line-number="65">            }</a></code></pre></div>
+<p>The <em>Level</em> type stores the basic level details</p>
+<h6 id="levelssrcgamecore.hs-98-to-101">17_levels/src/GameCore.hs (98 to 101)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Level</span> <span class="fu">=</span> <span class="dt">Level</span> {<span class="ot"> _lvlName ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">                   ,<span class="ot"> _lvlBoot ::</span> <span class="fu">!</span>(<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">                   ,<span class="ot"> _lvlMapText ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">                   }</a></code></pre></div>
+<p><em>Levels</em> are all the possible levels, only the one so far.</p>
+<h6 id="levelssrcgamecore.hs-105-to-105">17_levels/src/GameCore.hs (105 to 105)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Levels</span> <span class="fu">=</span> <span class="dt">Levels01</span></a></code></pre></div>
+<p>Then the <em>World</em> needs a way to get a <em>Level</em> from a <em>Levels</em></p>
+<h6 id="levelssrcgamecore.hs-78-to-78">17_levels/src/GameCore.hs (78 to 78)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1">  ,<span class="ot"> _wdGetLevel ::</span> <span class="fu">!</span>(<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>)</a></code></pre></div>
+<h2 id="separating-the-engine-and-the-levels">Separating the engine and the levels</h2>
+<p>There is no need for the engine to directly reference the level’s code. This separation will help as the code base gets more complicated. One easy fix is to have <em>main</em> load the maps from disk and supply the <code>Levels -&gt; Level</code> function. Then the <em>GameEngine</em> never needs to reference the <em>Level</em>.</p>
+<h6 id="levelsappmain.hs-14-to-20">17_levels/app/Main.hs (14 to 20)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">main <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">  map01 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">  GE.runGame (getLevel map01)</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="ot">getLevel ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">GC.Levels</span> <span class="ot">-&gt;</span> <span class="dt">GC.Level</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">getLevel map01 <span class="dt">GC.Levels01</span> <span class="fu">=</span> L01.mkLevel map01</a></code></pre></div>
+<p><em>bootWorld</em> is now much simpler and only has to deal with the global configuration. The level configuration is done by the <code>level = getLevel Levels01</code> and <code>level ^. lvlBoot $ w1</code> calls, which delegate the work to the level code.</p>
+<h6 id="levelssrcgameengine.hs-86-to-102">17_levels/src/GameEngine.hs (86 to 102)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Rnd.StdGen</span> <span class="ot">-&gt;</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">bootWorld conn screenSize std getLevel <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">    config <span class="fu">=</span> mkConfig</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">    level <span class="fu">=</span> getLevel <span class="dt">Levels01</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">    w1 <span class="fu">=</span> <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">               , _wdConfig <span class="fu">=</span> config</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">               , _wdMap <span class="fu">=</span> loadWorld E.loadTexts <span class="fu">$</span> level <span class="fu">^.</span> lvlMapText</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10">               , _wdActors <span class="fu">=</span> Map.fromList []</a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">               , _wdMinMoveEnergy <span class="fu">=</span> <span class="dv">100</span></a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">               , _wdEnergyIncrements <span class="fu">=</span> <span class="dv">20</span></a>
+<a class="sourceLine" id="cb6-13" data-line-number="13">               , _wdUtilBrainAnnotations <span class="fu">=</span> []</a>
+<a class="sourceLine" id="cb6-14" data-line-number="14">               , _wdGetLevel <span class="fu">=</span> getLevel</a>
+<a class="sourceLine" id="cb6-15" data-line-number="15">               }</a>
+<a class="sourceLine" id="cb6-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb6-17" data-line-number="17">    w2 <span class="fu">=</span> level <span class="fu">^.</span> lvlBoot <span class="fu">$</span> w1</a></code></pre></div>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_16.html">prev</a> <a href="2018-04-02-haskell-rogue-like_18.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 16_debug/src/GameCore.hs 17_levels/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 16_debug/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 17_levels/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -76,6 +74,9 @@</pre>
+<pre class="diffpre context">                    , _wdMinMoveEnergy :: !Int   -- ^ min energy required before any more, regardless of cost, can be attempted</pre>
+<pre class="diffpre context">                    , _wdEnergyIncrements :: !Int -- ^ amount of energy that is added per game loop</pre>
+<pre class="diffpre context">                    , _wdUtilBrainAnnotations :: ![(E.EntityType, [UtilAnnotationEntry], [UtilAnnotationEntry])]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+                   , _wdGetLevel :: !(Levels -&gt; Level)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">                    }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Config = Config { _cfgKeys :: !(Map Text Text)</pre>
+<pre class="diffpre info">@@ -93,6 +94,17 @@</pre>
+<pre class="diffpre context">                      , _enProps :: !(Map Text Text)</pre>
+<pre class="diffpre context">                      } deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data Level = Level { _lvlName :: !Text</pre>
+<pre class="diffpre insert">+                   , _lvlBoot :: !(World -&gt; World)</pre>
+<pre class="diffpre insert">+                   , _lvlMapText :: !Text</pre>
+<pre class="diffpre insert">+                   }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data Levels = Levels01</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> newtype WorldPos = WorldPos (Int, Int) deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre context"> newtype PlayerPos = PlayerPos (Int, Int) deriving (Show, Eq, Ord)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -207,3 +217,4 @@</pre>
+<pre class="diffpre context"> makeLenses ''Tile</pre>
+<pre class="diffpre context"> makeLenses ''Actor</pre>
+<pre class="diffpre context"> makeLenses ''Disposition</pre>
+<pre class="diffpre insert">+makeLenses ''Level</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 16_debug/src/GameEngine.hs 17_levels/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 16_debug/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 17_levels/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -13,7 +13,6 @@</pre>
+<pre class="diffpre context"> import qualified Data.List.Index as Lst</pre>
+<pre class="diffpre context"> import qualified Data.DList as DLst</pre>
+<pre class="diffpre context"> import qualified Data.Text as Txt</pre>
+<pre class="diffpre delete">-import qualified Data.Text.IO as Txt</pre>
+<pre class="diffpre context"> import qualified Data.Text.Encoding as TxtE</pre>
+<pre class="diffpre context"> import qualified Data.Aeson.Text.Extended as Ae</pre>
+<pre class="diffpre context"> import qualified Data.ByteString.Lazy as BSL</pre>
+<pre class="diffpre info">@@ -34,20 +33,19 @@</pre>
+<pre class="diffpre context"> import qualified UtilityBrain as UB</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-runGame :: IO ()</pre>
+<pre class="diffpre delete">-runGame = Host.runHost manageConnection</pre>
+<pre class="diffpre insert">+runGame :: (Levels -&gt; Level) -&gt; IO ()</pre>
+<pre class="diffpre insert">+runGame getLevel = Host.runHost (manageConnection getLevel)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre delete">-manageConnection :: Host.Connection -&gt; IO ()</pre>
+<pre class="diffpre delete">-manageConnection conn = do</pre>
+<pre class="diffpre insert">+manageConnection :: (Levels -&gt; Level) -&gt; Host.Connection -&gt; IO ()</pre>
+<pre class="diffpre insert">+manageConnection getLevel conn = do</pre>
+<pre class="diffpre context">   initCmd &lt;- conn ^. conReceiveText </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   case parseCommand initCmd of</pre>
+<pre class="diffpre context">     Just ("init", cmdData) -&gt; do</pre>
+<pre class="diffpre delete">-      mapData &lt;- Txt.readFile "worlds/simple.csv"</pre>
+<pre class="diffpre context">       std &lt;- Rnd.getStdGen</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre delete">-      case initialiseConnection conn cmdData mapData std of</pre>
+<pre class="diffpre insert">+      case initialiseConnection conn cmdData std getLevel of</pre>
+<pre class="diffpre context">         Right world -&gt; do</pre>
+<pre class="diffpre context">           worldV &lt;- atomically $ newTVar world</pre>
+<pre class="diffpre context">           sendConfig conn $ world ^. wdConfig</pre>
+<pre class="diffpre info">@@ -74,47 +72,38 @@</pre>
+<pre class="diffpre context">         _ -&gt; Nothing</pre>
+<pre class="diffpre context">       </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-initialiseConnection :: Host.Connection -&gt; [Text] -&gt; Text -&gt; Rnd.StdGen -&gt; Either Text World</pre>
+<pre class="diffpre delete">-initialiseConnection conn cmdData mapData std = </pre>
+<pre class="diffpre insert">+initialiseConnection :: Host.Connection -&gt; [Text] -&gt; Rnd.StdGen -&gt; (Levels -&gt; Level) -&gt; Either Text World</pre>
+<pre class="diffpre insert">+initialiseConnection conn cmdData std getLevel = </pre>
+<pre class="diffpre context">   case parseScreenSize cmdData of</pre>
+<pre class="diffpre context">     Nothing -&gt;</pre>
+<pre class="diffpre context">       Left "missing / invalid screen size"</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     Just (width, height) -&gt;</pre>
+<pre class="diffpre delete">-      Right $ bootWorld conn (width, height) mapData std</pre>
+<pre class="diffpre insert">+      Right $ bootWorld conn (width, height) std getLevel</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Text -&gt; Rnd.StdGen -&gt; World</pre>
+<pre class="diffpre delete">-bootWorld conn screenSize mapData std = </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Rnd.StdGen -&gt; (Levels -&gt; Level) -&gt; World</pre>
+<pre class="diffpre insert">+bootWorld conn screenSize std getLevel = </pre>
+<pre class="diffpre context">   let</pre>
+<pre class="diffpre context">     config = mkConfig</pre>
+<pre class="diffpre delete">-    bug = mkEnemyActor "bug1" E.Bug (6, -2) &amp; acUtilities .~ [UB.utilityOfInfatuation, UB.utilityOfWander, UB.utilityOfWanderToExit]</pre>
+<pre class="diffpre delete">-                                            &amp; acDisposition .~ Disposition { _dsSmitten = 0.8</pre>
+<pre class="diffpre delete">-                                                                           , _dsWanderlust = 0.35</pre>
+<pre class="diffpre delete">-                                                                           , _dsWanderlustToExits = 0.4</pre>
+<pre class="diffpre delete">-                                                                           , _dsSmittenWith = [E.Player]</pre>
+<pre class="diffpre delete">-                                                                           }</pre>
+<pre class="diffpre delete">-          </pre>
+<pre class="diffpre delete">-    snake = mkEnemyActor "snake1" E.Snake (8, -4) &amp; acUtilities .~ [UB.utilityOfWander, UB.utilityOfWanderToExit]</pre>
+<pre class="diffpre delete">-                                                  &amp; acDisposition .~ Disposition { _dsSmitten = 0</pre>
+<pre class="diffpre delete">-                                                                                 , _dsWanderlust = 0.35</pre>
+<pre class="diffpre delete">-                                                                                 , _dsWanderlustToExits = 0.4</pre>
+<pre class="diffpre delete">-                                                                                 , _dsSmittenWith = []</pre>
+<pre class="diffpre delete">-                                                                                 }</pre>
+<pre class="diffpre insert">+    level = getLevel Levels01</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     w1 = World { _wdPlayer = mkPlayer</pre>
+<pre class="diffpre context">                , _wdConfig = config</pre>
+<pre class="diffpre delete">-               , _wdMap = loadWorld E.loadTexts mapData</pre>
+<pre class="diffpre delete">-               , _wdActors = Map.fromList [ (bug ^. acId, bug)</pre>
+<pre class="diffpre delete">-                                          , (snake ^. acId, snake)</pre>
+<pre class="diffpre delete">-                                          ]</pre>
+<pre class="diffpre insert">+               , _wdMap = loadWorld E.loadTexts $ level ^. lvlMapText</pre>
+<pre class="diffpre insert">+               , _wdActors = Map.fromList []</pre>
+<pre class="diffpre context">                , _wdMinMoveEnergy = 100</pre>
+<pre class="diffpre context">                , _wdEnergyIncrements = 20</pre>
+<pre class="diffpre context">                , _wdUtilBrainAnnotations = []</pre>
+<pre class="diffpre insert">+               , _wdGetLevel = getLevel</pre>
+<pre class="diffpre context">                }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    w2 = level ^. lvlBoot $ w1</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   in</pre>
+<pre class="diffpre context">   -- Calculate the actors fov</pre>
+<pre class="diffpre delete">-  updateAllActors w1 updateActorFov</pre>
+<pre class="diffpre insert">+  updateAllActors w2 updateActorFov</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     mkConfig =</pre>
+<pre class="diffpre info">@@ -175,24 +162,6 @@</pre>
+<pre class="diffpre context">             , _acProps = Map.empty</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-    mkEnemyActor aid e (x, y) =</pre>
+<pre class="diffpre delete">-      Actor { _acId = Aid aid</pre>
+<pre class="diffpre delete">-            , _acClass = ClassEnemy</pre>
+<pre class="diffpre delete">-            , _acEntity = E.getEntity e</pre>
+<pre class="diffpre delete">-            , _acWorldPos = WorldPos (x, y)</pre>
+<pre class="diffpre delete">-            , _acStdGen = std</pre>
+<pre class="diffpre delete">-            , _acFovDistance = 2</pre>
+<pre class="diffpre delete">-            , _acFov = Nothing</pre>
+<pre class="diffpre delete">-            , _acFovHistory = Set.empty</pre>
+<pre class="diffpre delete">-            , _acSkipMove = False</pre>
+<pre class="diffpre delete">-            , _acMoveEnergyCost = 150</pre>
+<pre class="diffpre delete">-            , _acEnergy = B.new 180 100</pre>
+<pre class="diffpre delete">-            , _acUtilities = []</pre>
+<pre class="diffpre delete">-            , _acDisposition = UB.emptyDisposition </pre>
+<pre class="diffpre delete">-            , _acPosMemory = M.empty</pre>
+<pre class="diffpre delete">-            , _acProps = Map.empty</pre>
+<pre class="diffpre delete">-            }</pre>
+<pre class="diffpre delete">-    </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> runCmd :: Host.Connection -&gt; TVar World -&gt; Text -&gt; [Text] -&gt; IO ()</pre>
+<pre class="diffpre context"> runCmd conn worldV cmd cmdData = </pre>
+</div>
+<h2 class=".diffh2">
+src/Levels/Level01.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 16_debug/src/Levels/Level01.hs 17_levels/src/Levels/Level01.hs</pre>
+<pre class="diffpre delete">--- 16_debug/src/Levels/Level01.hs</pre>
+<pre class="diffpre insert">+++ 17_levels/src/Levels/Level01.hs</pre>
+<pre class="diffpre info">@@ -0,0 +1,67 @@</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+{-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+module Levels.Level01 where</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import Protolude hiding (Map)</pre>
+<pre class="diffpre insert">+import qualified Data.Set as Set</pre>
+<pre class="diffpre insert">+import qualified Data.Map.Strict as Map</pre>
+<pre class="diffpre insert">+import qualified System.Random as Rnd</pre>
+<pre class="diffpre insert">+import           Control.Lens ((^.), (.~))</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import qualified Memory as M</pre>
+<pre class="diffpre insert">+import           GameCore</pre>
+<pre class="diffpre insert">+import qualified Entities as E</pre>
+<pre class="diffpre insert">+import qualified EntityType as E</pre>
+<pre class="diffpre insert">+import qualified BoundedInt as B</pre>
+<pre class="diffpre insert">+import qualified UtilityBrain as UB</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+mkLevel :: Text -&gt; Level</pre>
+<pre class="diffpre insert">+mkLevel mapData = Level { _lvlName = "L01"</pre>
+<pre class="diffpre insert">+                        , _lvlBoot = bootLevel </pre>
+<pre class="diffpre insert">+                        , _lvlMapText = mapData</pre>
+<pre class="diffpre insert">+                        }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+bootLevel :: World -&gt; World</pre>
+<pre class="diffpre insert">+bootLevel w1 =</pre>
+<pre class="diffpre insert">+  let</pre>
+<pre class="diffpre insert">+    bug = mkEnemyActor "bug1" E.Bug (6, -2) &amp; acUtilities .~ [UB.utilityOfInfatuation, UB.utilityOfWander, UB.utilityOfWanderToExit]</pre>
+<pre class="diffpre insert">+                                            &amp; acDisposition .~ Disposition { _dsSmitten = 0.8</pre>
+<pre class="diffpre insert">+                                                                           , _dsWanderlust = 0.35</pre>
+<pre class="diffpre insert">+                                                                           , _dsWanderlustToExits = 0.4</pre>
+<pre class="diffpre insert">+                                                                           , _dsSmittenWith = [E.Player]</pre>
+<pre class="diffpre insert">+                                                                           }</pre>
+<pre class="diffpre insert">+          </pre>
+<pre class="diffpre insert">+    snake = mkEnemyActor "snake1" E.Snake (8, -4) &amp; acUtilities .~ [UB.utilityOfWander, UB.utilityOfWanderToExit]</pre>
+<pre class="diffpre insert">+                                                  &amp; acDisposition .~ Disposition { _dsSmitten = 0</pre>
+<pre class="diffpre insert">+                                                                                 , _dsWanderlust = 0.35</pre>
+<pre class="diffpre insert">+                                                                                 , _dsWanderlustToExits = 0.4</pre>
+<pre class="diffpre insert">+                                                                                 , _dsSmittenWith = []</pre>
+<pre class="diffpre insert">+                                                                                 }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    w2 = w1 &amp; wdActors .~ Map.fromList [ (bug ^. acId, bug)</pre>
+<pre class="diffpre insert">+                                       , (snake ^. acId, snake)</pre>
+<pre class="diffpre insert">+                                       ]</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre insert">+  w2</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    mkEnemyActor aid e (x, y) =</pre>
+<pre class="diffpre insert">+      Actor { _acId = Aid aid</pre>
+<pre class="diffpre insert">+            , _acClass = ClassEnemy</pre>
+<pre class="diffpre insert">+            , _acEntity = E.getEntity e</pre>
+<pre class="diffpre insert">+            , _acWorldPos = WorldPos (x, y)</pre>
+<pre class="diffpre insert">+            , _acStdGen = snd $ Rnd.split (w1 ^. wdPlayer ^. plActor ^. acStdGen)</pre>
+<pre class="diffpre insert">+            , _acFovDistance = 2</pre>
+<pre class="diffpre insert">+            , _acFov = Nothing</pre>
+<pre class="diffpre insert">+            , _acFovHistory = Set.empty</pre>
+<pre class="diffpre insert">+            , _acSkipMove = False</pre>
+<pre class="diffpre insert">+            , _acMoveEnergyCost = 150</pre>
+<pre class="diffpre insert">+            , _acEnergy = B.new 180 100</pre>
+<pre class="diffpre insert">+            , _acUtilities = []</pre>
+<pre class="diffpre insert">+            , _acDisposition = UB.emptyDisposition </pre>
+<pre class="diffpre insert">+            , _acPosMemory = M.empty</pre>
+<pre class="diffpre insert">+            , _acProps = Map.empty</pre>
+<pre class="diffpre insert">+            }</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+<h2 class=".diffh2">
+app/Main.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 16_debug/app/Main.hs 17_levels/app/Main.hs</pre>
+<pre class="diffpre delete">--- 16_debug/app/Main.hs</pre>
+<pre class="diffpre insert">+++ 17_levels/app/Main.hs</pre>
+<pre class="diffpre info">@@ -1,12 +1,22 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> module Main where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import           Protolude </pre>
+<pre class="diffpre insert">+import qualified Data.Text.IO as Txt</pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre insert">+import qualified GameCore as GC</pre>
+<pre class="diffpre context"> import qualified GameEngine as GE</pre>
+<pre class="diffpre insert">+import qualified Levels.Level01 as L01</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> main :: IO ()</pre>
+<pre class="diffpre delete">-main = GE.runGame</pre>
+<pre class="diffpre insert">+main = do</pre>
+<pre class="diffpre insert">+  map01 &lt;- Txt.readFile "worlds/simple.csv"</pre>
+<pre class="diffpre insert">+  GE.runGame (getLevel map01)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+getLevel :: Text -&gt; GC.Levels -&gt; GC.Level</pre>
+<pre class="diffpre insert">+getLevel map01 GC.Levels01 = L01.mkLevel map01</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_16.html">prev</a> <a href="2018-04-02-haskell-rogue-like_18.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

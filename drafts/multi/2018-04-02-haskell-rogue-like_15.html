@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Memory</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_14.html">prev</a> <a href="2018-04-02-haskell-rogue-like_16.html">next</a></p>
+<h1 id="not-so-clever">Not so clever</h1>
+<p>The utility of wander to exit works well to find a door. The problem is once it finds the door, the actor is stuck there.</p>
+<p>When the actor is standing on a door then it can’t see the door so it moves away. The following move it sees the door again and then moves back. Over and over</p>
+<p><img src="../../images/rogue_15_issue.gif" /></p>
+<h1 id="memory">Memory</h1>
+<p>The actor’s need a way to remember things. This does not need to be too complicated but it should be able to</p>
+<ol type="1">
+<li>Forget facts after some period</li>
+<li>Have independent buckets to store values in. E.g. each utility could store their own information</li>
+<li>Operations to recall facts, check if the actor remembers facts etc</li>
+</ol>
+<p>The <em>Memory</em> type will do all of the above.</p>
+<h6 id="memorysrcmemory.hs-19-to-23">15_memory/src/Memory.hs (19 to 23)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map.Strict</span> <span class="kw">as</span> <span class="dt">Map</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">import</span>           <span class="dt">Data.Map.Strict</span> (<span class="dt">Map</span>)</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="co">-- | Store (remembers) values for a given period (measured by ticks)</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">newtype</span> <span class="dt">Memory</span> a <span class="fu">=</span> <span class="dt">Memory</span> (<span class="dt">Map</span> <span class="dt">Text</span> (<span class="dt">Map</span> a <span class="dt">Int</span>)) </a></code></pre></div>
+<ul>
+<li><em>Memory</em> is a map of “buckets”, where a bucket has a <em>Text</em> name</li>
+<li>Each bucket contains a remembered fact. This is stored as a map of fact to ticks remaining</li>
+</ul>
+<p>The ticks remaining / ttl (time to live) is how facts are forgotten. When a fact’s ttl gets to zero it is forgotten.</p>
+<h2 id="memory-operations">Memory operations</h2>
+<h3 id="empty">Empty</h3>
+<h6 id="memorysrcmemory.hs-28-to-29">15_memory/src/Memory.hs (28 to 29)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ot">empty ::</span> <span class="dt">Memory</span> a</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">empty <span class="fu">=</span> <span class="dt">Memory</span> Map.empty</a></code></pre></div>
+<ul>
+<li>Create a new empty memory instance</li>
+</ul>
+<h3 id="remember">Remember</h3>
+<h6 id="memorysrcmemory.hs-34-to-40">15_memory/src/Memory.hs (34 to 40)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">remember ::</span> (<span class="dt">Ord</span> a) <span class="ot">=&gt;</span> (<span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Memory</span> a <span class="ot">-&gt;</span> <span class="dt">Memory</span> a</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">remember combineFn key ttl val (<span class="dt">Memory</span> m) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="dt">Memory</span> <span class="fu">$</span> Map.alter ins key m</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">    ins <span class="dt">Nothing</span> <span class="fu">=</span> <span class="dt">Just</span> <span class="fu">$</span> Map.singleton val ttl</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">    ins (<span class="dt">Just</span> vs) <span class="fu">=</span> <span class="dt">Just</span> <span class="fu">$</span> Map.insertWith combineFn val ttl vs</a></code></pre></div>
+<ul>
+<li>Remember a new fact</li>
+<li><em>combineFn</em> defines how existing keys are dealt with. Use <code>const</code> to simply overwrite previous values</li>
+<li><em>key</em> is the bucket name</li>
+<li><em>ttl</em> is the number of ticks the memory is retained for</li>
+<li><em>val</em> is the value to store</li>
+<li><em>m</em> is the previous memory instance</li>
+</ul>
+<p>For example</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Memory</span> <span class="kw">as</span> <span class="dt">M</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">m1 <span class="fu">=</span> M.empty</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">m2 <span class="fu">=</span> M.remember const <span class="st">&quot;funFacts&quot;</span> <span class="dv">2</span> <span class="st">&quot;remember me&quot;</span> m1</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="fu">:</span>t m2</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="ot"># &gt; m2 :: M.Memory Text</span></a></code></pre></div>
+<h3 id="recall">Recall</h3>
+<h6 id="memorysrcmemory.hs-45-to-47">15_memory/src/Memory.hs (45 to 47)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">recall ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Memory</span> a <span class="ot">-&gt;</span> <span class="dt">Map</span> a <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">recall key (<span class="dt">Memory</span> m) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">  fromMaybe Map.empty <span class="fu">$</span> Map.lookup key m </a></code></pre></div>
+<p>For example</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Memory</span> <span class="kw">as</span> <span class="dt">M</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">m1 <span class="fu">=</span> M.empty</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">m2 <span class="fu">=</span> M.remember const <span class="st">&quot;funFacts&quot;</span> <span class="dv">2</span> <span class="st">&quot;remember me&quot;</span> m1</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">M.recall <span class="st">&quot;funFacts&quot;</span> m2</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="ot"># &gt; fromList [(&quot;remember me&quot;,2)]</span></a></code></pre></div>
+<h3 id="tick">Tick</h3>
+<h6 id="memorysrcmemory.hs-71-to-82">15_memory/src/Memory.hs (71 to 82)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">tick ::</span> (<span class="dt">Ord</span> a) <span class="ot">=&gt;</span> <span class="dt">Memory</span> a <span class="ot">-&gt;</span> <span class="dt">Memory</span> a</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">tick (<span class="dt">Memory</span> m) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="dt">Memory</span> <span class="fu">$</span> tickBucket <span class="fu">&lt;$&gt;</span> m</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">  </a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="ot">    tickBucket ::</span> (<span class="dt">Ord</span> a) <span class="ot">=&gt;</span> <span class="dt">Map</span> a <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> a <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">    tickBucket vs <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">      foldr (Map.alter tickVal) vs (Map.keys vs)</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb7-10" data-line-number="10"><span class="ot">    tickVal ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb7-11" data-line-number="11">    tickVal <span class="dt">Nothing</span> <span class="fu">=</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb7-12" data-line-number="12">    tickVal (<span class="dt">Just</span> i) <span class="fu">=</span> <span class="kw">if</span> i <span class="fu">-</span> <span class="dv">1</span> <span class="fu">&lt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Nothing</span> <span class="kw">else</span> <span class="dt">Just</span> (i <span class="fu">-</span> <span class="dv">1</span>)</a></code></pre></div>
+<ul>
+<li>Call <em>tickBucket</em> for each bucket</li>
+<li>Fold <em>tickVal</em> over each value, calling <em>Data.Map.Strict.alter</em></li>
+<li>Remove 1 from the ttl, if the result is zero/negative then delete it</li>
+</ul>
+<p>For example</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Memory</span> <span class="kw">as</span> <span class="dt">M</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">m1 <span class="fu">=</span> M.empty</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">m2 <span class="fu">=</span> M.remember const <span class="st">&quot;funFacts&quot;</span> <span class="dv">2</span> <span class="st">&quot;remember me&quot;</span> m1</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">M.recall <span class="st">&quot;funFacts&quot;</span> m2</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="ot"># &gt; fromList [(&quot;remember me&quot;,2)]</span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10">m3 <span class="fu">=</span> M.tick m2</a>
+<a class="sourceLine" id="cb8-11" data-line-number="11">M.recall <span class="st">&quot;funFacts&quot;</span> m3</a>
+<a class="sourceLine" id="cb8-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13"><span class="ot"># &gt; fromList [(&quot;remember me&quot;,1)]</span></a>
+<a class="sourceLine" id="cb8-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16">m4 <span class="fu">=</span> M.tick m3</a>
+<a class="sourceLine" id="cb8-17" data-line-number="17">M.recall <span class="st">&quot;funFacts&quot;</span> m4</a>
+<a class="sourceLine" id="cb8-18" data-line-number="18"></a>
+<a class="sourceLine" id="cb8-19" data-line-number="19"><span class="ot"># &gt; fromList []</span></a></code></pre></div>
+<h1 id="adding-actor-memory">Adding actor memory</h1>
+<p>The actor gets a new property to store memories about positions</p>
+<h6 id="memorysrcgamecore.hs-56-to-57">15_memory/src/GameCore.hs (56 to 57)</h6>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1">  <span class="co">-- | The actor's memory about positions</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">  ,<span class="ot"> _acPosMemory ::</span> <span class="fu">!</span>(<span class="dt">M.Memory</span> <span class="dt">WorldPos</span>)</a></code></pre></div>
+<h2 id="moving">Moving</h2>
+<p><em>playerMoving</em> is updated to send a tick to each actor on each run of the energy system.</p>
+<h6 id="memorysrcgameengine.hs-734-to-742">15_memory/src/GameEngine.hs (734 to 742)</h6>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ot">playerMoving ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">playerMoving pendingCost pendingWorld oldWorld <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="kw">let</span> playerAttemptedMoveWorld <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">        <span class="dt">Right</span> oldWorld</a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">          <span class="fu">&gt;&gt;=</span> checkIfNonMove</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">          <span class="fu">&gt;&gt;=</span> checkIfPlayerHasMinEnergy</a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">          <span class="fu">&gt;&gt;=</span> runPendingIfPlayerHasEnergy</a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">          <span class="fu">&gt;&gt;=</span> runPlayerTick <span class="co">-- run the tick for the player, this is only run if the move was allowed</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">          <span class="fu">&gt;&gt;=</span> stopIfPlayerCanStillMove</a></code></pre></div>
+<h6 id="memorysrcgameengine.hs-777-to-778">15_memory/src/GameEngine.hs (777 to 778)</h6>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1">  runPlayerTick w <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">    <span class="dt">Right</span> <span class="fu">$</span> w <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor) <span class="fu">%~</span> actorTick</a></code></pre></div>
+<h1 id="wander-to-exit-with-memory">Wander to exit with memory</h1>
+<p>The wander to exit utility can now be made a bit smarter. As a simple improvement the actor will remember what doors they have visited and will ignore them for a period.</p>
+<h6 id="memorysrcutilitybrain.hs-143-to-150">15_memory/src/UtilityBrain.hs (143 to 150)</h6>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ot">utilityOfWanderToExit ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">utilityOfWanderToExit world' actor' allPaths <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">  telld <span class="fu">$</span> <span class="dt">UeAt</span> <span class="st">&quot;WanderToExit&quot;</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">  <span class="co">-- If the actor is standing on a door, then add the door to the </span></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">  <span class="co">--  list of doors to ignore</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">  <span class="kw">let</span> keyAvoid <span class="fu">=</span> <span class="st">&quot;wanderExit.avoid&quot;</span> <span class="co">-- key to access  memory</span></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">  <span class="kw">let</span> ttlAvoid <span class="fu">=</span> <span class="dv">200</span>                <span class="co">-- memory will be retained for 200 ticks</span></a></code></pre></div>
+<ul>
+<li><em>keyAvoid</em> is the name of the memory bucket</li>
+<li><em>ttlAvoid</em> is the number of ticks to remember visited positions</li>
+</ul>
+<h6 id="memorysrcutilitybrain.hs-153-to-163">15_memory/src/UtilityBrain.hs (153 to 163)</h6>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1">  <span class="kw">let</span> (world, actor) <span class="fu">=</span> fromMaybe (world', actor') <span class="fu">$</span></a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">        <span class="kw">case</span> Map.lookup (actor' <span class="fu">^.</span> acWorldPos) (world' <span class="fu">^.</span> wdMap) <span class="kw">of</span></a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">          <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Nothing</span> <span class="co">-- not standing on anything</span></a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">          <span class="dt">Just</span> e <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb13-5" data-line-number="5">            <span class="kw">if</span> e <span class="fu">^.</span> enType <span class="fu">/=</span> <span class="dt">E.Door</span> </a>
+<a class="sourceLine" id="cb13-6" data-line-number="6">            <span class="kw">then</span> <span class="dt">Nothing</span>  <span class="co">-- not standing on a door</span></a>
+<a class="sourceLine" id="cb13-7" data-line-number="7">            <span class="kw">else</span> </a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">              <span class="co">-- Update the memory</span></a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">              <span class="kw">let</span> a <span class="fu">=</span> actor' <span class="fu">&amp;</span> acPosMemory <span class="fu">%~</span> M.remember const keyAvoid ttlAvoid (actor' <span class="fu">^.</span> acWorldPos) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">              <span class="co">-- Return the update world' and actor</span></a>
+<a class="sourceLine" id="cb13-11" data-line-number="11">              <span class="dt">Just</span> (world' <span class="fu">&amp;</span> wdActors <span class="fu">%~</span> Map.insert (actor' <span class="fu">^.</span> acId) a, a)</a></code></pre></div>
+<ul>
+<li>Check the current actor position</li>
+<li>If the actor is on an open door
+<ul>
+<li>Update the actor’s memory and save the current position</li>
+<li>Return the updated world and actor</li>
+</ul></li>
+</ul>
+<h6 id="memorysrcutilitybrain.hs-167-to-171">15_memory/src/UtilityBrain.hs (167 to 171)</h6>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1">  <span class="co">-- Get the positions to avoid. </span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">  <span class="kw">let</span> avoid <span class="fu">=</span> M.recall keyAvoid <span class="fu">$</span> actor <span class="fu">^.</span> acPosMemory</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">  telld <span class="fu">.</span> <span class="dt">UeNote</span> <span class="fu">.</span> show <span class="fu">$</span> Map.keys avoid</a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">  <span class="co">-- Remove positions to avoid</span></a>
+<a class="sourceLine" id="cb14-5" data-line-number="5">  <span class="kw">let</span> paths <span class="fu">=</span> removePathsToAvoid avoid allPaths</a></code></pre></div>
+<ul>
+<li>Recall what doors were previously visited</li>
+<li>Remove all the paths by calling <em>removePathsToVisit</em></li>
+</ul>
+<h6 id="memorysrcutilitybrain.hs-175-to-178">15_memory/src/UtilityBrain.hs (175 to 178)</h6>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" data-line-number="1">  <span class="co">-- Run the utility on the remaining paths</span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2">  <span class="kw">let</span> rule x <span class="fu">=</span> clamp <span class="fu">$</span> <span class="dv">1</span> <span class="fu">-</span> (<span class="fl">0.04</span> <span class="fu">*</span> x <span class="fu">+</span> (<span class="fl">1.24</span> <span class="fu">-</span> clamp (actor <span class="fu">^.</span> acDisposition <span class="fu">^.</span> dsWanderlustToExits))) </a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">  <span class="kw">let</span> clampedResults <span class="fu">=</span> moveTowardsUtil [<span class="dt">E.Door</span>] rule paths actor</a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">  pure ((\(p, score) <span class="ot">-&gt;</span> (score, actor, <span class="dt">ImpMoveTowards</span> (path p), <span class="st">&quot;wander to exit&quot;</span>, <span class="dt">Just</span> p)) <span class="fu">&lt;$&gt;</span> clampedResults, world)</a></code></pre></div>
+<ul>
+<li>Filter any path that leads to a visited door</li>
+</ul>
+<h6 id="memorysrcutilitybrain.hs-182-to-187">15_memory/src/UtilityBrain.hs (182 to 187)</h6>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" data-line-number="1">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="ot">    removePathsToAvoid ::</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>]</a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">    removePathsToAvoid avoid paths <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">      <span class="kw">let</span> isInAvoid p <span class="fu">=</span> Map.member p avoid <span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">      <span class="kw">let</span> shouldInclude p <span class="fu">=</span> maybe <span class="dt">True</span> (not <span class="fu">.</span> isInAvoid) (lastMay p) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">      filter (\p <span class="ot">-&gt;</span> shouldInclude (pathPs <span class="fu">.</span> path <span class="fu">$</span> p)) paths</a></code></pre></div>
+<ul>
+<li>Run the utility calculation</li>
+</ul>
+<h2 id="fixed">Fixed</h2>
+<p><img src="../../images/rogue_15_fix.gif" /></p>
+<h1 id="possible-improvement">Possible improvement</h1>
+<p>Once the actors have a memory there is a lot that can be done to make them smarter. For example</p>
+<ul>
+<li>Wanderlust: seek towards the longest path. Remember the target destination and keep moving in that direction until target is achieved.</li>
+<li>Infatuation: remember where the target of infatuation was. Aim towards that if the target moves out of fov. E.g. if it moves around a corner the utility can still move towards it.</li>
+</ul>
+<h1 id="testing">Testing</h1>
+<p>The code example for this chapter has tests for some of the core code and for Memory. There is actually a fair amount of the engine that can be property tested. I’m not going to cover testing here but take a look at the code for some ideas.</p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_14.html">prev</a> <a href="2018-04-02-haskell-rogue-like_16.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 14_utility_annotate/src/GameCore.hs 15_memory/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 14_utility_annotate/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 15_memory/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -17,6 +17,7 @@</pre>
+<pre class="diffpre context"> import           Control.Lens.TH (makeLenses)</pre>
+<pre class="diffpre context"> import           Control.Monad.Writer.Strict (Writer)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+import qualified Memory as M</pre>
+<pre class="diffpre context"> import qualified GameHost as Host</pre>
+<pre class="diffpre context"> import qualified EntityType as E</pre>
+<pre class="diffpre context"> import qualified BoundedInt as B</pre>
+<pre class="diffpre info">@@ -46,12 +45,17 @@</pre>
+<pre class="diffpre context">                    --    Note that the world is threaded through the utilities and can be updated (i.e. in the ([], World) result)</pre>
+<pre class="diffpre context">                    --    The array of results has an updated actor and a score. These are speculative, and are only applied</pre>
+<pre class="diffpre context">                    --    if that utility is selected. The world updates are kept even if nothing is selected</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre insert">+                   --    This is required because a utility may add a memory even if it can't move and that memory must be kept</pre>
+<pre class="diffpre insert">+                   --    until its TTL expires</pre>
+<pre class="diffpre context">                    , _acUtilities :: ![World -&gt; Actor -&gt; [PathTo] -&gt; UtilAnnotator ([(Float, Actor, Impulse, Text, Maybe PathTo)], World)]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-                   </pre>
+<pre class="diffpre context">                    -- | The actor's disposition - the values that define the actors personality</pre>
+<pre class="diffpre context">                    , _acDisposition :: !Disposition</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+                   -- | The actor's memory about positions</pre>
+<pre class="diffpre insert">+                   , _acPosMemory :: !(M.Memory WorldPos)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">                    }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Player = Player { _plConn :: !Host.Connection</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 14_utility_annotate/src/GameEngine.hs 15_memory/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 14_utility_annotate/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 15_memory/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -24,6 +24,7 @@</pre>
+<pre class="diffpre context"> import           Control.Monad.Writer.Strict (runWriter)</pre>
+<pre class="diffpre context"> import           Control.Concurrent.STM (atomically, readTVar, newTVar, modifyTVar', TVar)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+import qualified Memory as M</pre>
+<pre class="diffpre context"> import           GameCore</pre>
+<pre class="diffpre context"> import qualified GameHost as Host</pre>
+<pre class="diffpre context"> import           GameHost (conSendData, conReceiveText)</pre>
+<pre class="diffpre info">@@ -166,6 +167,7 @@</pre>
+<pre class="diffpre context">             , _acEnergy = B.new 200 100</pre>
+<pre class="diffpre context">             , _acUtilities = []</pre>
+<pre class="diffpre context">             , _acDisposition = UB.emptyDisposition</pre>
+<pre class="diffpre insert">+            , _acPosMemory = M.empty</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     mkEnemyActor aid e (x, y) =</pre>
+<pre class="diffpre info">@@ -182,6 +184,7 @@</pre>
+<pre class="diffpre context">             , _acEnergy = B.new 180 100</pre>
+<pre class="diffpre context">             , _acUtilities = []</pre>
+<pre class="diffpre context">             , _acDisposition = UB.emptyDisposition </pre>
+<pre class="diffpre insert">+            , _acPosMemory = M.empty</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context">     </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -736,7 +738,9 @@</pre>
+<pre class="diffpre context">           &gt;&gt;= checkIfNonMove</pre>
+<pre class="diffpre context">           &gt;&gt;= checkIfPlayerHasMinEnergy</pre>
+<pre class="diffpre context">           &gt;&gt;= runPendingIfPlayerHasEnergy</pre>
+<pre class="diffpre insert">+          &gt;&gt;= runPlayerTick -- run the tick for the player, this is only run if the move was allowed</pre>
+<pre class="diffpre context">           &gt;&gt;= stopIfPlayerCanStillMove</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   in</pre>
+<pre class="diffpre context">   case playerAttemptedMoveWorld of</pre>
+<pre class="diffpre context">     Left w -&gt; w -- Left means stop </pre>
+<pre class="diffpre info">@@ -769,6 +773,11 @@</pre>
+<pre class="diffpre context">         -- disallow</pre>
+<pre class="diffpre context">         Left w</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    runPlayerTick w =</pre>
+<pre class="diffpre insert">+      Right $ w &amp; (wdPlayer . plActor) %~ actorTick</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">     stopIfPlayerCanStillMove w =</pre>
+<pre class="diffpre context">       let</pre>
+<pre class="diffpre context">         a = w ^. wdPlayer ^. plActor </pre>
+<pre class="diffpre info">@@ -943,3 +948,8 @@</pre>
+<pre class="diffpre context">     (\a g -&gt; Map.insert (a ^. acWorldPos) (a ^. acEntity) g)</pre>
+<pre class="diffpre context">     (w ^. wdMap)</pre>
+<pre class="diffpre context">     (getAllActors w)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+actorTick :: Actor -&gt; Actor</pre>
+<pre class="diffpre insert">+actorTick a =</pre>
+<pre class="diffpre insert">+  a &amp; acPosMemory %~ M.tick</pre>
+</div>
+<h2 class=".diffh2">
+src/Memory.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 14_utility_annotate/src/Memory.hs 15_memory/src/Memory.hs</pre>
+<pre class="diffpre delete">--- 14_utility_annotate/src/Memory.hs</pre>
+<pre class="diffpre insert">+++ 15_memory/src/Memory.hs</pre>
+<pre class="diffpre info">@@ -0,0 +1,91 @@</pre>
+<pre class="diffpre insert">+{-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+module Memory ( Memory</pre>
+<pre class="diffpre insert">+              , empty</pre>
+<pre class="diffpre insert">+              , remember</pre>
+<pre class="diffpre insert">+              , recall</pre>
+<pre class="diffpre insert">+              , forget</pre>
+<pre class="diffpre insert">+              , forgetAll</pre>
+<pre class="diffpre insert">+              , remembers</pre>
+<pre class="diffpre insert">+              , tick</pre>
+<pre class="diffpre insert">+              , toList</pre>
+<pre class="diffpre insert">+              , fromList</pre>
+<pre class="diffpre insert">+              ) where</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import Protolude hiding (Map, empty, toList)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import qualified Data.Map.Strict as Map</pre>
+<pre class="diffpre insert">+import           Data.Map.Strict (Map)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | Store (remembers) values for a given period (measured by ticks)</pre>
+<pre class="diffpre insert">+newtype Memory a = Memory (Map Text (Map a Int)) </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+empty :: Memory a</pre>
+<pre class="diffpre insert">+empty = Memory Map.empty</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+remember :: (Ord a) =&gt; (Int -&gt; Int -&gt; Int) -&gt; Text -&gt; Int -&gt; a -&gt; Memory a -&gt; Memory a</pre>
+<pre class="diffpre insert">+remember combineFn key ttl val (Memory m) =</pre>
+<pre class="diffpre insert">+  Memory $ Map.alter ins key m</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    ins Nothing = Just $ Map.singleton val ttl</pre>
+<pre class="diffpre insert">+    ins (Just vs) = Just $ Map.insertWith combineFn val ttl vs</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+recall :: Text -&gt; Memory a -&gt; Map a Int</pre>
+<pre class="diffpre insert">+recall key (Memory m) =</pre>
+<pre class="diffpre insert">+  fromMaybe Map.empty $ Map.lookup key m </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+forgetAll :: Text -&gt; Memory a -&gt; Memory a</pre>
+<pre class="diffpre insert">+forgetAll key (Memory m) =</pre>
+<pre class="diffpre insert">+  Memory $ Map.delete key m</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+forget :: (Ord a) =&gt; Text -&gt; a -&gt; Memory a -&gt; Memory a</pre>
+<pre class="diffpre insert">+forget key val (Memory m) =</pre>
+<pre class="diffpre insert">+  Memory $ Map.alter rm key m</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    rm Nothing = Nothing</pre>
+<pre class="diffpre insert">+    rm (Just vs) = Just $ Map.delete val vs</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+remembers :: (Ord a) =&gt; Text -&gt; a -&gt; Memory a -&gt; Bool</pre>
+<pre class="diffpre insert">+remembers key val m =</pre>
+<pre class="diffpre insert">+  Map.member val (recall key m)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+tick :: (Ord a) =&gt; Memory a -&gt; Memory a</pre>
+<pre class="diffpre insert">+tick (Memory m) =</pre>
+<pre class="diffpre insert">+  Memory $ tickBucket &lt;$&gt; m</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    tickBucket :: (Ord a) =&gt; Map a Int -&gt; Map a Int</pre>
+<pre class="diffpre insert">+    tickBucket vs =</pre>
+<pre class="diffpre insert">+      foldr (Map.alter tickVal) vs (Map.keys vs)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    tickVal :: Maybe Int -&gt; Maybe Int</pre>
+<pre class="diffpre insert">+    tickVal Nothing = Nothing</pre>
+<pre class="diffpre insert">+    tickVal (Just i) = if i - 1 &lt;= 0 then Nothing else Just (i - 1)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+toList :: Memory a -&gt; [(Text, [(a, Int)])]</pre>
+<pre class="diffpre insert">+toList (Memory m) = Map.toList $ Map.toList &lt;$&gt; m</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+fromList :: (Ord a) =&gt; [(Text, [(a, Int)])] -&gt; Memory a</pre>
+<pre class="diffpre insert">+fromList vs = Memory . Map.fromList $ Map.fromList &lt;&lt;$&gt;&gt; vs</pre>
+</div>
+<h2 class=".diffh2">
+src/UtilityBrain.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 14_utility_annotate/src/UtilityBrain.hs 15_memory/src/UtilityBrain.hs</pre>
+<pre class="diffpre delete">--- 14_utility_annotate/src/UtilityBrain.hs</pre>
+<pre class="diffpre insert">+++ 15_memory/src/UtilityBrain.hs</pre>
+<pre class="diffpre info">@@ -13,6 +13,7 @@</pre>
+<pre class="diffpre context">                     ) where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import Protolude </pre>
+<pre class="diffpre insert">+import qualified Data.Map.Strict as Map</pre>
+<pre class="diffpre context"> import qualified Data.List as Lst</pre>
+<pre class="diffpre context"> import qualified Data.DList as DLst</pre>
+<pre class="diffpre context"> import qualified System.Random as Rnd</pre>
+<pre class="diffpre info">@@ -20,6 +21,7 @@</pre>
+<pre class="diffpre context"> import           Control.Lens</pre>
+<pre class="diffpre context"> import           Control.Monad.Writer.Strict (tell, MonadWriter)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+import qualified Memory as M</pre>
+<pre class="diffpre context"> import           GameCore</pre>
+<pre class="diffpre context"> import qualified EntityType as E</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -28,12 +29,14 @@</pre>
+<pre class="diffpre context"> telld :: MonadWriter (DLst.DList a) m =&gt; a -&gt; m ()</pre>
+<pre class="diffpre context"> telld t = tell (DLst.singleton t)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> path :: PathTo -&gt; Path</pre>
+<pre class="diffpre context"> path (PathToEntity p _ _) = p</pre>
+<pre class="diffpre context"> path (PathToActor p _ _) = p</pre>
+<pre class="diffpre context"> path (PathToPlayer p _ _) = p</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+pathPs :: Path -&gt; [WorldPos]</pre>
+<pre class="diffpre insert">+pathPs (Path p) = p</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> selectTopUtility :: [(Float, Actor, Impulse, Text, Maybe PathTo)]</pre>
+<pre class="diffpre context">                  -&gt; UtilAnnotator (Maybe (Float, Actor, Impulse, Text, Maybe PathTo))</pre>
+<pre class="diffpre context"> selectTopUtility rs = do</pre>
+<pre class="diffpre info">@@ -138,16 +139,55 @@</pre>
+<pre class="diffpre context">   pure ([(rule, actor, ImpMoveRandom, "wander", Nothing)], world)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> utilityOfWanderToExit :: World -&gt; Actor -&gt; [PathTo] -&gt; UtilAnnotator ([(Float, Actor, Impulse, Text, Maybe PathTo)], World)</pre>
+<pre class="diffpre delete">-utilityOfWanderToExit world actor allPaths = do</pre>
+<pre class="diffpre insert">+utilityOfWanderToExit world' actor' allPaths = do</pre>
+<pre class="diffpre context">   telld $ UeAt "WanderToExit"</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+  -- If the actor is standing on a door, then add the door to the </pre>
+<pre class="diffpre insert">+  --  list of doors to ignore</pre>
+<pre class="diffpre insert">+  let keyAvoid = "wanderExit.avoid" -- key to access  memory</pre>
+<pre class="diffpre insert">+  let ttlAvoid = 200                -- memory will be retained for 200 ticks</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  let (world, actor) = fromMaybe (world', actor') $</pre>
+<pre class="diffpre insert">+        case Map.lookup (actor' ^. acWorldPos) (world' ^. wdMap) of</pre>
+<pre class="diffpre insert">+          Nothing -&gt; Nothing -- not standing on anything</pre>
+<pre class="diffpre insert">+          Just e -&gt;</pre>
+<pre class="diffpre insert">+            if e ^. enType /= E.Door </pre>
+<pre class="diffpre insert">+            then Nothing  -- not standing on a door</pre>
+<pre class="diffpre insert">+            else </pre>
+<pre class="diffpre insert">+              -- Update the memory</pre>
+<pre class="diffpre insert">+              let a = actor' &amp; acPosMemory %~ M.remember const keyAvoid ttlAvoid (actor' ^. acWorldPos) in</pre>
+<pre class="diffpre insert">+              -- Return the update world' and actor</pre>
+<pre class="diffpre insert">+              Just (world' &amp; wdActors %~ Map.insert (actor' ^. acId) a, a)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  -- Get the positions to avoid. </pre>
+<pre class="diffpre insert">+  let avoid = M.recall keyAvoid $ actor ^. acPosMemory</pre>
+<pre class="diffpre insert">+  telld . UeNote . show $ Map.keys avoid</pre>
+<pre class="diffpre insert">+  -- Remove positions to avoid</pre>
+<pre class="diffpre insert">+  let paths = removePathsToAvoid avoid allPaths</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  -- Run the utility on the remaining paths</pre>
+<pre class="diffpre context">   let rule x = clamp $ 1 - (0.04 * x + (1.24 - clamp (actor ^. acDisposition ^. dsWanderlustToExits))) </pre>
+<pre class="diffpre delete">-  let clampedResults = moveTowardsUtil [E.Door] rule allPaths actor</pre>
+<pre class="diffpre insert">+  let clampedResults = moveTowardsUtil [E.Door] rule paths actor</pre>
+<pre class="diffpre context">   pure ((\(p, score) -&gt; (score, actor, ImpMoveTowards (path p), "wander to exit", Just p)) &lt;$&gt; clampedResults, world)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    removePathsToAvoid :: Map WorldPos Int -&gt; [PathTo] -&gt; [PathTo]</pre>
+<pre class="diffpre insert">+    removePathsToAvoid avoid paths =</pre>
+<pre class="diffpre insert">+      let isInAvoid p = Map.member p avoid in</pre>
+<pre class="diffpre insert">+      let shouldInclude p = maybe True (not . isInAvoid) (lastMay p) in</pre>
+<pre class="diffpre insert">+      filter (\p -&gt; shouldInclude (pathPs . path $ p)) paths</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre context"> utilityOfInfatuation :: World -&gt; Actor -&gt; [PathTo] -&gt; UtilAnnotator ([(Float, Actor, Impulse, Text, Maybe PathTo)], World)</pre>
+<pre class="diffpre context"> utilityOfInfatuation world actor allPaths = do</pre>
+<pre class="diffpre context">   telld . UeAt $ "Infatuation: " &lt;&gt; show (length allPaths) -- debugShowPathTos allPaths --show (actor ^. acDisposition ^. dsSmitten)</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_14.html">prev</a> <a href="2018-04-02-haskell-rogue-like_16.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

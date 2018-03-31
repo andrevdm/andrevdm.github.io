@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - Field of view</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_09.html">prev</a> <a href="2018-04-02-haskell-rogue-like_11.html">next</a></p>
+<h1 id="field-of-view">Field of view</h1>
+<p>In most roguelike games you need to calculate the actor’s fields of view, i.e. how far they can see from where they currently are and is anything blocking their line of site in any direction.</p>
+<p>Below is what the fov logic added in this chapter will look like.</p>
+<p><img src="../../images/rogue_10_fov.gif" /></p>
+<p>You should be able to see that</p>
+<ul>
+<li>The player has a fov distance of three tiles in all directions.</li>
+<li>Some entities are transparent e.g. an open door.</li>
+<li>Some entities are not transparent and block the fov, e.g. a wall</li>
+<li>Each time the player moves the fov is updated and redrawn</li>
+</ul>
+<h2 id="implementing-fov">Implementing fov</h2>
+<p>There are numerous options for fov algorithms. The <a href="http://www.roguebasin.com/index.php?title=Field_of_Vision">Field of Vision</a> has a nice set of options if you are looking for alternatives.</p>
+<p>I decided to use <a href="https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm">Bresenham’s line algorithm</a>. It is fast and simple enough to see how it works. The algorithm calculates how to draw a strait line on a “pixelated” surface. In a roguelike the tiles count as pixels.</p>
+<p><img src="../../images/rogue_10_Bresenham.png" /></p>
+<p>To calculate an actor’s fov the process is roughly as follows</p>
+<ol type="1">
+<li>Calculate the bounding box. I.e. the maximum possible distance the actor could see if nothing blocked the way. (In the image below this is the red square)</li>
+<li>Use Bresenham’s line algorithm to trace a line to each tile in the bounding square</li>
+<li>Stop tracing each line when it gets to the bounding block or if the current tile is not transparent.</li>
+<li>The set of all visited points is then where the actor can see</li>
+</ol>
+<p><img src="../../images/rogue_10_trace.png" /></p>
+<h2 id="bresenhams-line-algorithm">Bresenham’s line algorithm</h2>
+<p>I got the original haskell code from <a href="https://wiki.haskell.org/Bresenham%27s_line_drawing_algorithm">wiki.haskell</a> and made a few minor changes. This will give us an list of <em>(x, y)</em> for each line we trace to the bounding tiles.</p>
+<h6 id="fovsrcgameengine.hs-554-to-580">10_fov/src/GameEngine.hs (554 to 580)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="co">-- | Bresenham's algorithm</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="co">-- | https://wiki.haskell.org/Bresenham%27s_line_drawing_algorithm</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="ot">bline ::</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>)]</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">bline pa<span class="fu">@</span>(xa, ya) pb<span class="fu">@</span>(xb, yb) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">  <span class="kw">let</span> r <span class="fu">=</span> map maySwitch <span class="fu">.</span> Lst.unfoldr go <span class="fu">$</span> (x1, y1, <span class="dv">0</span>) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">  <span class="kw">case</span> r <span class="kw">of</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">    (p<span class="fu">:</span>_) <span class="fu">|</span> p <span class="fu">==</span> pa <span class="ot">-&gt;</span> r</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">    _ <span class="ot">-&gt;</span> Lst.reverse r</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">    steep <span class="fu">=</span> abs (yb <span class="fu">-</span> ya) <span class="fu">&gt;</span> abs (xb <span class="fu">-</span> xa)</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">    maySwitch <span class="fu">=</span> <span class="kw">if</span> steep <span class="kw">then</span> (\(x,y) <span class="ot">-&gt;</span> (y,x)) <span class="kw">else</span> identity</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">    ((x1, y1), (x2, y2)) <span class="fu">=</span> <span class="kw">case</span> Lst.sort [maySwitch pa, maySwitch pb] <span class="kw">of</span></a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">                             [a, b] <span class="ot">-&gt;</span> (a, b)</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">                             _ <span class="ot">-&gt;</span> ((<span class="dv">0</span>, <span class="dv">0</span>), (<span class="dv">0</span>, <span class="dv">0</span>)) <span class="co">-- This case is never matched, but fixes partial match warning</span></a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">    deltax <span class="fu">=</span> x2 <span class="fu">-</span> x1</a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">    deltay <span class="fu">=</span> abs (y2 <span class="fu">-</span> y1)</a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">    ystep <span class="fu">=</span> <span class="kw">if</span> y1 <span class="fu">&lt;</span> y2 <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="fu">-</span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">    go (xTemp, yTemp, err)</a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">        <span class="fu">|</span> xTemp <span class="fu">&gt;</span> x2 <span class="fu">=</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">        <span class="fu">|</span> otherwise <span class="fu">=</span> <span class="dt">Just</span> ((xTemp, yTemp), (xTemp <span class="fu">+</span> <span class="dv">1</span>, newY, newError))</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">        <span class="kw">where</span></a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">          tempError <span class="fu">=</span> err <span class="fu">+</span> deltay</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">          (newY, newError) <span class="fu">=</span> <span class="kw">if</span> (<span class="dv">2</span> <span class="fu">*</span> tempError) <span class="fu">&gt;=</span> deltax</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">                            <span class="kw">then</span> (yTemp <span class="fu">+</span> ystep, tempError <span class="fu">-</span> deltax)</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">                            <span class="kw">else</span> (yTemp, tempError)</a></code></pre></div>
+<h2 id="bounding-box">Bounding box</h2>
+<h6 id="fovsrcgameengine.hs-542-to-549">10_fov/src/GameEngine.hs (542 to 549)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">-- | Get the bounds for a fov distance</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="ot">boundingPoints ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> [<span class="dt">WorldPos</span>]</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">boundingPoints distance (<span class="dt">WorldPos</span> (atx, aty)) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">  Lst.nub <span class="fu">$</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">    [<span class="dt">WorldPos</span> (atx <span class="fu">-</span> distance <span class="fu">+</span> d, aty <span class="fu">-</span> distance) <span class="fu">|</span> d <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>distance <span class="fu">*</span> <span class="dv">2</span>]] <span class="fu">&lt;&gt;</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">    [<span class="dt">WorldPos</span> (atx <span class="fu">-</span> distance, aty <span class="fu">-</span> distance <span class="fu">+</span> d) <span class="fu">|</span> d <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>distance <span class="fu">*</span> <span class="dv">2</span>]] <span class="fu">&lt;&gt;</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">    [<span class="dt">WorldPos</span> (atx <span class="fu">-</span> distance <span class="fu">+</span> d, aty <span class="fu">+</span> distance) <span class="fu">|</span> d <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>distance <span class="fu">*</span> <span class="dv">2</span>]] <span class="fu">&lt;&gt;</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">    [<span class="dt">WorldPos</span> (atx <span class="fu">+</span> distance, aty <span class="fu">-</span> distance <span class="fu">+</span> d) <span class="fu">|</span> d <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>distance <span class="fu">*</span> <span class="dv">2</span>]]</a></code></pre></div>
+<p>The code above is calculating each point in the bounding box. Lets look at how it works</p>
+<ul>
+<li><code>(atx, aty)</code> is the actors current position</li>
+<li>Each of the four list comprehensions draws one side of the square</li>
+<li><code>[0..distance * 2]</code>. The <code>* 2</code> is because the fov is <code>distance</code> tiles to both sides of the actor. E.g for a distance of 3, this generates <code>[0,1,2,3,4,5,6]</code></li>
+<li>At each side you start at a the far end of the fov and move towards the other end.</li>
+</ul>
+<p>The code does this for all four sides, combines the results and removes any duplicates.</p>
+<p>E.g. For a starting position of <code>(100, 10)</code></p>
+<p><code>[(atx - distance + d, aty - distance) | d &lt;- [0..distance * 2]]</code></p>
+<p>Generates</p>
+<p><code>[(97,7),(98,7),(99,7),(100,7),(101,7),(102,7),(103,7)]</code></p>
+<p>I.e. it is drawing the bounding left line from top to bottom.</p>
+<h2 id="fov">Fov</h2>
+<p>As mentioned above once we have the bounding box, we then need to trace all lines from the actor to each point on the bounding box.</p>
+<h6 id="fovsrcgameengine.hs-524-to-537">10_fov/src/GameEngine.hs (524 to 537)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">-- | Calculate the field of view from a position</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="ot">calcFov ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> [(<span class="dt">WorldPos</span>, [<span class="dt">WorldPos</span>])]</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">calcFov fovDistance isEntityTransparent fromPos'<span class="fu">@</span>(<span class="dt">WorldPos</span> fromPos) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">  <span class="kw">let</span> boundries <span class="fu">=</span> getBoundries fromPos' <span class="kw">in</span></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">  go <span class="fu">&lt;$&gt;</span> boundries</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">    getBoundries (<span class="dt">WorldPos</span> (x, y)) <span class="fu">=</span> boundingPoints fovDistance (<span class="dt">WorldPos</span> (x, y))</a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">    go toPos'<span class="fu">@</span>(<span class="dt">WorldPos</span> toPos) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">      <span class="kw">let</span> line <span class="fu">=</span> <span class="dt">WorldPos</span> <span class="fu">&lt;$&gt;</span> bline fromPos toPos <span class="kw">in</span></a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">      <span class="kw">let</span> isTransparentOrStart p <span class="fu">=</span> p <span class="fu">==</span> fromPos' <span class="fu">||</span> isEntityTransparent p <span class="kw">in</span></a>
+<a class="sourceLine" id="cb3-13" data-line-number="13">      <span class="kw">let</span> (m, r) <span class="fu">=</span> Lst.span isTransparentOrStart line <span class="kw">in</span></a>
+<a class="sourceLine" id="cb3-14" data-line-number="14">      (toPos', m <span class="fu">&lt;&gt;</span> Lst.take <span class="dv">1</span> r)</a></code></pre></div>
+<p><em>calcFov</em> does exactly that.</p>
+<ol type="1">
+<li>Gets the bounding box</li>
+<li>For each point on the boundary, draw a line from the actor to the point.</li>
+<li>Keep every point in the line that is transparent, or is the starting point. Stop as soon as its not</li>
+</ol>
+<p>In the <em>go</em> function that is called for each line, <em>Data.List.span</em> is used to find the visible part of the line.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co">-- https://hackage.haskell.org/package/base/docs/Data-List.html#v:span</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="co">-- span, applied to a predicate p and a list xs, returns a tuple where first </span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="co">--  element is longest prefix (possibly empty) of xs of elements that satisfy p</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="co">--  and second element is the remainder of the list</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">--</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co">-- span p xs is equivalent to (takeWhile p xs, dropWhile p xs)</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">--</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">span<span class="ot"> ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> ([a], [a])</a></code></pre></div>
+<blockquote>
+
+</blockquote>
+<p>This code</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">let</span> (m, r) <span class="fu">=</span> Lst.span isTransparentOrStart line <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">(toPos', m <span class="fu">&lt;&gt;</span> Lst.take <span class="dv">1</span> r)</a></code></pre></div>
+<p>First gets a tuple of <code>(transparent_points, not_transparent_points)</code>. It then takes one from the <code>not_transparent_points</code> and adds it to the result. This is done as the actor can see the tile that blocks the light, but not past it.</p>
+<p>For now <em>isTransparent</em> says everything apart from walls are transparent. Later on we’ll add closed doors etc.</p>
+<h6 id="fovsrcgameengine.hs-585-to-589">10_fov/src/GameEngine.hs (585 to 589)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">isTransparent ::</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">isTransparent wmap pos <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">case</span> Map.lookup pos wmap <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">    <span class="dt">Just</span> e <span class="ot">-&gt;</span> (e <span class="fu">^.</span> enType) <span class="fu">/=</span> <span class="dt">E.Wall</span></a></code></pre></div>
+<p><em>flatFov</em> is a helper function to get a unique list of coordinates in the field of view from the list of lines.</p>
+<h6 id="fovsrcgameengine.hs-613-to-615">10_fov/src/GameEngine.hs (613 to 615)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">flatFov ::</span> <span class="dt">Maybe</span> [(<span class="dt">WorldPos</span>, [<span class="dt">WorldPos</span>])] <span class="ot">-&gt;</span> [<span class="dt">WorldPos</span>]</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">flatFov <span class="dt">Nothing</span> <span class="fu">=</span> []</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">flatFov (<span class="dt">Just</span> fov) <span class="fu">=</span> Lst.nub <span class="fu">.</span> Lst.concat <span class="fu">$</span> snd <span class="fu">&lt;$&gt;</span> fov</a></code></pre></div>
+<h2 id="actor-changes">Actor changes</h2>
+<p>Actors gets two new properties</p>
+<h6 id="fovsrcgamecore.hs-32-to-33">10_fov/src/GameCore.hs (32 to 33)</h6>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1">  ,<span class="ot"> _acFov ::</span> <span class="fu">!</span>(<span class="dt">Maybe</span> [(<span class="dt">WorldPos</span>, [<span class="dt">WorldPos</span>])])</a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">  ,<span class="ot"> _acFovDistance ::</span> <span class="fu">!</span><span class="dt">Int</span></a></code></pre></div>
+<ol type="1">
+<li><em>acFov</em> is the current field of view</li>
+<li><em>acFovDistance</em> is how far each actor can see. This means that each actor can have a different fov distance. In this example the player can see for three tiles, and enemies can only see for two tiles.</li>
+</ol>
+<h1 id="updating-the-fov">Updating the fov</h1>
+<h2 id="adding-actors">Adding actors</h2>
+<p>Each actor’s fov must be kept up to date. To keep things simple I’m updating the fov when an actor is added and each time an actor moves.</p>
+<h6 id="fovsrcgameengine.hs-435-to-437">10_fov/src/GameEngine.hs (435 to 437)</h6>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ot">updateActorFov ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">updateActorFov w a <span class="fu">=</span></a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">  a <span class="fu">&amp;</span> acFov <span class="fu">.~</span> <span class="dt">Just</span> (calcFov (a <span class="fu">^.</span> acFovDistance) (isTransparent <span class="fu">$</span> w <span class="fu">^.</span> wdMap) (a <span class="fu">^.</span> acWorldPos))</a></code></pre></div>
+<p>At the end of <em>bootWorld</em> we call <em>updateActorFov</em> for all actors.</p>
+<h6 id="fovsrcgameengine.hs-81-to-98">10_fov/src/GameEngine.hs (81 to 98)</h6>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Rnd.StdGen</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">bootWorld conn screenSize mapData std <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">    config <span class="fu">=</span> mkConfig</a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">    bug <span class="fu">=</span> mkEnemyActor <span class="st">&quot;bug1&quot;</span> <span class="dt">E.Bug</span> (<span class="dv">6</span>, <span class="fu">-</span><span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">    snake <span class="fu">=</span> mkEnemyActor <span class="st">&quot;snake1&quot;</span> <span class="dt">E.Snake</span> (<span class="dv">8</span>, <span class="fu">-</span><span class="dv">4</span>)</a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">    w1 <span class="fu">=</span> <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">               , _wdConfig <span class="fu">=</span> config</a>
+<a class="sourceLine" id="cb10-10" data-line-number="10">               , _wdMap <span class="fu">=</span> loadWorld E.loadTexts mapData</a>
+<a class="sourceLine" id="cb10-11" data-line-number="11">               , _wdActors <span class="fu">=</span> Map.fromList [ (bug <span class="fu">^.</span> acId, bug)</a>
+<a class="sourceLine" id="cb10-12" data-line-number="12">                                          , (snake <span class="fu">^.</span> acId, snake)</a>
+<a class="sourceLine" id="cb10-13" data-line-number="13">                                          ]</a>
+<a class="sourceLine" id="cb10-14" data-line-number="14">               }</a>
+<a class="sourceLine" id="cb10-15" data-line-number="15">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb10-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb10-17" data-line-number="17">  <span class="co">-- Calculate the actors fov</span></a>
+<a class="sourceLine" id="cb10-18" data-line-number="18">  updateAllActors w1 updateActorFov</a></code></pre></div>
+<h6 id="fovsrcgameengine.hs-450-to-455">10_fov/src/GameEngine.hs (450 to 455)</h6>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="co">-- | Update all actors, including the player's actor</span></a>
+<a class="sourceLine" id="cb11-2" data-line-number="2"><span class="ot">updateAllActors ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> (<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span>) <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">updateAllActors w fn <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">  <span class="kw">let</span> w2 <span class="fu">=</span> w <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor) <span class="fu">%~</span> fn w <span class="kw">in</span></a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">  <span class="kw">let</span> w3 <span class="fu">=</span> w2 <span class="fu">&amp;</span> wdActors <span class="fu">%~</span> fmap (fn w2) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">  w3</a></code></pre></div>
+<h2 id="moving-actors">Moving actors</h2>
+<p><em>tryMoveActor</em> is also update to call <em>updateActorFov</em></p>
+<h6 id="fovsrcgameengine.hs-422-to-431">10_fov/src/GameEngine.hs (422 to 431)</h6>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">  <span class="kw">if</span> canMove</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">  <span class="kw">then</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">    <span class="kw">let</span></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">      movedActor <span class="fu">=</span> actor <span class="fu">&amp;</span> acWorldPos <span class="fu">.~</span> tryWorldTo'</a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">      w2 <span class="fu">=</span> updatePlayerViewport <span class="fu">$</span> updateActor world movedActor</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">      pa <span class="fu">=</span> w2 <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor</a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">    <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">      <span class="dt">Just</span> <span class="fu">$</span> updateActor w2 (updateActorFov w2 pa)</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">  <span class="kw">else</span></a>
+<a class="sourceLine" id="cb12-10" data-line-number="10">    <span class="dt">Nothing</span></a></code></pre></div>
+<h1 id="drawing-darkness">Drawing darkness</h1>
+<h2 id="darkness-tile">Darkness tile</h2>
+<p>We need a tile to use to draw the “darkness”. This is a tile that is 100% black.</p>
+<h6 id="fovsrcentities.hs-26-to-26">10_fov/src/Entities.hs (26 to 26)</h6>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1">  , (<span class="dt">E.Dark</span>      , (<span class="dv">43</span>, <span class="dv">11</span>), <span class="dt">Nothing</span>)</a></code></pre></div>
+<h2 id="darkness-overlay">Darkness overlay</h2>
+<p>When the tiles are drawn we now need to only show tiles that the player can see, i.e. tiles in their fov. We could use another layer for this, but its pointless to draw a layer and then immediately hide the tiles. Instead an overlay is used to replace any tiles that are not visible.</p>
+<h6 id="fovsrcgameengine.hs-594-to-608">10_fov/src/GameEngine.hs (594 to 608)</h6>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="ot">darknessFovOverlay ::</span> <span class="dt">Player</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">darknessFovOverlay player actor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">    (screenWidth, screenHeight) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
+<a class="sourceLine" id="cb14-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb14-6" data-line-number="6">    <span class="co">-- Create a full grid of darkness</span></a>
+<a class="sourceLine" id="cb14-7" data-line-number="7">    blackBg <span class="fu">=</span> Map.fromList [ (<span class="dt">PlayerPos</span> (x, y), E.getTile <span class="dt">E.Dark</span>)</a>
+<a class="sourceLine" id="cb14-8" data-line-number="8">                           <span class="fu">|</span> x <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenWidth <span class="fu">-</span> <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb14-9" data-line-number="9">                           , y <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenHeight <span class="fu">-</span> <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb14-10" data-line-number="10">                           ] </a>
+<a class="sourceLine" id="cb14-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb14-12" data-line-number="12">    lightAt <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> flatFov (actor <span class="fu">^.</span> acFov)</a>
+<a class="sourceLine" id="cb14-13" data-line-number="13">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb14-14" data-line-number="14">  <span class="co">-- Remove the darkness overlay at any position that is to be lit</span></a>
+<a class="sourceLine" id="cb14-15" data-line-number="15">  foldr Map.delete blackBg lightAt</a></code></pre></div>
+<ol type="1">
+<li>Create a map *blackBg that is 100% full of darkness tiles.</li>
+<li>Create a list of positions that are visible in <em>lightAt</em></li>
+<li>Delete all positions in the <em>blackBg</em> map that are in the <em>lightAt</em> list</li>
+</ol>
+<p>The <em>foldr</em> line could have been written more explicitly like this</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" data-line-number="1">  foldr (\lit acc <span class="ot">-&gt;</span> Map.delete lit acc) blackBg lightAt</a></code></pre></div>
+<p>But foldr provides the arguments in the correct order for Map.delete so there is no need for that.</p>
+<h2 id="drawing">Drawing</h2>
+<p>And finally <em>drawTilesForPlayer</em> can be changed to draw the darkness overlay. Take a look at the diff below, it should help put these changes in context. I’ll highlight the main changes below.</p>
+<h6 id="fovsrcgameengine.hs-278-to-333">10_fov/src/GameEngine.hs (278 to 333)</h6>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="ot">drawTilesForPlayer ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> [<span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span>]</a>
+<a class="sourceLine" id="cb16-2" data-line-number="2">drawTilesForPlayer world entityMap <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">    <span class="co">-- Entity base layer</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">    entities <span class="fu">=</span> mkLayer entityMap</a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">    <span class="co">-- Darkness</span></a>
+<a class="sourceLine" id="cb16-7" data-line-number="7">    darknessOverlay <span class="fu">=</span> darknessFovOverlay (world <span class="fu">^.</span> wdPlayer) (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor)</a>
+<a class="sourceLine" id="cb16-8" data-line-number="8">    <span class="co">-- Darkness hides entity</span></a>
+<a class="sourceLine" id="cb16-9" data-line-number="9">    baseLayer <span class="fu">=</span> Map.union darknessOverlay entities</a>
+<a class="sourceLine" id="cb16-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb16-11" data-line-number="11">    <span class="co">-- Actor layer on top</span></a>
+<a class="sourceLine" id="cb16-12" data-line-number="12">    actorMap <span class="fu">=</span> Map.fromList <span class="fu">$</span> (\a <span class="ot">-&gt;</span> (a <span class="fu">^.</span> acWorldPos, a <span class="fu">^.</span> acEntity)) <span class="fu">&lt;$&gt;</span> getAllActors world</a>
+<a class="sourceLine" id="cb16-13" data-line-number="13">    inViewActors <span class="fu">=</span> Map.filterWithKey inView actorMap</a>
+<a class="sourceLine" id="cb16-14" data-line-number="14">    actorLayer <span class="fu">=</span> mkLayer inViewActors</a>
+<a class="sourceLine" id="cb16-15" data-line-number="15">    visibleActorLayer <span class="fu">=</span> Map.filterWithKey (\wp _ <span class="ot">-&gt;</span> isNotDarkness wp baseLayer) actorLayer</a>
+<a class="sourceLine" id="cb16-16" data-line-number="16">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-17" data-line-number="17">    <span class="co">-- Layers</span></a>
+<a class="sourceLine" id="cb16-18" data-line-number="18">    <span class="co">-- 0: Entities (with darkness overlay)</span></a>
+<a class="sourceLine" id="cb16-19" data-line-number="19">    <span class="co">-- 1: Actors</span></a>
+<a class="sourceLine" id="cb16-20" data-line-number="20">    [baseLayer, visibleActorLayer]</a>
+<a class="sourceLine" id="cb16-21" data-line-number="21"></a>
+<a class="sourceLine" id="cb16-22" data-line-number="22">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb16-23" data-line-number="23">    player <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer</a>
+<a class="sourceLine" id="cb16-24" data-line-number="24">    </a>
+<a class="sourceLine" id="cb16-25" data-line-number="25">    <span class="co">-- Top left of player's grid</span></a>
+<a class="sourceLine" id="cb16-26" data-line-number="26">    (<span class="dt">WorldPos</span> (topX, topY)) <span class="fu">=</span> player <span class="fu">^.</span> plWorldTopLeft </a>
+<a class="sourceLine" id="cb16-27" data-line-number="27"></a>
+<a class="sourceLine" id="cb16-28" data-line-number="28">    <span class="co">-- Players screen/grid dimensions</span></a>
+<a class="sourceLine" id="cb16-29" data-line-number="29">    (screenX, screenY) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize </a>
+<a class="sourceLine" id="cb16-30" data-line-number="30"></a>
+<a class="sourceLine" id="cb16-31" data-line-number="31">    <span class="co">-- Bottom right corner</span></a>
+<a class="sourceLine" id="cb16-32" data-line-number="32">    (bottomX, bottomY) <span class="fu">=</span> (topX <span class="fu">+</span> screenX, topY <span class="fu">-</span> screenY) </a>
+<a class="sourceLine" id="cb16-33" data-line-number="33"></a>
+<a class="sourceLine" id="cb16-34" data-line-number="34"><span class="ot">    isNotDarkness ::</span> <span class="dt">PlayerPos</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></a>
+<a class="sourceLine" id="cb16-35" data-line-number="35">    isNotDarkness wp ts <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-36" data-line-number="36">      <span class="kw">case</span> Map.lookup wp ts <span class="kw">of</span></a>
+<a class="sourceLine" id="cb16-37" data-line-number="37">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb16-38" data-line-number="38">        <span class="dt">Just</span> t <span class="ot">-&gt;</span> t <span class="fu">^.</span> tlId <span class="fu">/=</span> E.getTile <span class="dt">E.Dark</span> <span class="fu">^.</span> tlId</a>
+<a class="sourceLine" id="cb16-39" data-line-number="39">  </a>
+<a class="sourceLine" id="cb16-40" data-line-number="40">    inView (<span class="dt">WorldPos</span> (x, y)) _ <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-41" data-line-number="41">      x <span class="fu">&gt;=</span> topX <span class="fu">&amp;&amp;</span> x <span class="fu">&lt;</span> bottomX <span class="fu">&amp;&amp;</span> y <span class="fu">&gt;</span> bottomY <span class="fu">&amp;&amp;</span> y <span class="fu">&lt;=</span> topY</a>
+<a class="sourceLine" id="cb16-42" data-line-number="42"></a>
+<a class="sourceLine" id="cb16-43" data-line-number="43"><span class="ot">    mkLayer ::</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb16-44" data-line-number="44">    mkLayer entities <span class="fu">=</span></a>
+<a class="sourceLine" id="cb16-45" data-line-number="45">      <span class="kw">let</span></a>
+<a class="sourceLine" id="cb16-46" data-line-number="46">        <span class="co">-- Filter out blank</span></a>
+<a class="sourceLine" id="cb16-47" data-line-number="47">        noEmptyMap <span class="fu">=</span> Map.filter (\e <span class="ot">-&gt;</span> e <span class="fu">^.</span> enTile <span class="fu">^.</span> tlName <span class="fu">/=</span> <span class="st">&quot;blank&quot;</span>) entities </a>
+<a class="sourceLine" id="cb16-48" data-line-number="48"></a>
+<a class="sourceLine" id="cb16-49" data-line-number="49">        <span class="co">-- Only get the entitys that are at positions on the player's screen</span></a>
+<a class="sourceLine" id="cb16-50" data-line-number="50">        visibleEntitys <span class="fu">=</span> Map.filterWithKey inView noEmptyMap</a>
+<a class="sourceLine" id="cb16-51" data-line-number="51"></a>
+<a class="sourceLine" id="cb16-52" data-line-number="52">        <span class="co">-- Get the tile for each entity</span></a>
+<a class="sourceLine" id="cb16-53" data-line-number="53">        tileMap <span class="fu">=</span> (<span class="fu">^.</span> enTile) <span class="fu">&lt;$&gt;</span> visibleEntitys </a>
+<a class="sourceLine" id="cb16-54" data-line-number="54">      <span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-55" data-line-number="55">      <span class="co">-- Get it with player positions</span></a>
+<a class="sourceLine" id="cb16-56" data-line-number="56">      Map.mapKeys (worldCoordToPlayer <span class="fu">$</span> player <span class="fu">^.</span> plWorldTopLeft) tileMap</a></code></pre></div>
+<p>The entities base layer contains the entities and the darkness overlay. <em>Map.union</em> is used to combine the two map. Since <em>Map.union</em> prefers the first map over the second, this means that entities are only selected if the tiles is not dark.</p>
+<h6 id="fovsrcgameengine.hs-282-to-287">10_fov/src/GameEngine.hs (282 to 287)</h6>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb17-1" data-line-number="1">  <span class="co">-- Entity base layer</span></a>
+<a class="sourceLine" id="cb17-2" data-line-number="2">  entities <span class="fu">=</span> mkLayer entityMap</a>
+<a class="sourceLine" id="cb17-3" data-line-number="3">  <span class="co">-- Darkness</span></a>
+<a class="sourceLine" id="cb17-4" data-line-number="4">  darknessOverlay <span class="fu">=</span> darknessFovOverlay (world <span class="fu">^.</span> wdPlayer) (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor)</a>
+<a class="sourceLine" id="cb17-5" data-line-number="5">  <span class="co">-- Darkness hides entity</span></a>
+<a class="sourceLine" id="cb17-6" data-line-number="6">  baseLayer <span class="fu">=</span> Map.union darknessOverlay entities</a></code></pre></div>
+<p>The actor layer is already filtered to only select actors in the view port. Now we need to also only select actors that are not hidden by the darkness layer.</p>
+<h6 id="fovsrcgameengine.hs-291-to-295">10_fov/src/GameEngine.hs (291 to 295)</h6>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb18-1" data-line-number="1">  <span class="co">-- Actor layer on top</span></a>
+<a class="sourceLine" id="cb18-2" data-line-number="2">  actorMap <span class="fu">=</span> Map.fromList <span class="fu">$</span> (\a <span class="ot">-&gt;</span> (a <span class="fu">^.</span> acWorldPos, a <span class="fu">^.</span> acEntity)) <span class="fu">&lt;$&gt;</span> getAllActors world</a>
+<a class="sourceLine" id="cb18-3" data-line-number="3">  inViewActors <span class="fu">=</span> Map.filterWithKey inView actorMap</a>
+<a class="sourceLine" id="cb18-4" data-line-number="4">  actorLayer <span class="fu">=</span> mkLayer inViewActors</a>
+<a class="sourceLine" id="cb18-5" data-line-number="5">  visibleActorLayer <span class="fu">=</span> Map.filterWithKey (\wp _ <span class="ot">-&gt;</span> isNotDarkness wp baseLayer) actorLayer</a></code></pre></div>
+<h6 id="fovsrcgameengine.hs-318-to-322">10_fov/src/GameEngine.hs (318 to 322)</h6>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb19-1" data-line-number="1"><span class="ot">  isNotDarkness ::</span> <span class="dt">PlayerPos</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></a>
+<a class="sourceLine" id="cb19-2" data-line-number="2">  isNotDarkness wp ts <span class="fu">=</span></a>
+<a class="sourceLine" id="cb19-3" data-line-number="3">    <span class="kw">case</span> Map.lookup wp ts <span class="kw">of</span></a>
+<a class="sourceLine" id="cb19-4" data-line-number="4">      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb19-5" data-line-number="5">      <span class="dt">Just</span> t <span class="ot">-&gt;</span> t <span class="fu">^.</span> tlId <span class="fu">/=</span> E.getTile <span class="dt">E.Dark</span> <span class="fu">^.</span> tlId</a></code></pre></div>
+<p>And the layers are then returned as they were before, except of course that now the base layer also has the darkness tiles.</p>
+<h6 id="fovsrcgameengine.hs-298-to-302">10_fov/src/GameEngine.hs (298 to 302)</h6>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb20-1" data-line-number="1">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb20-2" data-line-number="2">    <span class="co">-- Layers</span></a>
+<a class="sourceLine" id="cb20-3" data-line-number="3">    <span class="co">-- 0: Entities (with darkness overlay)</span></a>
+<a class="sourceLine" id="cb20-4" data-line-number="4">    <span class="co">-- 1: Actors</span></a>
+<a class="sourceLine" id="cb20-5" data-line-number="5">    [baseLayer, visibleActorLayer]</a></code></pre></div>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_09.html">prev</a> <a href="2018-04-02-haskell-rogue-like_11.html">next</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/Entities.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 09_viewport_scroll/src/Entities.hs 10_fov/src/Entities.hs</pre>
+<pre class="diffpre delete">--- 09_viewport_scroll/src/Entities.hs</pre>
+<pre class="diffpre insert">+++ 10_fov/src/Entities.hs</pre>
+<pre class="diffpre info">@@ -22,6 +22,9 @@</pre>
+<pre class="diffpre context">            , (E.Player    , ( 8,  3), Nothing)</pre>
+<pre class="diffpre context">            , (E.Bug       , (25,  3), Nothing)</pre>
+<pre class="diffpre context">            , (E.Snake     , (38,  4), Nothing)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+           , (E.Dark      , (43, 11), Nothing)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">            ]</pre>
+<pre class="diffpre context">   in</pre>
+<pre class="diffpre context">   let mkData (typ, pos@(x, y), l) (tiles', entities', loads') =</pre>
+</div>
+<h2 class=".diffh2">
+src/EntityType.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 09_viewport_scroll/src/EntityType.hs 10_fov/src/EntityType.hs</pre>
+<pre class="diffpre delete">--- 09_viewport_scroll/src/EntityType.hs</pre>
+<pre class="diffpre insert">+++ 10_fov/src/EntityType.hs</pre>
+<pre class="diffpre info">@@ -11,5 +11,6 @@</pre>
+<pre class="diffpre context">                 | Player</pre>
+<pre class="diffpre context">                 | Bug</pre>
+<pre class="diffpre context">                 | Snake</pre>
+<pre class="diffpre insert">+                | Dark</pre>
+<pre class="diffpre context">                 | Unknown</pre>
+<pre class="diffpre context">                 deriving (Show, Eq, Ord)</pre>
+</div>
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 09_viewport_scroll/src/GameCore.hs 10_fov/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 09_viewport_scroll/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 10_fov/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -28,8 +28,11 @@</pre>
+<pre class="diffpre context">                    , _acEntity :: !Entity</pre>
+<pre class="diffpre context">                    , _acWorldPos :: !WorldPos</pre>
+<pre class="diffpre context">                    , _acStdGen :: !Rnd.StdGen</pre>
+<pre class="diffpre delete">-                   }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+                   , _acFov :: !(Maybe [(WorldPos, [WorldPos])])</pre>
+<pre class="diffpre insert">+                   , _acFovDistance :: !Int</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+                   }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Player = Player { _plConn :: !Host.Connection</pre>
+<pre class="diffpre context">                      , _plActor :: !Actor</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b --new-file 09_viewport_scroll/src/GameEngine.hs 10_fov/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 09_viewport_scroll/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 10_fov/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -7,6 +7,7 @@</pre>
+<pre class="diffpre context"> import Protolude hiding (Map)</pre>
+<pre class="diffpre context"> import           Data.Map.Strict (Map)</pre>
+<pre class="diffpre context"> import qualified Data.Map.Strict as Map</pre>
+<pre class="diffpre insert">+import qualified Data.List as Lst</pre>
+<pre class="diffpre context"> import qualified Data.List.Index as Lst</pre>
+<pre class="diffpre context"> import qualified Data.Text as Txt</pre>
+<pre class="diffpre context"> import qualified Data.Text.IO as Txt</pre>
+<pre class="diffpre info">@@ -76,21 +77,27 @@</pre>
+<pre class="diffpre context">       Right $ bootWorld conn (width, height) mapData std</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> bootWorld :: Host.Connection -&gt; (Int, Int) -&gt; Text -&gt; Rnd.StdGen -&gt; World</pre>
+<pre class="diffpre context"> bootWorld conn screenSize mapData std = </pre>
+<pre class="diffpre context">   let</pre>
+<pre class="diffpre context">     config = mkConfig</pre>
+<pre class="diffpre context">     bug = mkEnemyActor "bug1" E.Bug (6, -2)</pre>
+<pre class="diffpre context">     snake = mkEnemyActor "snake1" E.Snake (8, -4)</pre>
+<pre class="diffpre delete">-  in</pre>
+<pre class="diffpre context">    </pre>
+<pre class="diffpre delete">-  World { _wdPlayer = mkPlayer</pre>
+<pre class="diffpre insert">+    w1 = World { _wdPlayer = mkPlayer</pre>
+<pre class="diffpre context">         , _wdConfig = config</pre>
+<pre class="diffpre context">         , _wdMap = loadWorld E.loadTexts mapData</pre>
+<pre class="diffpre context">         , _wdActors = Map.fromList [ (bug ^. acId, bug)</pre>
+<pre class="diffpre context">                                    , (snake ^. acId, snake)</pre>
+<pre class="diffpre context">                                    ]</pre>
+<pre class="diffpre context">         }</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  -- Calculate the actors fov</pre>
+<pre class="diffpre insert">+  updateAllActors w1 updateActorFov</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     mkConfig =</pre>
+<pre class="diffpre context">       Config { _cfgKeys = Map.fromList [ ("up"      , "Move:up")</pre>
+<pre class="diffpre info">@@ -130,13 +134,14 @@</pre>
+<pre class="diffpre context">              , _plViewPortStyle = ViewPortBorder 2</pre>
+<pre class="diffpre context">              }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context">     mkPlayersActor =</pre>
+<pre class="diffpre context">       Actor { _acId = Aid "player"</pre>
+<pre class="diffpre context">             , _acClass = ClassPlayer</pre>
+<pre class="diffpre context">             , _acEntity = E.getEntity E.Player</pre>
+<pre class="diffpre context">             , _acWorldPos = WorldPos (1, -1)</pre>
+<pre class="diffpre context">             , _acStdGen = std</pre>
+<pre class="diffpre insert">+            , _acFovDistance = 3</pre>
+<pre class="diffpre insert">+            , _acFov = Nothing</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     mkEnemyActor aid e (x, y) =</pre>
+<pre class="diffpre info">@@ -145,6 +150,8 @@</pre>
+<pre class="diffpre context">             , _acEntity = E.getEntity e</pre>
+<pre class="diffpre context">             , _acWorldPos = WorldPos (x, y)</pre>
+<pre class="diffpre context">             , _acStdGen = std</pre>
+<pre class="diffpre insert">+            , _acFovDistance = 2</pre>
+<pre class="diffpre insert">+            , _acFov = Nothing</pre>
+<pre class="diffpre context">             }</pre>
+<pre class="diffpre context">     </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -270,15 +278,29 @@</pre>
+<pre class="diffpre context"> drawTilesForPlayer :: World -&gt; Map WorldPos Entity -&gt; [Map PlayerPos Tile]</pre>
+<pre class="diffpre context"> drawTilesForPlayer world entityMap =</pre>
+<pre class="diffpre context">   let</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">     -- Entity base layer</pre>
+<pre class="diffpre delete">-    entityLayer = mkLayer entityMap</pre>
+<pre class="diffpre insert">+    entities = mkLayer entityMap</pre>
+<pre class="diffpre insert">+    -- Darkness</pre>
+<pre class="diffpre insert">+    darknessOverlay = darknessFovOverlay (world ^. wdPlayer) (world ^. wdPlayer ^. plActor)</pre>
+<pre class="diffpre insert">+    -- Darkness hides entity</pre>
+<pre class="diffpre insert">+    baseLayer = Map.union darknessOverlay entities</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">     -- Actor layer on top</pre>
+<pre class="diffpre context">     actorMap = Map.fromList $ (\a -&gt; (a ^. acWorldPos, a ^. acEntity)) &lt;$&gt; getAllActors world</pre>
+<pre class="diffpre delete">-    visibleActorMap = Map.filterWithKey inView actorMap</pre>
+<pre class="diffpre delete">-    actorLayer = mkLayer visibleActorMap</pre>
+<pre class="diffpre insert">+    inViewActors = Map.filterWithKey inView actorMap</pre>
+<pre class="diffpre insert">+    actorLayer = mkLayer inViewActors</pre>
+<pre class="diffpre insert">+    visibleActorLayer = Map.filterWithKey (\wp _ -&gt; isNotDarkness wp baseLayer) actorLayer</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   in</pre>
+<pre class="diffpre delete">-    [entityLayer, actorLayer]</pre>
+<pre class="diffpre insert">+    -- Layers</pre>
+<pre class="diffpre insert">+    -- 0: Entities (with darkness overlay)</pre>
+<pre class="diffpre insert">+    -- 1: Actors</pre>
+<pre class="diffpre insert">+    [baseLayer, visibleActorLayer]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre context">     player = world ^. wdPlayer</pre>
+<pre class="diffpre info">@@ -292,6 +314,14 @@</pre>
+<pre class="diffpre context">     -- Bottom right corner</pre>
+<pre class="diffpre context">     (bottomX, bottomY) = (topX + screenX, topY - screenY) </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    isNotDarkness :: PlayerPos -&gt; Map PlayerPos Tile -&gt; Bool</pre>
+<pre class="diffpre insert">+    isNotDarkness wp ts =</pre>
+<pre class="diffpre insert">+      case Map.lookup wp ts of</pre>
+<pre class="diffpre insert">+        Nothing -&gt; True</pre>
+<pre class="diffpre insert">+        Just t -&gt; t ^. tlId /= E.getTile E.Dark ^. tlId</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre context">     inView (WorldPos (x, y)) _ =</pre>
+<pre class="diffpre context">       x &gt;= topX &amp;&amp; x &lt; bottomX &amp;&amp; y &gt; bottomY &amp;&amp; y &lt;= topY</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -391,14 +418,26 @@</pre>
+<pre class="diffpre context">                   ([], Nothing) -&gt; True</pre>
+<pre class="diffpre context">                   _ -&gt; False</pre>
+<pre class="diffpre context">       in</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">       if canMove</pre>
+<pre class="diffpre context">       then</pre>
+<pre class="diffpre delete">-        let movedActor = actor &amp; acWorldPos .~ tryWorldTo' in</pre>
+<pre class="diffpre delete">-        Just . updatePlayerViewport $ updateActor world movedActor</pre>
+<pre class="diffpre insert">+        let</pre>
+<pre class="diffpre insert">+          movedActor = actor &amp; acWorldPos .~ tryWorldTo'</pre>
+<pre class="diffpre insert">+          w2 = updatePlayerViewport $ updateActor world movedActor</pre>
+<pre class="diffpre insert">+          pa = w2 ^. wdPlayer ^. plActor</pre>
+<pre class="diffpre insert">+        in</pre>
+<pre class="diffpre insert">+          Just $ updateActor w2 (updateActorFov w2 pa)</pre>
+<pre class="diffpre context">       else</pre>
+<pre class="diffpre context">         Nothing</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+updateActorFov :: World -&gt; Actor -&gt; Actor</pre>
+<pre class="diffpre insert">+updateActorFov w a =</pre>
+<pre class="diffpre insert">+  a &amp; acFov .~ Just (calcFov (a ^. acFovDistance) (isTransparent $ w ^. wdMap) (a ^. acWorldPos))</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> -- | Update either the player's actor, or one of the world actors</pre>
+<pre class="diffpre context"> updateActor :: World -&gt; Actor -&gt; World</pre>
+<pre class="diffpre context"> updateActor w actor =</pre>
+<pre class="diffpre info">@@ -408,6 +447,15 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+-- | Update all actors, including the player's actor</pre>
+<pre class="diffpre insert">+updateAllActors :: World -&gt; (World -&gt; Actor -&gt; Actor) -&gt; World</pre>
+<pre class="diffpre insert">+updateAllActors w fn =</pre>
+<pre class="diffpre insert">+  let w2 = w &amp; (wdPlayer . plActor) %~ fn w in</pre>
+<pre class="diffpre insert">+  let w3 = w2 &amp; wdActors %~ fmap (fn w2) in</pre>
+<pre class="diffpre insert">+  w3</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> -- | Update the player's view port</pre>
+<pre class="diffpre context"> updatePlayerViewport :: World -&gt; World</pre>
+<pre class="diffpre context"> updatePlayerViewport w =</pre>
+<pre class="diffpre info">@@ -482,3 +520,97 @@</pre>
+<pre class="diffpre context">       (x, y)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | Calculate the field of view from a position</pre>
+<pre class="diffpre insert">+calcFov :: Int -&gt; (WorldPos -&gt; Bool) -&gt; WorldPos -&gt; [(WorldPos, [WorldPos])]</pre>
+<pre class="diffpre insert">+calcFov fovDistance isEntityTransparent fromPos'@(WorldPos fromPos) =</pre>
+<pre class="diffpre insert">+  let boundries = getBoundries fromPos' in</pre>
+<pre class="diffpre insert">+  go &lt;$&gt; boundries</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    getBoundries (WorldPos (x, y)) = boundingPoints fovDistance (WorldPos (x, y))</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    go toPos'@(WorldPos toPos) =</pre>
+<pre class="diffpre insert">+      let line = WorldPos &lt;$&gt; bline fromPos toPos in</pre>
+<pre class="diffpre insert">+      let isTransparentOrStart p = p == fromPos' || isEntityTransparent p in</pre>
+<pre class="diffpre insert">+      let (m, r) = Lst.span isTransparentOrStart line in</pre>
+<pre class="diffpre insert">+      (toPos', m &lt;&gt; Lst.take 1 r)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | Get the bounds for a fov distance</pre>
+<pre class="diffpre insert">+boundingPoints :: Int -&gt; WorldPos -&gt; [WorldPos]</pre>
+<pre class="diffpre insert">+boundingPoints distance (WorldPos (atx, aty)) =</pre>
+<pre class="diffpre insert">+  Lst.nub $</pre>
+<pre class="diffpre insert">+    [WorldPos (atx - distance + d, aty - distance) | d &lt;- [0..distance * 2]] &lt;&gt;</pre>
+<pre class="diffpre insert">+    [WorldPos (atx - distance, aty - distance + d) | d &lt;- [0..distance * 2]] &lt;&gt;</pre>
+<pre class="diffpre insert">+    [WorldPos (atx - distance + d, aty + distance) | d &lt;- [0..distance * 2]] &lt;&gt;</pre>
+<pre class="diffpre insert">+    [WorldPos (atx + distance, aty - distance + d) | d &lt;- [0..distance * 2]]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+              </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | Bresenham's algorithm</pre>
+<pre class="diffpre insert">+-- | https://wiki.haskell.org/Bresenham%27s_line_drawing_algorithm</pre>
+<pre class="diffpre insert">+bline :: (Int, Int) -&gt; (Int, Int) -&gt; [(Int, Int)]</pre>
+<pre class="diffpre insert">+bline pa@(xa, ya) pb@(xb, yb) =</pre>
+<pre class="diffpre insert">+  let r = map maySwitch . Lst.unfoldr go $ (x1, y1, 0) in</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  case r of</pre>
+<pre class="diffpre insert">+    (p:_) | p == pa -&gt; r</pre>
+<pre class="diffpre insert">+    _ -&gt; Lst.reverse r</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    steep = abs (yb - ya) &gt; abs (xb - xa)</pre>
+<pre class="diffpre insert">+    maySwitch = if steep then (\(x,y) -&gt; (y,x)) else identity</pre>
+<pre class="diffpre insert">+    ((x1, y1), (x2, y2)) = case Lst.sort [maySwitch pa, maySwitch pb] of</pre>
+<pre class="diffpre insert">+                             [a, b] -&gt; (a, b)</pre>
+<pre class="diffpre insert">+                             _ -&gt; ((0, 0), (0, 0)) -- This case is never matched, but fixes partial match warning</pre>
+<pre class="diffpre insert">+    deltax = x2 - x1</pre>
+<pre class="diffpre insert">+    deltay = abs (y2 - y1)</pre>
+<pre class="diffpre insert">+    ystep = if y1 &lt; y2 then 1 else -1</pre>
+<pre class="diffpre insert">+    go (xTemp, yTemp, err)</pre>
+<pre class="diffpre insert">+        | xTemp &gt; x2 = Nothing</pre>
+<pre class="diffpre insert">+        | otherwise = Just ((xTemp, yTemp), (xTemp + 1, newY, newError))</pre>
+<pre class="diffpre insert">+        where</pre>
+<pre class="diffpre insert">+          tempError = err + deltay</pre>
+<pre class="diffpre insert">+          (newY, newError) = if (2 * tempError) &gt;= deltax</pre>
+<pre class="diffpre insert">+                            then (yTemp + ystep, tempError - deltax)</pre>
+<pre class="diffpre insert">+                            else (yTemp, tempError)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+isTransparent :: Map WorldPos Entity -&gt; WorldPos -&gt; Bool</pre>
+<pre class="diffpre insert">+isTransparent wmap pos =</pre>
+<pre class="diffpre insert">+  case Map.lookup pos wmap of</pre>
+<pre class="diffpre insert">+    Nothing -&gt; True</pre>
+<pre class="diffpre insert">+    Just e -&gt; (e ^. enType) /= E.Wall</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+darknessFovOverlay :: Player -&gt; Actor -&gt; Map PlayerPos Tile</pre>
+<pre class="diffpre insert">+darknessFovOverlay player actor =</pre>
+<pre class="diffpre insert">+  let</pre>
+<pre class="diffpre insert">+    (screenWidth, screenHeight) = player ^. plScreenSize</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    -- Create a full grid of darkness</pre>
+<pre class="diffpre insert">+    blackBg = Map.fromList [ (PlayerPos (x, y), E.getTile E.Dark)</pre>
+<pre class="diffpre insert">+                           | x &lt;- [0..(screenWidth - 1)]</pre>
+<pre class="diffpre insert">+                           , y &lt;- [0..(screenHeight - 1)]</pre>
+<pre class="diffpre insert">+                           ] </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    lightAt = worldCoordToPlayer (player ^. plWorldTopLeft) &lt;$&gt; flatFov (actor ^. acFov)</pre>
+<pre class="diffpre insert">+  in</pre>
+<pre class="diffpre insert">+  -- Remove the darkness overlay at any position that is to be lit</pre>
+<pre class="diffpre insert">+  foldr Map.delete blackBg lightAt</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+flatFov :: Maybe [(WorldPos, [WorldPos])] -&gt; [WorldPos]</pre>
+<pre class="diffpre insert">+flatFov Nothing = []</pre>
+<pre class="diffpre insert">+flatFov (Just fov) = Lst.nub . Lst.concat $ snd &lt;$&gt; fov</pre>
+<pre class="diffpre insert">+</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_09.html">prev</a> <a href="2018-04-02-haskell-rogue-like_11.html">next</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
