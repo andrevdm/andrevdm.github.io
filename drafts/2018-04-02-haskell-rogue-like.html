@@ -67,7 +67,13 @@
 <p>I am using <a href="https://github.com/sdiehl/protolude/">Protolude</a> as my prelude. It should be fairly easy to switch to something else. Note that protolude defines <code>&lt;&lt;$&gt;&gt;</code> which is the same as <code>(fmap . fmap)</code> or <code>&lt;$$&gt;</code> from <a href="https://hackage.haskell.org/package/composition-extra">composition-extra</a></p>
 <h3 id="lenses">Lenses</h3>
 <p>I am using lenses, since there are several nested record types I use. If you have not used <a href="https://hackage.haskell.org/package/lens">lens</a> before it may seem odd. I’m mostly using only three lenses, so you should be able to follow along without worrying about them too much.</p>
-<p>Here are a few quick examples that may help you get a sense for what they do.</p>
+<p>If you are unfamiliar with lenses here are some links that may help get you started quickly,</p>
+<ul>
+<li><a href="http://www.haskellforall.com/2013/05/program-imperatively-using-haskell.html">Program imperatively using Haskell lenses</a></li>
+<li><a href="https://artyom.me/lens-over-tea-1">Lens over tea</a></li>
+<li><a href="https://hackage.haskell.org/package/lens-tutorial-1.0.3/docs/Control-Lens-Tutorial.html">Control.Lens.Tutorial</a></li>
+</ul>
+<p>And here are a few quick examples that may help you get a sense for what they do.</p>
 <p>Given this definition</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></a>
