@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../../">Home</a>
+                <a href="../../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Haskell roguelike - ASCII terminal frontend</a></h1>
+
+            <div class="info">
+    Posted on April  2, 2018
+    
+</div>
+
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_fin.html">fin</a></p>
+<h1 id="ascii-terminal-gui-frontend">ASCII terminal GUI frontend</h1>
+<p>Just for fun, here is a horribly quick and dirty ASCII terminal frontend to show how you could create different frontends for the same engine. I’m not going to spend much time explaining this code. Hopefully it is enough to give you some ideas.</p>
+<h2 id="yuck">Yuck</h2>
+<p>Here are some of the shortcuts</p>
+<ul>
+<li>The code makes you press enter to start to give the server time to listen on the port</li>
+<li>No support for layers (not a big deal for an ASCII version I think)</li>
+<li>On error I just throw exceptions</li>
+<li>No attempt to make anything pure, its IO all the way</li>
+<li>The keyboard handling config is ignored, I’ve hard-coded support for up/down/left/right only</li>
+<li>No double buffering / diffing etc, so the terminal flashes on each move</li>
+<li>It would be better not to use websockets, the code may as well communicate directly in process</li>
+<li>Untested on windows</li>
+</ul>
+<p>It is still pretty interesting to see different frontends though, so I’ve decided to publish this anyway despite the limitations.</p>
+<p><img src="../../images/rogue_21_console.gif" /> <img src="../../images/rogue_21_chars.png" /></p>
+<h1 id="code">Code</h1>
+<h2 id="startup">Startup</h2>
+<h6 id="consoleappmain.hs-16-to-23">21_console/app/Main.hs (16 to 23)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">main <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">  map01 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">  map02 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/level02.csv&quot;</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">  void <span class="fu">.</span> forkIO <span class="fu">$</span> GE.runGame (getLevel map01 map02)</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">  putText <span class="st">&quot;Press enter to start the GUI&quot;</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">  void Txt.getLine</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">  Con.runGui</a></code></pre></div>
+<ul>
+<li><code>runGame</code> is run in its own thread</li>
+<li><code>runGui</code> is called after the user presses enter. This gives the server time to startup</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>network, websockets, wai, warp - same as the server, for web socket and related functionality</li>
+<li>terminal-size - allows us to get the terminal size on windows and linux</li>
+<li>ansi-terminal - basic terminal functionality e.g. cursor movement, color selection</li>
+</ul>
+<h2 id="rungui">runGui</h2>
+<h6 id="consolesrcguiconsolegui.hs-41-to-53">21_console/src/Gui/ConsoleGui.hs (41 to 53)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ot">runGui ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">runGui <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="dt">IO</span><span class="fu">.</span>hSetEcho stdin <span class="dt">False</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">  <span class="dt">IO</span><span class="fu">.</span>hSetBuffering stdin <span class="dt">IO</span><span class="fu">.</span><span class="dt">NoBuffering</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="dt">IO</span><span class="fu">.</span>hSetBuffering stdout <span class="dt">IO</span><span class="fu">.</span><span class="dt">NoBuffering</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">  </a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">  Sock.withSocketsDo <span class="fu">$</span> WS.runClient <span class="st">&quot;localhost&quot;</span> <span class="dv">61492</span> <span class="st">&quot;/&quot;</span> app</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="ot">    app ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">    app conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">      (x, y) <span class="ot">&lt;-</span> getSize</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">      runConnection conn x y </a></code></pre></div>
+<ul>
+<li>Disable echo so that reading a character wont write to the terminal.</li>
+<li>Disable buffering to make output be shown immediately.</li>
+<li>Start a web socket client</li>
+<li>Call <em>runConnection</em></li>
+</ul>
+<h2 id="runconnection">runConnection</h2>
+<h6 id="consolesrcguiconsolegui.hs-58-to-69">21_console/src/Gui/ConsoleGui.hs (58 to 69)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">runConnection ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">runConnection conn x y <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">  sendCommand conn <span class="fu">$</span> <span class="st">&quot;init|&quot;</span> <span class="fu">&lt;&gt;</span> show x <span class="fu">&lt;&gt;</span> <span class="st">&quot;|&quot;</span> <span class="fu">&lt;&gt;</span> show y <span class="fu">&lt;&gt;</span> <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">  void <span class="fu">$</span> forkIO (runKeys conn)</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">  void loop</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">  close conn</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">    loop <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">      cmd <span class="ot">&lt;-</span> receiveCommand conn</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">      handleCommand conn cmd</a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">      loop</a></code></pre></div>
+<ul>
+<li>Send the <em>init</em> command</li>
+<li>Start <em>runKeys</em> to listen for key presses in its own thread</li>
+<li><em>loop</em> to receive commands and pass them to <em>handleCommand</em></li>
+</ul>
+<h2 id="keys">Keys</h2>
+<p>Key presses are detected using code from <a href="https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input">this answer on stack overflow</a>, mapped to one of the rogue commands and sent to the backend.</p>
+<h6 id="consolesrcguiconsolegui.hs-73-to-99">21_console/src/Gui/ConsoleGui.hs (73 to 99)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">runKeys ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">runKeys conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  key <span class="ot">&lt;-</span> getKey <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">       <span class="st">&quot;k&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:up&quot;</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">       <span class="st">&quot;\ESC[A&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:up&quot;</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">       <span class="st">&quot;j&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:down&quot;</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">       <span class="st">&quot;\ESC[B&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:down&quot;</span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">       <span class="st">&quot;l&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:right&quot;</span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">       <span class="st">&quot;\ESC[C&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:right&quot;</span></a>
+<a class="sourceLine" id="cb4-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">       <span class="st">&quot;h&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:left&quot;</span></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14">       <span class="st">&quot;\ESC[D&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:left&quot;</span></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb4-16" data-line-number="16">       _        <span class="ot">-&gt;</span> pure <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-17" data-line-number="17">  </a>
+<a class="sourceLine" id="cb4-18" data-line-number="18">  sendCommand conn <span class="fu">$</span> <span class="st">&quot;key|&quot;</span> <span class="fu">&lt;&gt;</span> key</a>
+<a class="sourceLine" id="cb4-19" data-line-number="19">  runKeys conn</a>
+<a class="sourceLine" id="cb4-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb4-21" data-line-number="21"><span class="co">-- | https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input</span></a>
+<a class="sourceLine" id="cb4-22" data-line-number="22"><span class="ot">getKey ::</span> <span class="dt">IO</span> [<span class="dt">Char</span>]</a>
+<a class="sourceLine" id="cb4-23" data-line-number="23">getKey <span class="fu">=</span> reverse <span class="fu">&lt;$&gt;</span> getKey' <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-24" data-line-number="24">  <span class="kw">where</span> getKey' chars <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-25" data-line-number="25">          char <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>getChar</a>
+<a class="sourceLine" id="cb4-26" data-line-number="26">          more <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>hReady stdin</a>
+<a class="sourceLine" id="cb4-27" data-line-number="27">          (<span class="kw">if</span> more <span class="kw">then</span> getKey' <span class="kw">else</span> return) (char<span class="fu">:</span>chars)</a></code></pre></div>
+<h2 id="handlecommand">handleCommand</h2>
+<p>The JSON has a common header with a <em>cmd</em> property. <em>CommandWrapper</em> is used to read this and then call the appropriate handler (where implemented).</p>
+<h6 id="consolesrcguiconsolegui.hs-104-to-124">21_console/src/Gui/ConsoleGui.hs (104 to 124)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">handleCommand ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">handleCommand conn cmd' <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">CommandWrapper</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">    <span class="dt">Right</span> cmd <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">     <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">         <span class="dt">CommandWrapper</span> <span class="st">&quot;log&quot;</span> <span class="ot">-&gt;</span> pass</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">         <span class="dt">CommandWrapper</span> <span class="st">&quot;error&quot;</span> <span class="ot">-&gt;</span> pass</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">         <span class="dt">CommandWrapper</span> <span class="st">&quot;config&quot;</span> <span class="ot">-&gt;</span> handleConfig conn cmd'</a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">         <span class="dt">CommandWrapper</span> <span class="st">&quot;draw&quot;</span> <span class="ot">-&gt;</span> handleDraw conn cmd'</a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">         _ <span class="ot">-&gt;</span> throwString <span class="fu">.</span> Txt.unpack <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd'</a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="ot">handleConfig ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb5-15" data-line-number="15">handleConfig conn cmd' <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-16" data-line-number="16">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">GC.UiConfig</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-17" data-line-number="17">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
+<a class="sourceLine" id="cb5-18" data-line-number="18">    <span class="dt">Right</span> _cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-19" data-line-number="19">      (w,h) <span class="ot">&lt;-</span> getSize</a>
+<a class="sourceLine" id="cb5-20" data-line-number="20">      sendCommand conn <span class="fu">$</span> <span class="st">&quot;redraw|&quot;</span> <span class="fu">&lt;&gt;</span> show w <span class="fu">&lt;&gt;</span> <span class="st">&quot;|&quot;</span> <span class="fu">&lt;&gt;</span> show h</a>
+<a class="sourceLine" id="cb5-21" data-line-number="21">      pass</a></code></pre></div>
+<h2 id="drawing">Drawing</h2>
+<p>The drawing logic is similar to the JavaScript drawing logic, except that there are no layers.</p>
+<ul>
+<li>The layers are combined with <em>Map.unions</em> with the top layer “hiding” any lower layer.</li>
+<li>A blank background is drawn</li>
+<li>Each tile is drawn with the appropriate ANSI attributes (colour)</li>
+</ul>
+<h6 id="consolesrcguiconsolegui.hs-129-to-157">21_console/src/Gui/ConsoleGui.hs (129 to 157)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">handleDraw ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2">handleDraw _conn cmd' <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">GC.UiDrawCommand</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">    <span class="dt">Right</span> cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">      (width, height) <span class="ot">&lt;-</span> getSize</a>
+<a class="sourceLine" id="cb6-7" data-line-number="7">      </a>
+<a class="sourceLine" id="cb6-8" data-line-number="8">      <span class="kw">let</span> l1 <span class="fu">=</span> (\(x, y, i) <span class="ot">-&gt;</span> ((x, y), i)) <span class="fu">&lt;&lt;$&gt;&gt;</span> GC.drMapData cmd</a>
+<a class="sourceLine" id="cb6-9" data-line-number="9">      <span class="kw">let</span> layers <span class="fu">=</span> Map.unions <span class="fu">.</span> reverse <span class="fu">$</span> Map.fromList <span class="fu">&lt;$&gt;</span> l1</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb6-11" data-line-number="11">      A.setSGR [<span class="dt">A.Reset</span>]</a>
+<a class="sourceLine" id="cb6-12" data-line-number="12">      A.clearScreen</a>
+<a class="sourceLine" id="cb6-13" data-line-number="13">      A.hideCursor</a>
+<a class="sourceLine" id="cb6-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb6-15" data-line-number="15">      A.setCursorPosition <span class="dv">0</span> <span class="dv">0</span></a>
+<a class="sourceLine" id="cb6-16" data-line-number="16">      <span class="kw">let</span> (t, s) <span class="fu">=</span> tileFromId <span class="dv">4113</span></a>
+<a class="sourceLine" id="cb6-17" data-line-number="17">      <span class="kw">let</span> blankLine <span class="fu">=</span> Txt.replicate width t</a>
+<a class="sourceLine" id="cb6-18" data-line-number="18">      A.setSGR s</a>
+<a class="sourceLine" id="cb6-19" data-line-number="19">      traverse_ putText <span class="fu">$</span> replicate height blankLine</a>
+<a class="sourceLine" id="cb6-20" data-line-number="20">      traverse_ drawTile <span class="fu">$</span> Map.toList layers</a>
+<a class="sourceLine" id="cb6-21" data-line-number="21">      A.setSGR [<span class="dt">A.Reset</span>]</a>
+<a class="sourceLine" id="cb6-22" data-line-number="22"></a>
+<a class="sourceLine" id="cb6-23" data-line-number="23">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="ot">    drawTile ::</span> ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb6-25" data-line-number="25">    drawTile ((x, y), tid) <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-26" data-line-number="26">      A.setCursorPosition y x</a>
+<a class="sourceLine" id="cb6-27" data-line-number="27">      <span class="kw">let</span> (t, s) <span class="fu">=</span> tileFromId tid</a>
+<a class="sourceLine" id="cb6-28" data-line-number="28">      A.setSGR s</a>
+<a class="sourceLine" id="cb6-29" data-line-number="29">      putStr t</a></code></pre></div>
+<h2 id="getsize">getSize</h2>
+<p>I’ve limited the terminal size to 50x20 because this reduces the flickering and because the demo maps are so small.</p>
+<h6 id="consolesrcguiconsolegui.hs-162-to-166">21_console/src/Gui/ConsoleGui.hs (162 to 166)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">getSize ::</span> <span class="dt">IO</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">getSize <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">  Sz.size <span class="fu">@</span> <span class="dt">Int</span> <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwString <span class="st">&quot;unable to get screen size&quot;</span></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">    <span class="dt">Just</span> (<span class="dt">Sz.Window</span> w h) <span class="ot">-&gt;</span> pure (min <span class="dv">50</span> w, min <span class="dv">20</span> h)</a></code></pre></div>
+<h2 id="tiles">tiles</h2>
+<p>Tile Ids are mapped to a unicode character and ANSI attribute</p>
+<h6 id="consolesrcguiconsolegui.hs-170-to-184">21_console/src/Gui/ConsoleGui.hs (170 to 184)</h6>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="co">-- | https://github.com/globalcitizen/zomia/blob/master/USEFUL-UNICODE.md</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="ot">tileFromId ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">Text</span>, [<span class="dt">A.SGR</span>])</a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">tileFromId <span class="dv">4113</span> <span class="fu">=</span> (<span class="st">&quot; &quot;</span>, []) <span class="co">-- &quot; &quot; -- E.Blank</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">tileFromId <span class="dv">2615</span> <span class="fu">=</span> (<span class="st">&quot;⌺&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;'&quot; -- E.Door</span></a>
+<a class="sourceLine" id="cb8-5" data-line-number="5">tileFromId <span class="dv">2115</span> <span class="fu">=</span> (<span class="st">&quot;⊠&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Red</span>]) <span class="co">-- &quot;+&quot; -- E.DoorClosed</span></a>
+<a class="sourceLine" id="cb8-6" data-line-number="6">tileFromId  <span class="dv">914</span> <span class="fu">=</span> (<span class="st">&quot;█&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;#&quot; -- E.Wall</span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7">tileFromId  <span class="dv">803</span> <span class="fu">=</span> (<span class="st">&quot;Ӧ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Cyan</span>]) <span class="co">-- &quot;@&quot; -- E.Player</span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">tileFromId <span class="dv">2503</span> <span class="fu">=</span> (<span class="st">&quot;⍾&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Magenta</span>]) <span class="co">-- &quot;B&quot; -- E.Bug</span></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">tileFromId <span class="dv">3804</span> <span class="fu">=</span> (<span class="st">&quot;ຯ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Magenta</span>]) <span class="co">-- &quot;S&quot; -- E.Snake</span></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10">tileFromId <span class="dv">4311</span> <span class="fu">=</span> (<span class="st">&quot;░&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;░&quot; -- E.Dark</span></a>
+<a class="sourceLine" id="cb8-11" data-line-number="11">tileFromId <span class="dv">5644</span> <span class="fu">=</span> (<span class="st">&quot;ᝐ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;&gt;&quot; -- E.Stairs</span></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12">tileFromId <span class="dv">1646</span> <span class="fu">=</span> (<span class="st">&quot;☁&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;d&quot; -- E.PotionDark</span></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13">tileFromId  <span class="dv">846</span> <span class="fu">=</span> (<span class="st">&quot;☀&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Yellow</span>]) <span class="co">-- &quot;l&quot; -- E.PotionLight</span></a>
+<a class="sourceLine" id="cb8-14" data-line-number="14">tileFromId <span class="dv">5445</span> <span class="fu">=</span> (<span class="st">&quot;ዋ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;k&quot; -- E.Key</span></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15">tileFromId _    <span class="fu">=</span> (<span class="st">&quot;?&quot;</span>, [])</a></code></pre></div>
+<h1 id="terminal-frontend">Terminal frontend</h1>
+<p>A more realistic terminal GUI would need to address all the issues mentioned above, using <a href="https://hackage.haskell.org/package/brick">Brick</a> would probably be where I’d start. However I think a small demo frontend like this one is interesting enough to include here.</p>
+<h1 id="chapters">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_fin.html">fin</a></p>
+<h1 id="changes">Changes</h1>
+<div class="wrapper">
+<h2 class=".diffh2">
+src/GameCore.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 20_structure/src/GameCore.hs 21_console/src/GameCore.hs</pre>
+<pre class="diffpre delete">--- 20_structure/src/GameCore.hs</pre>
+<pre class="diffpre insert">+++ 21_console/src/GameCore.hs</pre>
+<pre class="diffpre info">@@ -201,6 +201,21 @@</pre>
+<pre class="diffpre context"> instance Ae.ToJSON UiDrawCommand where</pre>
+<pre class="diffpre context">   toJSON = Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+instance Ae.FromJSON UiMessage where</pre>
+<pre class="diffpre insert">+  parseJSON = Ae.genericParseJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance Ae.FromJSON UiConfig where</pre>
+<pre class="diffpre insert">+  parseJSON = Ae.genericParseJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance Ae.FromJSON UiConfigData where</pre>
+<pre class="diffpre insert">+  parseJSON = Ae.genericParseJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance Ae.FromJSON UiKey where</pre>
+<pre class="diffpre insert">+  parseJSON = Ae.genericParseJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance Ae.FromJSON UiDrawCommand where</pre>
+<pre class="diffpre insert">+  parseJSON = Ae.genericParseJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> -- | drop prefix, and then lower case</pre>
+<pre class="diffpre context"> -- | renField 3 "tskBla" == "bla"</pre>
+</div>
+<h2 class=".diffh2">
+src/GameEngine.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 20_structure/src/GameEngine.hs 21_console/src/GameEngine.hs</pre>
+<pre class="diffpre delete">--- 20_structure/src/GameEngine.hs</pre>
+<pre class="diffpre insert">+++ 21_console/src/GameEngine.hs</pre>
+<pre class="diffpre info">@@ -219,7 +219,7 @@</pre>
+<pre class="diffpre context">       -- the annotation code can be removed once everything is working</pre>
+<pre class="diffpre context">       let annotations = w2 ^. wdUtilBrainAnnotations </pre>
+<pre class="diffpre context">       modifyWorld (\w -&gt; w &amp; wdUtilBrainAnnotations .~ [])</pre>
+<pre class="diffpre delete">-      printAnnotations annotations</pre>
+<pre class="diffpre insert">+      --printAnnotations annotations</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">       -- Draw</pre>
+<pre class="diffpre context">       w3 &lt;- askWorld</pre>
+</div>
+<h2 class=".diffh2">
+src/Gui/ConsoleGui.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 20_structure/src/Gui/ConsoleGui.hs 21_console/src/Gui/ConsoleGui.hs</pre>
+<pre class="diffpre delete">--- 20_structure/src/Gui/ConsoleGui.hs</pre>
+<pre class="diffpre insert">+++ 21_console/src/Gui/ConsoleGui.hs</pre>
+<pre class="diffpre info">@@ -0,0 +1,203 @@</pre>
+<pre class="diffpre insert">+{-# OPTIONS_GHC -fno-warn-type-defaults #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE LambdaCase #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE TypeApplications #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE FlexibleInstances #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE DeriveGeneric #-}</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+module Gui.ConsoleGui (runGui) where</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import           Protolude</pre>
+<pre class="diffpre insert">+import qualified Data.Map.Strict as Map</pre>
+<pre class="diffpre insert">+import qualified Data.Text as Txt</pre>
+<pre class="diffpre insert">+import qualified Data.Text.Encoding as TxtE</pre>
+<pre class="diffpre insert">+import qualified Data.Aeson as Ae</pre>
+<pre class="diffpre insert">+import qualified Data.ByteString.Lazy as BSL</pre>
+<pre class="diffpre insert">+import qualified Codec.Compression.BZip as Bz</pre>
+<pre class="diffpre insert">+import qualified System.IO as IO</pre>
+<pre class="diffpre insert">+import qualified System.Console.ANSI as A</pre>
+<pre class="diffpre insert">+import qualified System.Console.Terminal.Size as Sz</pre>
+<pre class="diffpre insert">+import           Control.Exception.Safe (throwString)</pre>
+<pre class="diffpre insert">+import qualified Network.Socket as Sock</pre>
+<pre class="diffpre insert">+import qualified Network.WebSockets as WS</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+import qualified GameCore as GC</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+sendCommand :: WS.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre insert">+sendCommand = WS.sendTextData</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+receiveCommand :: WS.Connection -&gt; IO Text</pre>
+<pre class="diffpre insert">+receiveCommand conn = do</pre>
+<pre class="diffpre insert">+  compressed &lt;- WS.receiveData conn</pre>
+<pre class="diffpre insert">+  pure . TxtE.decodeUtf8 . BSL.toStrict $ Bz.decompress compressed</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+close :: WS.Connection -&gt; IO ()</pre>
+<pre class="diffpre insert">+close conn = WS.sendClose conn ("" :: Text)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runGui :: IO ()</pre>
+<pre class="diffpre insert">+runGui = do</pre>
+<pre class="diffpre insert">+  IO.hSetEcho stdin False</pre>
+<pre class="diffpre insert">+  IO.hSetBuffering stdin IO.NoBuffering</pre>
+<pre class="diffpre insert">+  IO.hSetBuffering stdout IO.NoBuffering</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+  Sock.withSocketsDo $ WS.runClient "localhost" 61492 "/" app</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    app :: WS.Connection -&gt; IO ()</pre>
+<pre class="diffpre insert">+    app conn = do</pre>
+<pre class="diffpre insert">+      (x, y) &lt;- getSize</pre>
+<pre class="diffpre insert">+      runConnection conn x y </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runConnection :: WS.Connection -&gt; Int -&gt; Int -&gt; IO ()</pre>
+<pre class="diffpre insert">+runConnection conn x y = do</pre>
+<pre class="diffpre insert">+  sendCommand conn $ "init|" &lt;&gt; show x &lt;&gt; "|" &lt;&gt; show y &lt;&gt; ""</pre>
+<pre class="diffpre insert">+  void $ forkIO (runKeys conn)</pre>
+<pre class="diffpre insert">+  void loop</pre>
+<pre class="diffpre insert">+  close conn</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    loop = do</pre>
+<pre class="diffpre insert">+      cmd &lt;- receiveCommand conn</pre>
+<pre class="diffpre insert">+      handleCommand conn cmd</pre>
+<pre class="diffpre insert">+      loop</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runKeys :: WS.Connection -&gt; IO ()</pre>
+<pre class="diffpre insert">+runKeys conn = do</pre>
+<pre class="diffpre insert">+  key &lt;- getKey &gt;&gt;= \case</pre>
+<pre class="diffpre insert">+       "k"      -&gt; pure "Move:up"</pre>
+<pre class="diffpre insert">+       "\ESC[A" -&gt; pure "Move:up"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+       "j"      -&gt; pure "Move:down"</pre>
+<pre class="diffpre insert">+       "\ESC[B" -&gt; pure "Move:down"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+       "l"      -&gt; pure "Move:right"</pre>
+<pre class="diffpre insert">+       "\ESC[C" -&gt; pure "Move:right"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+       "h"      -&gt; pure "Move:left"</pre>
+<pre class="diffpre insert">+       "\ESC[D" -&gt; pure "Move:left"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+       _        -&gt; pure ""</pre>
+<pre class="diffpre insert">+  </pre>
+<pre class="diffpre insert">+  sendCommand conn $ "key|" &lt;&gt; key</pre>
+<pre class="diffpre insert">+  runKeys conn</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input</pre>
+<pre class="diffpre insert">+getKey :: IO [Char]</pre>
+<pre class="diffpre insert">+getKey = reverse &lt;$&gt; getKey' ""</pre>
+<pre class="diffpre insert">+  where getKey' chars = do</pre>
+<pre class="diffpre insert">+          char &lt;- IO.getChar</pre>
+<pre class="diffpre insert">+          more &lt;- IO.hReady stdin</pre>
+<pre class="diffpre insert">+          (if more then getKey' else return) (char:chars)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+handleCommand :: WS.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre insert">+handleCommand conn cmd' =</pre>
+<pre class="diffpre insert">+  case Ae.eitherDecode (BSL.fromStrict . TxtE.encodeUtf8 $ cmd') :: Either [Char] CommandWrapper of</pre>
+<pre class="diffpre insert">+    Left e -&gt; throwString e</pre>
+<pre class="diffpre insert">+    Right cmd -&gt;</pre>
+<pre class="diffpre insert">+     case cmd of</pre>
+<pre class="diffpre insert">+         CommandWrapper "log" -&gt; pass</pre>
+<pre class="diffpre insert">+         CommandWrapper "error" -&gt; pass</pre>
+<pre class="diffpre insert">+         CommandWrapper "config" -&gt; handleConfig conn cmd'</pre>
+<pre class="diffpre insert">+         CommandWrapper "draw" -&gt; handleDraw conn cmd'</pre>
+<pre class="diffpre insert">+         _ -&gt; throwString . Txt.unpack $ "Unknown command: " &lt;&gt; cmd'</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+handleConfig :: WS.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre insert">+handleConfig conn cmd' =</pre>
+<pre class="diffpre insert">+  case Ae.eitherDecode (BSL.fromStrict . TxtE.encodeUtf8 $ cmd') :: Either [Char] GC.UiConfig of</pre>
+<pre class="diffpre insert">+    Left e -&gt; throwString e</pre>
+<pre class="diffpre insert">+    Right _cmd -&gt; do</pre>
+<pre class="diffpre insert">+      (w,h) &lt;- getSize</pre>
+<pre class="diffpre insert">+      sendCommand conn $ "redraw|" &lt;&gt; show w &lt;&gt; "|" &lt;&gt; show h</pre>
+<pre class="diffpre insert">+      pass</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+handleDraw :: WS.Connection -&gt; Text -&gt; IO ()</pre>
+<pre class="diffpre insert">+handleDraw _conn cmd' =</pre>
+<pre class="diffpre insert">+  case Ae.eitherDecode (BSL.fromStrict . TxtE.encodeUtf8 $ cmd') :: Either [Char] GC.UiDrawCommand of</pre>
+<pre class="diffpre insert">+    Left e -&gt; throwString e</pre>
+<pre class="diffpre insert">+    Right cmd -&gt; do</pre>
+<pre class="diffpre insert">+      (width, height) &lt;- getSize</pre>
+<pre class="diffpre insert">+      </pre>
+<pre class="diffpre insert">+      let l1 = (\(x, y, i) -&gt; ((x, y), i)) &lt;&lt;$&gt;&gt; GC.drMapData cmd</pre>
+<pre class="diffpre insert">+      let layers = Map.unions . reverse $ Map.fromList &lt;$&gt; l1</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      A.setSGR [A.Reset]</pre>
+<pre class="diffpre insert">+      A.clearScreen</pre>
+<pre class="diffpre insert">+      A.hideCursor</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      A.setCursorPosition 0 0</pre>
+<pre class="diffpre insert">+      let (t, s) = tileFromId 4113</pre>
+<pre class="diffpre insert">+      let blankLine = Txt.replicate width t</pre>
+<pre class="diffpre insert">+      A.setSGR s</pre>
+<pre class="diffpre insert">+      traverse_ putText $ replicate height blankLine</pre>
+<pre class="diffpre insert">+      traverse_ drawTile $ Map.toList layers</pre>
+<pre class="diffpre insert">+      A.setSGR [A.Reset]</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    drawTile :: ((Int, Int), Int) -&gt; IO ()</pre>
+<pre class="diffpre insert">+    drawTile ((x, y), tid) = do</pre>
+<pre class="diffpre insert">+      A.setCursorPosition y x</pre>
+<pre class="diffpre insert">+      let (t, s) = tileFromId tid</pre>
+<pre class="diffpre insert">+      A.setSGR s</pre>
+<pre class="diffpre insert">+      putStr t</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+getSize :: IO (Int, Int)</pre>
+<pre class="diffpre insert">+getSize =</pre>
+<pre class="diffpre insert">+  Sz.size @ Int &gt;&gt;= \case</pre>
+<pre class="diffpre insert">+    Nothing -&gt; throwString "unable to get screen size"</pre>
+<pre class="diffpre insert">+    Just (Sz.Window w h) -&gt; pure (min 50 w, min 20 h)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+      </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | https://github.com/globalcitizen/zomia/blob/master/USEFUL-UNICODE.md</pre>
+<pre class="diffpre insert">+tileFromId :: Int -&gt; (Text, [A.SGR])</pre>
+<pre class="diffpre insert">+tileFromId 4113 = (" ", []) -- " " -- E.Blank</pre>
+<pre class="diffpre insert">+tileFromId 2615 = ("⌺", [A.SetColor A.Foreground A.Vivid A.Green]) -- "'" -- E.Door</pre>
+<pre class="diffpre insert">+tileFromId 2115 = ("⊠", [A.SetColor A.Foreground A.Vivid A.Red]) -- "+" -- E.DoorClosed</pre>
+<pre class="diffpre insert">+tileFromId  914 = ("█", [A.SetColor A.Foreground A.Dull A.White]) -- "#" -- E.Wall</pre>
+<pre class="diffpre insert">+tileFromId  803 = ("Ӧ", [A.SetColor A.Foreground A.Vivid A.Cyan]) -- "@" -- E.Player</pre>
+<pre class="diffpre insert">+tileFromId 2503 = ("⍾", [A.SetColor A.Foreground A.Dull A.Magenta]) -- "B" -- E.Bug</pre>
+<pre class="diffpre insert">+tileFromId 3804 = ("ຯ", [A.SetColor A.Foreground A.Vivid A.Magenta]) -- "S" -- E.Snake</pre>
+<pre class="diffpre insert">+tileFromId 4311 = ("░", [A.SetColor A.Foreground A.Dull A.White]) -- "░" -- E.Dark</pre>
+<pre class="diffpre insert">+tileFromId 5644 = ("ᝐ", [A.SetColor A.Foreground A.Dull A.Green]) -- "&gt;" -- E.Stairs</pre>
+<pre class="diffpre insert">+tileFromId 1646 = ("☁", [A.SetColor A.Foreground A.Dull A.White]) -- "d" -- E.PotionDark</pre>
+<pre class="diffpre insert">+tileFromId  846 = ("☀", [A.SetColor A.Foreground A.Vivid A.Yellow]) -- "l" -- E.PotionLight</pre>
+<pre class="diffpre insert">+tileFromId 5445 = ("ዋ", [A.SetColor A.Foreground A.Dull A.Green]) -- "k" -- E.Key</pre>
+<pre class="diffpre insert">+tileFromId _    = ("?", [])</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+--------------------------------------------------------------------------------------------------------------------</pre>
+<pre class="diffpre insert">+data CommandWrapper = CommandWrapper</pre>
+<pre class="diffpre insert">+                      { coCmd :: !Text</pre>
+<pre class="diffpre insert">+                      } deriving (Generic, Show)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+instance Ae.FromJSON CommandWrapper where</pre>
+<pre class="diffpre insert">+  parseJSON = Ae.genericParseJSON Ae.defaultOptions { Ae.fieldLabelModifier = renField 2 True }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- | drop prefix, and then lower case</pre>
+<pre class="diffpre insert">+-- | renField 3 "tskBla" == "bla"</pre>
+<pre class="diffpre insert">+renField :: Int -&gt; Bool -&gt; [Char] -&gt; [Char]</pre>
+<pre class="diffpre insert">+renField drp toLower =</pre>
+<pre class="diffpre insert">+  Txt.unpack . (if toLower then mkLower else identity) . Txt.drop drp . Txt.pack</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    mkLower t = Txt.toLower (Txt.take 1 t) &lt;&gt; Txt.drop 1 t</pre>
+</div>
+<h2 class=".diffh2">
+app/Main.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre difffile">diff -w -B -a -d -u -b -r --new-file 20_structure/app/Main.hs 21_console/app/Main.hs</pre>
+<pre class="diffpre delete">--- 20_structure/app/Main.hs</pre>
+<pre class="diffpre insert">+++ 21_console/app/Main.hs</pre>
+<pre class="diffpre info">@@ -6,6 +6,7 @@</pre>
+<pre class="diffpre context"> import           Protolude </pre>
+<pre class="diffpre context"> import qualified Data.Text.IO as Txt</pre>
+<pre class="diffpre context">   </pre>
+<pre class="diffpre insert">+import qualified Gui.ConsoleGui as Con</pre>
+<pre class="diffpre context"> import qualified GameCore as GC</pre>
+<pre class="diffpre context"> import qualified GameEngine as GE</pre>
+<pre class="diffpre context"> import qualified Levels.Level01 as L01</pre>
+<pre class="diffpre info">@@ -11,11 +12,16 @@</pre>
+<pre class="diffpre context"> import qualified Levels.Level01 as L01</pre>
+<pre class="diffpre context"> import qualified Levels.Level02 as L02</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> main :: IO ()</pre>
+<pre class="diffpre context"> main = do</pre>
+<pre class="diffpre context">   map01 &lt;- Txt.readFile "worlds/simple.csv"</pre>
+<pre class="diffpre context">   map02 &lt;- Txt.readFile "worlds/level02.csv"</pre>
+<pre class="diffpre delete">-  GE.runGame (getLevel map01 map02)</pre>
+<pre class="diffpre insert">+  void . forkIO $ GE.runGame (getLevel map01 map02)</pre>
+<pre class="diffpre insert">+  putText "Press enter to start the GUI"</pre>
+<pre class="diffpre insert">+  void Txt.getLine</pre>
+<pre class="diffpre insert">+  Con.runGui</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> getLevel :: Text -&gt; Text -&gt; GC.Levels -&gt; GC.Level</pre>
+<pre class="diffpre context"> getLevel map01 _ GC.Levels01 = L01.mkLevel map01</pre>
+</div>
+</div>
+<h1 id="chapters-1">Chapters</h1>
+<p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_fin.html">fin</a></p>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>

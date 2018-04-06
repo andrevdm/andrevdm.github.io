@@ -42,7 +42,7 @@
 <p>I’ve not changed the hosting code to fit into the layers, so I’ve just called it layer 0. I could have made it part of layer 1, either by making a HostT or alternatively by having Apt store a <em>Maybe</em> <em>World</em> and <em>Connection</em>. If my hosting code got any more complicated I’d do something like that.</p>
 <h2 id="layer-0">Layer 0</h2>
 <p>All the code in GameHost is layer zero as is <em>runGame</em> and <em>manageConnection</em> from GameEngine. <em>manageConnection</em> starts the AppT pipeline (initialise and <em>startGame</em>)</p>
-<h6 id="structuresrcgameengine.hs-41-to-69">20_structure/src/GameEngine.hs (41 to 69)</h6>
+<h6 id="consolesrcgameengine.hs-41-to-69">21_console/src/GameEngine.hs (41 to 69)</h6>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="co">-- L0 Hosting</span></a>
 <a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
@@ -74,7 +74,7 @@
 <a class="sourceLine" id="cb1-29" data-line-number="29"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
 <h2 id="layer-1">Layer 1</h2>
 <p>Layer 1 defines <em>AppState</em> and <em>AppT</em>. It has the <em>initialiseConfig</em> and <em>startGame</em> functions. <em>startGame</em> gets commands from the web sockets and starts layer two’s <em>handleCommand</em></p>
-<h6 id="structuresrcgameengine.hs-74-to-115">20_structure/src/GameEngine.hs (74 to 115)</h6>
+<h6 id="consolesrcgameengine.hs-74-to-115">21_console/src/GameEngine.hs (74 to 115)</h6>
 <div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
 <a class="sourceLine" id="cb2-2" data-line-number="2"><span class="co">-- L1 App (orchestration)</span></a>
 <a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
@@ -120,7 +120,7 @@
 <h2 id="layer-2">Layer 2</h2>
 <p>Layer 2 acts as a bridge to external services. The only external service here is the web socket connection. The <em>MonadHost</em> class abstracts actions on this connection. There are two instances of the type class. One for the normal case where we have the connection and a <em>World</em> and one for when we only have a connection. I could have chosen to use a <em>Maybe World</em> and only have one instance but I think this was is clearer.</p>
 <p>Since there are two instances and they share most of their code, the type class has a default implementation for most of the functions.</p>
-<h6 id="structuresrcgameengine.hs-120-to-178">20_structure/src/GameEngine.hs (120 to 178)</h6>
+<h6 id="consolesrcgameengine.hs-120-to-178">21_console/src/GameEngine.hs (120 to 178)</h6>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
 <a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co">-- L2 (bridge / external services)</span></a>
 <a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
@@ -181,7 +181,7 @@
 <a class="sourceLine" id="cb3-58" data-line-number="58">  </a>
 <a class="sourceLine" id="cb3-59" data-line-number="59">  debugPrint <span class="fu">=</span> putText</a></code></pre></div>
 <p>Layer 2 has <em>handleCommand</em>, <em>runCmd</em> and <em>sendConfig</em>. The functions that need to deal with the external service and call functions from level 3.</p>
-<h6 id="structuresrcgameengine.hs-183-to-266">20_structure/src/GameEngine.hs (183 to 266)</h6>
+<h6 id="consolesrcgameengine.hs-183-to-266">21_console/src/GameEngine.hs (183 to 266)</h6>
 <div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">handleCommand ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m (<span class="dt">Maybe</span> <span class="dt">Text</span>)</a>
 <a class="sourceLine" id="cb4-2" data-line-number="2">handleCommand t <span class="fu">=</span> </a>
 <a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="kw">case</span> parseCommand t <span class="kw">of</span></a>
@@ -221,7 +221,7 @@
 <a class="sourceLine" id="cb4-37" data-line-number="37">      <span class="co">-- the annotation code can be removed once everything is working</span></a>
 <a class="sourceLine" id="cb4-38" data-line-number="38">      <span class="kw">let</span> annotations <span class="fu">=</span> w2 <span class="fu">^.</span> wdUtilBrainAnnotations </a>
 <a class="sourceLine" id="cb4-39" data-line-number="39">      modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">.~</span> [])</a>
-<a class="sourceLine" id="cb4-40" data-line-number="40">      printAnnotations annotations</a>
+<a class="sourceLine" id="cb4-40" data-line-number="40">      <span class="co">--printAnnotations annotations</span></a>
 <a class="sourceLine" id="cb4-41" data-line-number="41"></a>
 <a class="sourceLine" id="cb4-42" data-line-number="42">      <span class="co">-- Draw</span></a>
 <a class="sourceLine" id="cb4-43" data-line-number="43">      w3 <span class="ot">&lt;-</span> askWorld</a>
