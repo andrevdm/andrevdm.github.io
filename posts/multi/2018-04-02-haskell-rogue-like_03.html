@@ -31,15 +31,15 @@
 <h1 id="entities">Entities</h1>
 <p>Having selected a tileset we now need a type to represent a tile. I decided to create two types, a <em>Tile</em> and an <em>Entity</em> type. The <em>Tile</em> type represents a single tile from the tileset. A <em>Entity</em> is a thing that exists in the game world, something what will be stored in the world map. I.e. I’ll work with <em>entities</em> and draw their <em>Tile</em></p>
 <h6 id="tilessrcgamecore.hs-31-to-39">03_tiles/src/GameCore.hs (31 to 39)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Tile</span> <span class="fu">=</span> <span class="dt">Tile</span> {<span class="ot"> _tlName ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">                 ,<span class="ot"> _tlPic ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3">                 ,<span class="ot"> _tlId ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4">                 } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">data</span> <span class="dt">Entity</span> <span class="fu">=</span> <span class="dt">Entity</span> {<span class="ot"> _enType ::</span> <span class="fu">!</span><span class="dt">E.EntityType</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">                     ,<span class="ot"> _enTile ::</span> <span class="fu">!</span><span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">                     ,<span class="ot"> _enProps ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a>
-<a class="sourceLine" id="cb1-9" data-line-number="9">                     } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">data</span> <span class="dt">Tile</span> <span class="fu">=</span> <span class="dt">Tile</span> {<span class="ot"> _tlName ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb1-2" title="2">                 ,<span class="ot"> _tlPic ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb1-3" title="3">                 ,<span class="ot"> _tlId ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb1-4" title="4">                 } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb1-5" title="5"></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="kw">data</span> <span class="dt">Entity</span> <span class="fu">=</span> <span class="dt">Entity</span> {<span class="ot"> _enType ::</span> <span class="fu">!</span><span class="dt">E.EntityType</span></a>
+<a class="sourceLine" id="cb1-7" title="7">                     ,<span class="ot"> _enTile ::</span> <span class="fu">!</span><span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb1-8" title="8">                     ,<span class="ot"> _enProps ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb1-9" title="9">                     } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
 <p>A <em>tile</em> has</p>
 <ul>
 <li>A name</li>
@@ -55,65 +55,65 @@
 <p>It is possible to combine these two concepts into a single type. I decided to have them separate so that I could have a single entity that changes its tile based on some state.</p>
 <p>Next some basic <em>entity</em> types for a the first world</p>
 <h6 id="tilessrcentitytype.hs-8-to-13">03_tiles/src/EntityType.hs (8 to 13)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span> <span class="dt">EntityType</span> <span class="fu">=</span> <span class="dt">Blank</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">                <span class="fu">|</span> <span class="dt">Door</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">                <span class="fu">|</span> <span class="dt">DoorClosed</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">                <span class="fu">|</span> <span class="dt">Wall</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">                <span class="fu">|</span> <span class="dt">Unknown</span></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">                <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">data</span> <span class="dt">EntityType</span> <span class="fu">=</span> <span class="dt">Blank</span></a>
+<a class="sourceLine" id="cb2-2" title="2">                <span class="fu">|</span> <span class="dt">Door</span></a>
+<a class="sourceLine" id="cb2-3" title="3">                <span class="fu">|</span> <span class="dt">DoorClosed</span></a>
+<a class="sourceLine" id="cb2-4" title="4">                <span class="fu">|</span> <span class="dt">Wall</span></a>
+<a class="sourceLine" id="cb2-5" title="5">                <span class="fu">|</span> <span class="dt">Unknown</span></a>
+<a class="sourceLine" id="cb2-6" title="6">                <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
 <h2 id="entity-and-tile-setup">Entity and tile setup</h2>
 <p>As you can see we now have four entity types. We are going to need four tiles to represent the entities in the world and somewhere to store this.</p>
 <p>The code below has two maps, <em>EntityType</em> to <em>Tile</em> (default tile) and one to <em>Entity</em>.</p>
 <h6 id="tilessrcentities.hs-13-to-14">03_tiles/src/Entities.hs (13 to 14)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">tiles ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="ot">entities ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Entity</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">tiles ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="ot">entities ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Entity</span></a></code></pre></div>
 <p>In a complete game there could be many tiles, and setting up the <em>tile</em> to <em>entity</em> relationship manually would be tedious, lets not do that.</p>
 <h6 id="tilessrcentities.hs-20-to-24">03_tiles/src/Entities.hs (20 to 24)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>))</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>))</a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>))</a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>))</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">           ]</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>))</a>
+<a class="sourceLine" id="cb4-2" title="2">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb4-3" title="3">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb4-4" title="4">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>))</a>
+<a class="sourceLine" id="cb4-5" title="5">           ]</a></code></pre></div>
 <p>Given this setup we need a way to populate the two maps above</p>
 <h6 id="tilessrcentities.hs-18-to-55">03_tiles/src/Entities.hs (18 to 55)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">(tiles, entities) <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>))</a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>))</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>))</a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>))</a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">           ]</a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">  <span class="kw">let</span> mkData (typ, pos<span class="fu">@</span>(x, y)) (tiles', entities') <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">        <span class="kw">let</span> (entity, tile) <span class="fu">=</span> mkEntityAndTile (x <span class="fu">*</span> <span class="dv">100</span> <span class="fu">+</span> y) typ pos <span class="kw">in</span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">        ( Map.insert typ tile tiles'</a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">        , Map.insert typ entity entities'</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">        )</a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb5-14" data-line-number="14">  foldr</a>
-<a class="sourceLine" id="cb5-15" data-line-number="15">    mkData</a>
-<a class="sourceLine" id="cb5-16" data-line-number="16">    ( Map.fromList [(<span class="dt">E.Unknown</span>, tileUnknown)]</a>
-<a class="sourceLine" id="cb5-17" data-line-number="17">    , Map.fromList [(<span class="dt">E.Unknown</span>, entityUnknown)]</a>
-<a class="sourceLine" id="cb5-18" data-line-number="18">    )</a>
-<a class="sourceLine" id="cb5-19" data-line-number="19">    is</a>
-<a class="sourceLine" id="cb5-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb5-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb5-22" data-line-number="22"><span class="ot">getEntity ::</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb5-23" data-line-number="23">getEntity e <span class="fu">=</span> Map.findWithDefault entityUnknown e entities</a>
-<a class="sourceLine" id="cb5-24" data-line-number="24"></a>
-<a class="sourceLine" id="cb5-25" data-line-number="25"><span class="ot">getTile ::</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb5-26" data-line-number="26">getTile e <span class="fu">=</span> Map.findWithDefault tileUnknown e tiles</a>
-<a class="sourceLine" id="cb5-27" data-line-number="27"></a>
-<a class="sourceLine" id="cb5-28" data-line-number="28"></a>
-<a class="sourceLine" id="cb5-29" data-line-number="29"><span class="ot">mkEntityAndTile ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> (<span class="dt">Entity</span>, <span class="dt">Tile</span>)</a>
-<a class="sourceLine" id="cb5-30" data-line-number="30">mkEntityAndTile id typ pic <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-31" data-line-number="31">  <span class="kw">let</span> t <span class="fu">=</span> <span class="dt">Tile</span> { _tlId <span class="fu">=</span> id, _tlName <span class="fu">=</span> show typ, _tlPic <span class="fu">=</span> pic } <span class="kw">in</span></a>
-<a class="sourceLine" id="cb5-32" data-line-number="32">  <span class="kw">let</span> a <span class="fu">=</span> <span class="dt">Entity</span> { _enType <span class="fu">=</span> typ, _enTile <span class="fu">=</span> t, _enProps <span class="fu">=</span> Map.empty} <span class="kw">in</span></a>
-<a class="sourceLine" id="cb5-33" data-line-number="33">  (a, t)</a>
-<a class="sourceLine" id="cb5-34" data-line-number="34">    </a>
-<a class="sourceLine" id="cb5-35" data-line-number="35"></a>
-<a class="sourceLine" id="cb5-36" data-line-number="36"><span class="ot">tileUnknown ::</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb5-37" data-line-number="37"><span class="ot">entityUnknown ::</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb5-38" data-line-number="38">(entityUnknown, tileUnknown) <span class="fu">=</span> mkEntityAndTile <span class="dv">201</span> <span class="dt">E.Unknown</span> (<span class="dv">2</span>, <span class="dv">1</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1">(tiles, entities) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-2" title="2">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>))</a>
+<a class="sourceLine" id="cb5-3" title="3">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb5-4" title="4">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>))</a>
+<a class="sourceLine" id="cb5-5" title="5">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>))</a>
+<a class="sourceLine" id="cb5-6" title="6">           ]</a>
+<a class="sourceLine" id="cb5-7" title="7">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-8" title="8">  <span class="kw">let</span> mkData (typ, pos<span class="fu">@</span>(x, y)) (tiles', entities') <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-9" title="9">        <span class="kw">let</span> (entity, tile) <span class="fu">=</span> mkEntityAndTile (x <span class="fu">*</span> <span class="dv">100</span> <span class="fu">+</span> y) typ pos <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-10" title="10">        ( Map.insert typ tile tiles'</a>
+<a class="sourceLine" id="cb5-11" title="11">        , Map.insert typ entity entities'</a>
+<a class="sourceLine" id="cb5-12" title="12">        )</a>
+<a class="sourceLine" id="cb5-13" title="13">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-14" title="14">  <span class="fu">foldr</span></a>
+<a class="sourceLine" id="cb5-15" title="15">    mkData</a>
+<a class="sourceLine" id="cb5-16" title="16">    ( Map.fromList [(<span class="dt">E.Unknown</span>, tileUnknown)]</a>
+<a class="sourceLine" id="cb5-17" title="17">    , Map.fromList [(<span class="dt">E.Unknown</span>, entityUnknown)]</a>
+<a class="sourceLine" id="cb5-18" title="18">    )</a>
+<a class="sourceLine" id="cb5-19" title="19">    is</a>
+<a class="sourceLine" id="cb5-20" title="20"></a>
+<a class="sourceLine" id="cb5-21" title="21"></a>
+<a class="sourceLine" id="cb5-22" title="22"><span class="ot">getEntity ::</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb5-23" title="23">getEntity e <span class="fu">=</span> Map.findWithDefault entityUnknown e entities</a>
+<a class="sourceLine" id="cb5-24" title="24"></a>
+<a class="sourceLine" id="cb5-25" title="25"><span class="ot">getTile ::</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb5-26" title="26">getTile e <span class="fu">=</span> Map.findWithDefault tileUnknown e tiles</a>
+<a class="sourceLine" id="cb5-27" title="27"></a>
+<a class="sourceLine" id="cb5-28" title="28"></a>
+<a class="sourceLine" id="cb5-29" title="29"><span class="ot">mkEntityAndTile ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">E.EntityType</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> (<span class="dt">Entity</span>, <span class="dt">Tile</span>)</a>
+<a class="sourceLine" id="cb5-30" title="30">mkEntityAndTile <span class="fu">id</span> typ pic <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-31" title="31">  <span class="kw">let</span> t <span class="fu">=</span> <span class="dt">Tile</span> { _tlId <span class="fu">=</span> <span class="fu">id</span>, _tlName <span class="fu">=</span> <span class="fu">show</span> typ, _tlPic <span class="fu">=</span> pic } <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-32" title="32">  <span class="kw">let</span> a <span class="fu">=</span> <span class="dt">Entity</span> { _enType <span class="fu">=</span> typ, _enTile <span class="fu">=</span> t, _enProps <span class="fu">=</span> Map.empty} <span class="kw">in</span></a>
+<a class="sourceLine" id="cb5-33" title="33">  (a, t)</a>
+<a class="sourceLine" id="cb5-34" title="34">    </a>
+<a class="sourceLine" id="cb5-35" title="35"></a>
+<a class="sourceLine" id="cb5-36" title="36"><span class="ot">tileUnknown ::</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb5-37" title="37"><span class="ot">entityUnknown ::</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb5-38" title="38">(entityUnknown, tileUnknown) <span class="fu">=</span> mkEntityAndTile <span class="dv">201</span> <span class="dt">E.Unknown</span> (<span class="dv">2</span>, <span class="dv">1</span>)</a></code></pre></div>
 <p>The code start with <code>(tiles, entities) =</code> does just that.</p>
 <ul>
 <li>It creates both maps</li>
@@ -123,72 +123,72 @@
 <h1 id="preparing-to-draw">Preparing to draw</h1>
 <p>First we need a draw command, so that the backend can respond to requests from the UI to start a draw.</p>
 <h6 id="tilessrcgamecore.hs-67-to-70">03_tiles/src/GameCore.hs (67 to 70)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiDrawCommand</span> <span class="fu">=</span> <span class="dt">UiDrawCommand</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">                     {<span class="ot"> drCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">                     ,<span class="ot"> drScreenWidth ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">                     } <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">data</span> <span class="dt">UiDrawCommand</span> <span class="fu">=</span> <span class="dt">UiDrawCommand</span></a>
+<a class="sourceLine" id="cb6-2" title="2">                     {<span class="ot"> drCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb6-3" title="3">                     ,<span class="ot"> drScreenWidth ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb6-4" title="4">                     } <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
 <p>Often in a rogue like there will be a default background tile. That is a tile that is used when there are no entities on that position.</p>
 <p>As a starting point for drawing, lets tell the UI what tile that is and have it draw a full grid of that tile. In the next chapter we’ll draw something more interesting</p>
 <h6 id="tilessrcgamecore.hs-49-to-57">03_tiles/src/GameCore.hs (49 to 57)</h6>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiConfig</span> <span class="fu">=</span> <span class="dt">UiConfig</span> {<span class="ot"> ucCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">                         ,<span class="ot"> ucData ::</span> <span class="fu">!</span><span class="dt">UiConfigData</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">                         }</a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">                         <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb7-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="kw">data</span> <span class="dt">UiConfigData</span> <span class="fu">=</span> <span class="dt">UiConfigData</span> {<span class="ot"> udKeys ::</span> <span class="fu">!</span>[<span class="dt">UiKey</span>]</a>
-<a class="sourceLine" id="cb7-7" data-line-number="7">                                 ,<span class="ot"> udBlankId ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
-<a class="sourceLine" id="cb7-8" data-line-number="8">                                 }</a>
-<a class="sourceLine" id="cb7-9" data-line-number="9">                                 <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">data</span> <span class="dt">UiConfig</span> <span class="fu">=</span> <span class="dt">UiConfig</span> {<span class="ot"> ucCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb7-2" title="2">                         ,<span class="ot"> ucData ::</span> <span class="fu">!</span><span class="dt">UiConfigData</span></a>
+<a class="sourceLine" id="cb7-3" title="3">                         }</a>
+<a class="sourceLine" id="cb7-4" title="4">                         <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb7-5" title="5"></a>
+<a class="sourceLine" id="cb7-6" title="6"><span class="kw">data</span> <span class="dt">UiConfigData</span> <span class="fu">=</span> <span class="dt">UiConfigData</span> {<span class="ot"> udKeys ::</span> <span class="fu">!</span>[<span class="dt">UiKey</span>]</a>
+<a class="sourceLine" id="cb7-7" title="7">                                 ,<span class="ot"> udBlankId ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb7-8" title="8">                                 }</a>
+<a class="sourceLine" id="cb7-9" title="9">                                 <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
 <h2 id="responding-to-a-redraw-request">Responding to a redraw request</h2>
 <p><em>buildConfig</em> is changed to send the blank tile</p>
 <h6 id="tilessrcgameengine.hs-124-to-132">03_tiles/src/GameEngine.hs (124 to 132)</h6>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">buildConfig ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">UiConfigData</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">buildConfig cfg <span class="fu">=</span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="dt">UiConfigData</span> { udKeys <span class="fu">=</span> buildKeys (cfg <span class="fu">^.</span> cfgKeys)</a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">               , udBlankId <span class="fu">=</span> E.getTile <span class="dt">E.Blank</span> <span class="fu">^.</span> tlId</a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">               }</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb8-7" data-line-number="7">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb8-8" data-line-number="8">    buildKeys ks <span class="fu">=</span> buildKey <span class="fu">&lt;$&gt;</span> Map.toList ks</a>
-<a class="sourceLine" id="cb8-9" data-line-number="9">    buildKey (s, a) <span class="fu">=</span> <span class="dt">UiKey</span> s a</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="ot">buildConfig ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">UiConfigData</span></a>
+<a class="sourceLine" id="cb8-2" title="2">buildConfig cfg <span class="fu">=</span></a>
+<a class="sourceLine" id="cb8-3" title="3">  <span class="dt">UiConfigData</span> { udKeys <span class="fu">=</span> buildKeys (cfg <span class="fu">^.</span> cfgKeys)</a>
+<a class="sourceLine" id="cb8-4" title="4">               , udBlankId <span class="fu">=</span> E.getTile <span class="dt">E.Blank</span> <span class="fu">^.</span> tlId</a>
+<a class="sourceLine" id="cb8-5" title="5">               }</a>
+<a class="sourceLine" id="cb8-6" title="6"></a>
+<a class="sourceLine" id="cb8-7" title="7">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb8-8" title="8">    buildKeys ks <span class="fu">=</span> buildKey <span class="fu">&lt;$&gt;</span> Map.toList ks</a>
+<a class="sourceLine" id="cb8-9" title="9">    buildKey (s, a) <span class="fu">=</span> <span class="dt">UiKey</span> s a</a></code></pre></div>
 <p>In the previous version the engine responded with the word “TODO”. Now <em>runCmd</em> gets the most recent world from the TVar <code>w &lt;- atomically $ readTVar worldV</code> and then calls <em>drawAndSend</em></p>
 <p>You’ll see this pattern through the code, the top level functions work with the <em>TVar</em> and thus needs to deal with IO. As far as possible everything else is pure and not in IO.</p>
 <h6 id="tilessrcgameengine.hs-85-to-95">03_tiles/src/GameEngine.hs (85 to 95)</h6>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ot">runCmd ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">runCmd conn worldV cmd cmdData <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendError conn <span class="st">&quot;missing / invalid screen size&quot;</span></a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
-<a class="sourceLine" id="cb9-9" data-line-number="9">          w <span class="ot">&lt;-</span> atomically <span class="fu">$</span> readTVar worldV</a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">          drawAndSend w</a>
-<a class="sourceLine" id="cb9-11" data-line-number="11">          sendLog conn <span class="st">&quot;draw&quot;</span></a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="ot">runCmd ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb9-2" title="2">runCmd conn worldV cmd cmdData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb9-3" title="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-4" title="4">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb9-5" title="5">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-6" title="6">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendError conn <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb9-7" title="7">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-8" title="8">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
+<a class="sourceLine" id="cb9-9" title="9">          w <span class="ot">&lt;-</span> atomically <span class="fu">$</span> readTVar worldV</a>
+<a class="sourceLine" id="cb9-10" title="10">          drawAndSend w</a>
+<a class="sourceLine" id="cb9-11" title="11">          sendLog conn <span class="st">&quot;draw&quot;</span></a></code></pre></div>
 <p>Finally <em>drawAndSend</em> sends a <em>UiDrawCommand</em> with the most recent screen size. <code>_1</code> gets the first value (row) from the (row, column) <em>plScreenSize</em> tuple. This is the same as writing</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1">drScreenWidth <span class="fu">=</span> fst <span class="fu">$</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1">drScreenWidth <span class="fu">=</span> <span class="fu">fst</span> <span class="fu">$</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize</a></code></pre></div>
 <h6 id="tilessrcgameengine.hs-154-to-159">03_tiles/src/GameEngine.hs (154 to 159)</h6>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="ot">drawAndSend ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb11-2" data-line-number="2">drawAndSend world <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="kw">let</span> cmd <span class="fu">=</span> Ae.encodeText <span class="dt">UiDrawCommand</span> { drCmd <span class="fu">=</span> <span class="st">&quot;draw&quot;</span></a>
-<a class="sourceLine" id="cb11-4" data-line-number="4">                                        , drScreenWidth <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize <span class="fu">^.</span> _1</a>
-<a class="sourceLine" id="cb11-5" data-line-number="5">                                        }</a>
-<a class="sourceLine" id="cb11-6" data-line-number="6">  sendData (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn) cmd</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="ot">drawAndSend ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb11-2" title="2">drawAndSend world <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb11-3" title="3">  <span class="kw">let</span> cmd <span class="fu">=</span> Ae.encodeText <span class="dt">UiDrawCommand</span> { drCmd <span class="fu">=</span> <span class="st">&quot;draw&quot;</span></a>
+<a class="sourceLine" id="cb11-4" title="4">                                        , drScreenWidth <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize <span class="fu">^.</span> _1</a>
+<a class="sourceLine" id="cb11-5" title="5">                                        }</a>
+<a class="sourceLine" id="cb11-6" title="6">  sendData (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn) cmd</a></code></pre></div>
 <h1 id="tileset-image">Tileset image</h1>
 <p>The UI is going to need the tileset PNG, here a route is added to Scotty to serve the file</p>
 <h6 id="tilessrcgamehost.hs-46-to-47">03_tiles/src/GameHost.hs (46 to 47)</h6>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">  Sc.get <span class="st">&quot;/tiles.png&quot;</span> <span class="fu">$</span></a>
-<a class="sourceLine" id="cb12-2" data-line-number="2">    Sc.file <span class="st">&quot;html/DungeonCrawl_ProjectUtumnoTileset_0.png&quot;</span></a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1">  Sc.get <span class="st">&quot;/tiles.png&quot;</span> <span class="fu">$</span></a>
+<a class="sourceLine" id="cb12-2" title="2">    Sc.file <span class="st">&quot;html/DungeonCrawl_ProjectUtumnoTileset_0.png&quot;</span></a></code></pre></div>
 <p>The frontend needs to load the tiles so they are available for drawing. A hidden image tag handles this</p>
 <h6 id="tileshtmlrogue.html-46-to-47">03_tiles/html/rogue.html (46 to 47)</h6>
-<div class="sourceCode" id="cb13"><pre class="sourceCode html"><code class="sourceCode html"><a class="sourceLine" id="cb13-1" data-line-number="1">  <span class="co">&lt;!-- load the tiles as an image--&gt;</span></a>
-<a class="sourceLine" id="cb13-2" data-line-number="2">  <span class="kw">&lt;img</span><span class="ot"> src=</span><span class="st">&quot;tiles.png&quot;</span><span class="ot"> style=</span><span class="st">&quot;display:none&quot;</span><span class="ot"> id=</span><span class="st">&quot;tilesMain&quot;</span><span class="kw">/&gt;</span></a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode html"><code class="sourceCode html"><a class="sourceLine" id="cb13-1" title="1">  <span class="co">&lt;!-- load the tiles as an image--&gt;</span></a>
+<a class="sourceLine" id="cb13-2" title="2">  <span class="kw">&lt;img</span><span class="ot"> src=</span><span class="st">&quot;tiles.png&quot;</span><span class="ot"> style=</span><span class="st">&quot;display:none&quot;</span><span class="ot"> id=</span><span class="st">&quot;tilesMain&quot;</span><span class="kw">/&gt;</span></a></code></pre></div>
 <h1 id="drawing-the-tiles">Drawing the tiles</h1>
 <p>The UI needs to store the Id of the blank tile when it gets a <em>config</em> command</p>
 <h6 id="tileshtmlrogue.js-93-to-95">03_tiles/html/rogue.js (93 to 95)</h6>
-<div class="sourceCode" id="cb14"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb14-1" data-line-number="1">  <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb14-2" data-line-number="2">    <span class="va">config</span>.<span class="at">tiles</span> <span class="op">=</span> <span class="op">{};</span></a>
-<a class="sourceLine" id="cb14-3" data-line-number="3">    <span class="va">config</span>.<span class="at">blankId</span> <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">blankId</span><span class="op">;</span></a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb14-1" title="1">  <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb14-2" title="2">    <span class="va">config</span>.<span class="at">tiles</span> <span class="op">=</span> <span class="op">{};</span></a>
+<a class="sourceLine" id="cb14-3" title="3">    <span class="va">config</span>.<span class="at">blankId</span> <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">blankId</span><span class="op">;</span></a></code></pre></div>
 <p>The UI must then respond to a <em>draw</em> command</p>
 <ul>
 <li>Get a unique id for this draw session</li>
@@ -196,17 +196,17 @@
 <li>Draw the background in a single draw to fill the screen from a cached image</li>
 </ul>
 <h6 id="tileshtmlrogue.js-122-to-132">03_tiles/html/rogue.js (122 to 132)</h6>
-<div class="sourceCode" id="cb15"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb15-1" data-line-number="1">      <span class="cf">case</span> <span class="st">&quot;draw&quot;</span><span class="op">:</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb15-2" data-line-number="2">        <span class="va">config</span>.<span class="at">drawId</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">random</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb15-3" data-line-number="3">        </a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">        <span class="kw">const</span> colWidth <span class="op">=</span> <span class="va">cmd</span>.<span class="at">screenWidth</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb15-5" data-line-number="5">        <span class="kw">const</span> ctx <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>).<span class="at">getContext</span>(<span class="st">&quot;2d&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb15-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb15-7" data-line-number="7">        <span class="co">//Draw background image of blank tiles</span></a>
-<a class="sourceLine" id="cb15-8" data-line-number="8">        <span class="va">ctx</span>.<span class="at">drawImage</span>( <span class="at">getCachedBlankCanvas</span>()<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb15-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb15-10" data-line-number="10">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb15-11" data-line-number="11">      <span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb15-1" title="1">      <span class="cf">case</span> <span class="st">&quot;draw&quot;</span><span class="op">:</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb15-2" title="2">        <span class="va">config</span>.<span class="at">drawId</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">random</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb15-3" title="3">        </a>
+<a class="sourceLine" id="cb15-4" title="4">        <span class="kw">const</span> colWidth <span class="op">=</span> <span class="va">cmd</span>.<span class="at">screenWidth</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb15-5" title="5">        <span class="kw">const</span> ctx <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>).<span class="at">getContext</span>(<span class="st">&quot;2d&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb15-6" title="6"></a>
+<a class="sourceLine" id="cb15-7" title="7">        <span class="co">//Draw background image of blank tiles</span></a>
+<a class="sourceLine" id="cb15-8" title="8">        <span class="va">ctx</span>.<span class="at">drawImage</span>( <span class="at">getCachedBlankCanvas</span>()<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb15-9" title="9"></a>
+<a class="sourceLine" id="cb15-10" title="10">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb15-11" title="11">      <span class="op">}</span></a></code></pre></div>
 <p>To create the cached background image</p>
 <ul>
 <li>Get the size of the real canvas</li>
@@ -215,49 +215,49 @@
 <li>Store the cached canvas for the next call</li>
 </ul>
 <h6 id="tileshtmlrogue.js-31-to-58">03_tiles/html/rogue.js (31 to 58)</h6>
-<div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="kw">function</span> <span class="at">tileFromTileId</span>( id )<span class="op">{</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2">  <span class="kw">const</span> x <span class="op">=</span> <span class="va">Math</span>.<span class="at">trunc</span>( id / <span class="dv">100</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-3" data-line-number="3">  <span class="kw">const</span> y <span class="op">=</span> id <span class="op">-</span> (x <span class="op">*</span> <span class="dv">100</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">  <span class="cf">return</span> [x<span class="op">,</span> y]<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-5" data-line-number="5"><span class="op">}</span></a>
-<a class="sourceLine" id="cb16-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="kw">function</span> <span class="at">getCachedBlankCanvas</span>()<span class="op">{</span></a>
-<a class="sourceLine" id="cb16-8" data-line-number="8">  <span class="cf">if</span>( <span class="op">!</span><span class="va">config</span>.<span class="at">blank</span> )<span class="op">{</span></a>
-<a class="sourceLine" id="cb16-9" data-line-number="9">    <span class="kw">const</span> ctxMain <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb16-11" data-line-number="11">    <span class="co">//Create a grid of blank cells for the background</span></a>
-<a class="sourceLine" id="cb16-12" data-line-number="12">    <span class="kw">var</span> cbg <span class="op">=</span> <span class="va">document</span>.<span class="at">createElement</span>(<span class="st">'canvas'</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-13" data-line-number="13">    <span class="va">cbg</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">ctxMain</span>.<span class="at">width</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb16-14" data-line-number="14">    <span class="va">cbg</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">ctxMain</span>.<span class="at">height</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb16-15" data-line-number="15">    <span class="kw">var</span> ctxbg <span class="op">=</span> <span class="va">cbg</span>.<span class="at">getContext</span>(<span class="st">'2d'</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-16" data-line-number="16">    <span class="kw">var</span> [blankX<span class="op">,</span> blankY] <span class="op">=</span> <span class="at">tileFromTileId</span>( <span class="va">config</span>.<span class="at">blankId</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb16-18" data-line-number="18">    <span class="cf">for</span>( x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> x <span class="op">&lt;</span> <span class="va">config</span>.<span class="at">gridWidth</span><span class="op">;</span> <span class="op">++</span>x )<span class="op">{</span></a>
-<a class="sourceLine" id="cb16-19" data-line-number="19">      <span class="cf">for</span>( y <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> y <span class="op">&lt;</span> <span class="va">config</span>.<span class="at">gridHeight</span><span class="op">;</span> <span class="op">++</span>y )<span class="op">{</span></a>
-<a class="sourceLine" id="cb16-20" data-line-number="20">        <span class="at">drawTile</span>( ctxbg<span class="op">,</span> tilesMain<span class="op">,</span> <span class="va">config</span>.<span class="at">tileWidth</span><span class="op">,</span> <span class="va">config</span>.<span class="at">tileHeight</span><span class="op">,</span> x<span class="op">,</span> y<span class="op">,</span> blankX<span class="op">,</span> blankY )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-21" data-line-number="21">      <span class="op">}</span></a>
-<a class="sourceLine" id="cb16-22" data-line-number="22">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb16-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb16-24" data-line-number="24">    <span class="va">config</span>.<span class="at">blank</span> <span class="op">=</span> cbg<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-25" data-line-number="25">  <span class="op">}</span></a>
-<a class="sourceLine" id="cb16-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb16-27" data-line-number="27">  <span class="cf">return</span> <span class="va">config</span>.<span class="at">blank</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb16-28" data-line-number="28"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">function</span> <span class="at">tileFromTileId</span>( id )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-2" title="2">  <span class="kw">const</span> x <span class="op">=</span> <span class="va">Math</span>.<span class="at">trunc</span>( id / <span class="dv">100</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-3" title="3">  <span class="kw">const</span> y <span class="op">=</span> id <span class="op">-</span> (x <span class="op">*</span> <span class="dv">100</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-4" title="4">  <span class="cf">return</span> [x<span class="op">,</span> y]<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-5" title="5"><span class="op">}</span></a>
+<a class="sourceLine" id="cb16-6" title="6"></a>
+<a class="sourceLine" id="cb16-7" title="7"><span class="kw">function</span> <span class="at">getCachedBlankCanvas</span>()<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-8" title="8">  <span class="cf">if</span>( <span class="op">!</span><span class="va">config</span>.<span class="at">blank</span> )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-9" title="9">    <span class="kw">const</span> ctxMain <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-10" title="10"></a>
+<a class="sourceLine" id="cb16-11" title="11">    <span class="co">//Create a grid of blank cells for the background</span></a>
+<a class="sourceLine" id="cb16-12" title="12">    <span class="kw">var</span> cbg <span class="op">=</span> <span class="va">document</span>.<span class="at">createElement</span>(<span class="st">'canvas'</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-13" title="13">    <span class="va">cbg</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">ctxMain</span>.<span class="at">width</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-14" title="14">    <span class="va">cbg</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">ctxMain</span>.<span class="at">height</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-15" title="15">    <span class="kw">var</span> ctxbg <span class="op">=</span> <span class="va">cbg</span>.<span class="at">getContext</span>(<span class="st">'2d'</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-16" title="16">    <span class="kw">var</span> [blankX<span class="op">,</span> blankY] <span class="op">=</span> <span class="at">tileFromTileId</span>( <span class="va">config</span>.<span class="at">blankId</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-17" title="17"></a>
+<a class="sourceLine" id="cb16-18" title="18">    <span class="cf">for</span>( x <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> x <span class="op">&lt;</span> <span class="va">config</span>.<span class="at">gridWidth</span><span class="op">;</span> <span class="op">++</span>x )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-19" title="19">      <span class="cf">for</span>( y <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> y <span class="op">&lt;</span> <span class="va">config</span>.<span class="at">gridHeight</span><span class="op">;</span> <span class="op">++</span>y )<span class="op">{</span></a>
+<a class="sourceLine" id="cb16-20" title="20">        <span class="at">drawTile</span>( ctxbg<span class="op">,</span> tilesMain<span class="op">,</span> <span class="va">config</span>.<span class="at">tileWidth</span><span class="op">,</span> <span class="va">config</span>.<span class="at">tileHeight</span><span class="op">,</span> x<span class="op">,</span> y<span class="op">,</span> blankX<span class="op">,</span> blankY )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-21" title="21">      <span class="op">}</span></a>
+<a class="sourceLine" id="cb16-22" title="22">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb16-23" title="23"></a>
+<a class="sourceLine" id="cb16-24" title="24">    <span class="va">config</span>.<span class="at">blank</span> <span class="op">=</span> cbg<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-25" title="25">  <span class="op">}</span></a>
+<a class="sourceLine" id="cb16-26" title="26"></a>
+<a class="sourceLine" id="cb16-27" title="27">  <span class="cf">return</span> <span class="va">config</span>.<span class="at">blank</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-28" title="28"><span class="op">}</span></a></code></pre></div>
 <p>Lastly the code that draws a tile is just a wrapper over the canvas <em>drawImage</em> function. All it does is translate from (row, column) to (x, y) by using the configured tile size</p>
 <h6 id="tileshtmlrogue.js-14-to-26">03_tiles/html/rogue.js (14 to 26)</h6>
-<div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="kw">function</span> <span class="at">drawTile</span>( ctx<span class="op">,</span> img<span class="op">,</span> twidth<span class="op">,</span> theight<span class="op">,</span> dx<span class="op">,</span> dy<span class="op">,</span> trow<span class="op">,</span> tcol )<span class="op">{</span></a>
-<a class="sourceLine" id="cb17-2" data-line-number="2">  <span class="va">ctx</span>.<span class="at">drawImage</span>(</a>
-<a class="sourceLine" id="cb17-3" data-line-number="3">    img<span class="op">,</span>             <span class="co">//img</span></a>
-<a class="sourceLine" id="cb17-4" data-line-number="4">    trow <span class="op">*</span> twidth<span class="op">,</span>   <span class="co">//sx</span></a>
-<a class="sourceLine" id="cb17-5" data-line-number="5">    tcol <span class="op">*</span> theight<span class="op">,</span>  <span class="co">//sy</span></a>
-<a class="sourceLine" id="cb17-6" data-line-number="6">    twidth<span class="op">,</span>          <span class="co">//sWidth</span></a>
-<a class="sourceLine" id="cb17-7" data-line-number="7">    theight<span class="op">,</span>         <span class="co">//sHeight</span></a>
-<a class="sourceLine" id="cb17-8" data-line-number="8">    dx <span class="op">*</span> twidth<span class="op">,</span>     <span class="co">//dx</span></a>
-<a class="sourceLine" id="cb17-9" data-line-number="9">    dy <span class="op">*</span> theight<span class="op">,</span>    <span class="co">//dy</span></a>
-<a class="sourceLine" id="cb17-10" data-line-number="10">    twidth<span class="op">,</span>          <span class="co">//dWidth</span></a>
-<a class="sourceLine" id="cb17-11" data-line-number="11">    theight          <span class="co">//dHeight</span></a>
-<a class="sourceLine" id="cb17-12" data-line-number="12">  )<span class="op">;</span></a>
-<a class="sourceLine" id="cb17-13" data-line-number="13"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb17-1" title="1"><span class="kw">function</span> <span class="at">drawTile</span>( ctx<span class="op">,</span> img<span class="op">,</span> twidth<span class="op">,</span> theight<span class="op">,</span> dx<span class="op">,</span> dy<span class="op">,</span> trow<span class="op">,</span> tcol )<span class="op">{</span></a>
+<a class="sourceLine" id="cb17-2" title="2">  <span class="va">ctx</span>.<span class="at">drawImage</span>(</a>
+<a class="sourceLine" id="cb17-3" title="3">    img<span class="op">,</span>             <span class="co">//img</span></a>
+<a class="sourceLine" id="cb17-4" title="4">    trow <span class="op">*</span> twidth<span class="op">,</span>   <span class="co">//sx</span></a>
+<a class="sourceLine" id="cb17-5" title="5">    tcol <span class="op">*</span> theight<span class="op">,</span>  <span class="co">//sy</span></a>
+<a class="sourceLine" id="cb17-6" title="6">    twidth<span class="op">,</span>          <span class="co">//sWidth</span></a>
+<a class="sourceLine" id="cb17-7" title="7">    theight<span class="op">,</span>         <span class="co">//sHeight</span></a>
+<a class="sourceLine" id="cb17-8" title="8">    dx <span class="op">*</span> twidth<span class="op">,</span>     <span class="co">//dx</span></a>
+<a class="sourceLine" id="cb17-9" title="9">    dy <span class="op">*</span> theight<span class="op">,</span>    <span class="co">//dy</span></a>
+<a class="sourceLine" id="cb17-10" title="10">    twidth<span class="op">,</span>          <span class="co">//dWidth</span></a>
+<a class="sourceLine" id="cb17-11" title="11">    theight          <span class="co">//dHeight</span></a>
+<a class="sourceLine" id="cb17-12" title="12">  )<span class="op">;</span></a>
+<a class="sourceLine" id="cb17-13" title="13"><span class="op">}</span></a></code></pre></div>
 <p>If you run this project (<code>stack run</code>) and browse to <code>http://localhost:61492/</code>, you should see a grid of the blank tiles</p>
 <p><img src="../../images/rogue_blank_tiles.png" /></p>
 <p>While this may not see that impressive, it does mean that the vast majority of the frontend code is now complete. There will be very few additions to the frontend logic from now on.</p>

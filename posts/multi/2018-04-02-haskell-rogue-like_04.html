@@ -53,31 +53,31 @@ w,w,w,w,w,w,w,w,w,w,w,w,w,w</code></pre>
 </ul>
 <p>Lets associate entities with these “load texts” and change <em>mkData</em> to create a map of load text to <em>Entity</em>. (Remember that all these changes are also show in patch format below if that helps you see what changed).</p>
 <h6 id="load_mapsrcentities.hs-14-to-38">04_load_map/src/Entities.hs (14 to 38)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ot">tiles ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="ot">entities ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="ot">loadTexts ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">(tiles, entities, loadTexts) <span class="fu">=</span></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>), <span class="dt">Nothing</span>)</a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>), <span class="dt">Just</span> <span class="st">&quot;+&quot;</span>)</a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>), <span class="dt">Just</span> <span class="st">&quot;-&quot;</span>)</a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>), <span class="dt">Just</span> <span class="st">&quot;w&quot;</span>)</a>
-<a class="sourceLine" id="cb2-10" data-line-number="10">           ]</a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb2-12" data-line-number="12">  <span class="kw">let</span> mkData (typ, pos<span class="fu">@</span>(x, y), l) (tiles', entities', loads') <span class="fu">=</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13">        <span class="kw">let</span> (entity, tile) <span class="fu">=</span> mkEntityAndTile (x <span class="fu">*</span> <span class="dv">100</span> <span class="fu">+</span> y) typ pos <span class="kw">in</span></a>
-<a class="sourceLine" id="cb2-14" data-line-number="14">        ( Map.insert typ tile tiles'</a>
-<a class="sourceLine" id="cb2-15" data-line-number="15">        , Map.insert typ entity entities'</a>
-<a class="sourceLine" id="cb2-16" data-line-number="16">        , maybe loads' (\load <span class="ot">-&gt;</span> Map.insert load entity loads') l</a>
-<a class="sourceLine" id="cb2-17" data-line-number="17">        )</a>
-<a class="sourceLine" id="cb2-18" data-line-number="18">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb2-19" data-line-number="19">  foldr</a>
-<a class="sourceLine" id="cb2-20" data-line-number="20">    mkData</a>
-<a class="sourceLine" id="cb2-21" data-line-number="21">    ( Map.fromList [(<span class="dt">E.Unknown</span>, tileUnknown)]</a>
-<a class="sourceLine" id="cb2-22" data-line-number="22">    , Map.fromList [(<span class="dt">E.Unknown</span>, entityUnknown)]</a>
-<a class="sourceLine" id="cb2-23" data-line-number="23">    , Map.empty</a>
-<a class="sourceLine" id="cb2-24" data-line-number="24">    )</a>
-<a class="sourceLine" id="cb2-25" data-line-number="25">    is</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="ot">tiles ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="ot">entities ::</span> <span class="dt">Map</span> <span class="dt">E.EntityType</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="ot">loadTexts ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb2-4" title="4"></a>
+<a class="sourceLine" id="cb2-5" title="5">(tiles, entities, loadTexts) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb2-6" title="6">  <span class="kw">let</span> is <span class="fu">=</span> [ (<span class="dt">E.Blank</span>     , (<span class="dv">41</span>, <span class="dv">13</span>), <span class="dt">Nothing</span>)</a>
+<a class="sourceLine" id="cb2-7" title="7">           , (<span class="dt">E.Door</span>      , (<span class="dv">26</span>, <span class="dv">15</span>), <span class="dt">Just</span> <span class="st">&quot;+&quot;</span>)</a>
+<a class="sourceLine" id="cb2-8" title="8">           , (<span class="dt">E.DoorClosed</span>, (<span class="dv">21</span>, <span class="dv">15</span>), <span class="dt">Just</span> <span class="st">&quot;-&quot;</span>)</a>
+<a class="sourceLine" id="cb2-9" title="9">           , (<span class="dt">E.Wall</span>      , ( <span class="dv">9</span>, <span class="dv">14</span>), <span class="dt">Just</span> <span class="st">&quot;w&quot;</span>)</a>
+<a class="sourceLine" id="cb2-10" title="10">           ]</a>
+<a class="sourceLine" id="cb2-11" title="11">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb2-12" title="12">  <span class="kw">let</span> mkData (typ, pos<span class="fu">@</span>(x, y), l) (tiles', entities', loads') <span class="fu">=</span></a>
+<a class="sourceLine" id="cb2-13" title="13">        <span class="kw">let</span> (entity, tile) <span class="fu">=</span> mkEntityAndTile (x <span class="fu">*</span> <span class="dv">100</span> <span class="fu">+</span> y) typ pos <span class="kw">in</span></a>
+<a class="sourceLine" id="cb2-14" title="14">        ( Map.insert typ tile tiles'</a>
+<a class="sourceLine" id="cb2-15" title="15">        , Map.insert typ entity entities'</a>
+<a class="sourceLine" id="cb2-16" title="16">        , <span class="fu">maybe</span> loads' (\load <span class="ot">-&gt;</span> Map.insert load entity loads') l</a>
+<a class="sourceLine" id="cb2-17" title="17">        )</a>
+<a class="sourceLine" id="cb2-18" title="18">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb2-19" title="19">  <span class="fu">foldr</span></a>
+<a class="sourceLine" id="cb2-20" title="20">    mkData</a>
+<a class="sourceLine" id="cb2-21" title="21">    ( Map.fromList [(<span class="dt">E.Unknown</span>, tileUnknown)]</a>
+<a class="sourceLine" id="cb2-22" title="22">    , Map.fromList [(<span class="dt">E.Unknown</span>, entityUnknown)]</a>
+<a class="sourceLine" id="cb2-23" title="23">    , Map.empty</a>
+<a class="sourceLine" id="cb2-24" title="24">    )</a>
+<a class="sourceLine" id="cb2-25" title="25">    is</a></code></pre></div>
 <h1 id="world-vs-player-coordinates">World vs player coordinates</h1>
 <p>The <strong>world map</strong> is theoretically infinitely large and is represented as a Cartesian plane, the centre point being (0,0)</p>
 <pre class="text"><code>            + x             
@@ -102,18 +102,18 @@ w,w,w,w,w,w,w,w,w,w,w,w,w,w</code></pre>
 <h2 id="coordinate-transformation">Coordinate transformation</h2>
 <p>The <em>WorldPos</em> and <em>PlayerPos</em> newtypes are used to store coordinates from these two systems and prevent you accidentally confusing one <code>(Int, Int)</code> with another, yay types!</p>
 <h6 id="load_mapsrcgamecore.hs-49-to-50">04_load_map/src/GameCore.hs (49 to 50)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">newtype</span> <span class="dt">WorldPos</span> <span class="fu">=</span> <span class="dt">WorldPos</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="kw">newtype</span> <span class="dt">PlayerPos</span> <span class="fu">=</span> <span class="dt">PlayerPos</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">newtype</span> <span class="dt">WorldPos</span> <span class="fu">=</span> <span class="dt">WorldPos</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="kw">newtype</span> <span class="dt">PlayerPos</span> <span class="fu">=</span> <span class="dt">PlayerPos</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</a></code></pre></div>
 <p>Transforming between the two coordinate systems is pretty easy. Remember that the player’s top left = (0, 0) = the top left corner of their screen.</p>
 <h6 id="load_mapsrcgameengine.hs-209-to-216">04_load_map/src/GameEngine.hs (209 to 216)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">playerCoordToWorld ::</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">PlayerPos</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">playerCoordToWorld (<span class="dt">WorldPos</span> (worldTopX, worldTopY)) (<span class="dt">PlayerPos</span> (playerX, playerY)) <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">   <span class="dt">WorldPos</span> (worldTopX <span class="fu">+</span> playerX, worldTopY <span class="fu">-</span> playerY)</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="ot">worldCoordToPlayer ::</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">PlayerPos</span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">worldCoordToPlayer (<span class="dt">WorldPos</span> (worldTopX, worldTopY)) (<span class="dt">WorldPos</span> (worldX, worldY)) <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">   <span class="dt">PlayerPos</span> (worldX <span class="fu">-</span> worldTopX, <span class="fu">-</span>(worldY <span class="fu">-</span> worldTopY))</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">playerCoordToWorld ::</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">PlayerPos</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span></a>
+<a class="sourceLine" id="cb6-2" title="2">playerCoordToWorld (<span class="dt">WorldPos</span> (worldTopX, worldTopY)) (<span class="dt">PlayerPos</span> (playerX, playerY)) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" title="3">   <span class="dt">WorldPos</span> (worldTopX <span class="fu">+</span> playerX, worldTopY <span class="fu">-</span> playerY)</a>
+<a class="sourceLine" id="cb6-4" title="4"></a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="ot">worldCoordToPlayer ::</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">PlayerPos</span></a>
+<a class="sourceLine" id="cb6-7" title="7">worldCoordToPlayer (<span class="dt">WorldPos</span> (worldTopX, worldTopY)) (<span class="dt">WorldPos</span> (worldX, worldY)) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-8" title="8">   <span class="dt">PlayerPos</span> (worldX <span class="fu">-</span> worldTopX, <span class="fu">-</span>(worldY <span class="fu">-</span> worldTopY))</a></code></pre></div>
 <h2 id="viewports">Viewports</h2>
 <p>The player can only view a small portion of the potentially infinite world map, the portion that fits on their screen. This portion of the map is called the <em>view port</em>.</p>
 <pre class="text"><code>        + x                                
@@ -134,57 +134,57 @@ w,w,w,w,w,w,w,w,w,w,w,w,w,w</code></pre>
 <h2 id="types">Types</h2>
 <p>The world needs a map, where map is <code>Data.Map.Strict</code></p>
 <h6 id="load_mapsrcgamecore.hs-28-to-31">04_load_map/src/GameCore.hs (28 to 31)</h6>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">data</span> <span class="dt">World</span> <span class="fu">=</span> <span class="dt">World</span> {<span class="ot"> _wdPlayer ::</span> <span class="fu">!</span><span class="dt">Player</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">                   ,<span class="ot"> _wdConfig ::</span> <span class="fu">!</span><span class="dt">Config</span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">                   ,<span class="ot"> _wdMap ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span>)</a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">                   }</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">data</span> <span class="dt">World</span> <span class="fu">=</span> <span class="dt">World</span> {<span class="ot"> _wdPlayer ::</span> <span class="fu">!</span><span class="dt">Player</span></a>
+<a class="sourceLine" id="cb8-2" title="2">                   ,<span class="ot"> _wdConfig ::</span> <span class="fu">!</span><span class="dt">Config</span></a>
+<a class="sourceLine" id="cb8-3" title="3">                   ,<span class="ot"> _wdMap ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span>)</a>
+<a class="sourceLine" id="cb8-4" title="4">                   }</a></code></pre></div>
 <p>For the player we need to know where the current view port’s (0, 0) is in the world map</p>
 <h6 id="load_mapsrcgamecore.hs-20-to-23">04_load_map/src/GameCore.hs (20 to 23)</h6>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Player</span> <span class="fu">=</span> <span class="dt">Player</span> {<span class="ot"> _plConn ::</span> <span class="fu">!</span><span class="dt">Host.Connection</span></a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">                     ,<span class="ot"> _plScreenSize ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">                     ,<span class="ot"> _plWorldTopLeft ::</span> <span class="fu">!</span><span class="dt">WorldPos</span></a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">                     }</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">data</span> <span class="dt">Player</span> <span class="fu">=</span> <span class="dt">Player</span> {<span class="ot"> _plConn ::</span> <span class="fu">!</span><span class="dt">Host.Connection</span></a>
+<a class="sourceLine" id="cb9-2" title="2">                     ,<span class="ot"> _plScreenSize ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb9-3" title="3">                     ,<span class="ot"> _plWorldTopLeft ::</span> <span class="fu">!</span><span class="dt">WorldPos</span></a>
+<a class="sourceLine" id="cb9-4" title="4">                     }</a></code></pre></div>
 <h2 id="loading-the-map-csv">Loading the map CSV</h2>
 <p>The top level <em>manageConnection</em> reads the map CSV as text.</p>
 <h6 id="load_mapsrcgameengine.hs-33-to-41">04_load_map/src/GameEngine.hs (33 to 41)</h6>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ot">manageConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">manageConnection conn <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
-<a class="sourceLine" id="cb10-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb10-5" data-line-number="5">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">      mapData <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8">      </a>
-<a class="sourceLine" id="cb10-9" data-line-number="9">      <span class="kw">case</span> initialiseConnection conn cmdData mapData <span class="kw">of</span></a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1"><span class="ot">manageConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb10-2" title="2">manageConnection conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb10-3" title="3">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
+<a class="sourceLine" id="cb10-4" title="4"></a>
+<a class="sourceLine" id="cb10-5" title="5">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-6" title="6">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb10-7" title="7">      mapData <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
+<a class="sourceLine" id="cb10-8" title="8">      </a>
+<a class="sourceLine" id="cb10-9" title="9">      <span class="kw">case</span> initialiseConnection conn cmdData mapData <span class="kw">of</span></a></code></pre></div>
 <p><em>initialiseConnection</em> and <em>bootWorld</em> are passed the map data, and then <em>loadWorld</em> is called.</p>
 <h6 id="load_mapsrcgameengine.hs-70-to-96">04_load_map/src/GameEngine.hs (70 to 96)</h6>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="ot">initialiseConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Text</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb11-2" data-line-number="2">initialiseConnection conn cmdData mapData <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
-<a class="sourceLine" id="cb11-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb11-5" data-line-number="5">      <span class="dt">Left</span> <span class="st">&quot;missing / invalid screen size&quot;</span></a>
-<a class="sourceLine" id="cb11-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb11-7" data-line-number="7">    <span class="dt">Just</span> (width, height) <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb11-8" data-line-number="8">      <span class="dt">Right</span> <span class="fu">$</span> bootWorld conn (width, height) mapData</a>
-<a class="sourceLine" id="cb11-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb11-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb11-11" data-line-number="11"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb11-12" data-line-number="12">bootWorld conn screenSize mapData <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb11-13" data-line-number="13">  <span class="kw">let</span> config <span class="fu">=</span> mkConfig <span class="kw">in</span></a>
-<a class="sourceLine" id="cb11-14" data-line-number="14">   </a>
-<a class="sourceLine" id="cb11-15" data-line-number="15">  <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
-<a class="sourceLine" id="cb11-16" data-line-number="16">        , _wdConfig <span class="fu">=</span> config</a>
-<a class="sourceLine" id="cb11-17" data-line-number="17">        , _wdMap <span class="fu">=</span> loadWorld E.loadTexts mapData</a>
-<a class="sourceLine" id="cb11-18" data-line-number="18">        }</a>
-<a class="sourceLine" id="cb11-19" data-line-number="19">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb11-20" data-line-number="20">    mkConfig <span class="fu">=</span></a>
-<a class="sourceLine" id="cb11-21" data-line-number="21">      <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [(<span class="st">&quot;t&quot;</span>, <span class="st">&quot;test&quot;</span>)] }</a>
-<a class="sourceLine" id="cb11-22" data-line-number="22"></a>
-<a class="sourceLine" id="cb11-23" data-line-number="23">    mkPlayer <span class="fu">=</span></a>
-<a class="sourceLine" id="cb11-24" data-line-number="24">      <span class="dt">Player</span> { _plConn <span class="fu">=</span> conn</a>
-<a class="sourceLine" id="cb11-25" data-line-number="25">             , _plScreenSize <span class="fu">=</span> screenSize</a>
-<a class="sourceLine" id="cb11-26" data-line-number="26">             , _plWorldTopLeft <span class="fu">=</span> <span class="dt">WorldPos</span> (<span class="dv">0</span>, <span class="dv">0</span>)</a>
-<a class="sourceLine" id="cb11-27" data-line-number="27">             }</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="ot">initialiseConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Text</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb11-2" title="2">initialiseConnection conn cmdData mapData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb11-3" title="3">  <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb11-4" title="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb11-5" title="5">      <span class="dt">Left</span> <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb11-6" title="6"></a>
+<a class="sourceLine" id="cb11-7" title="7">    <span class="dt">Just</span> (width, height) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb11-8" title="8">      <span class="dt">Right</span> <span class="fu">$</span> bootWorld conn (width, height) mapData</a>
+<a class="sourceLine" id="cb11-9" title="9"></a>
+<a class="sourceLine" id="cb11-10" title="10"></a>
+<a class="sourceLine" id="cb11-11" title="11"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb11-12" title="12">bootWorld conn screenSize mapData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb11-13" title="13">  <span class="kw">let</span> config <span class="fu">=</span> mkConfig <span class="kw">in</span></a>
+<a class="sourceLine" id="cb11-14" title="14">   </a>
+<a class="sourceLine" id="cb11-15" title="15">  <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
+<a class="sourceLine" id="cb11-16" title="16">        , _wdConfig <span class="fu">=</span> config</a>
+<a class="sourceLine" id="cb11-17" title="17">        , _wdMap <span class="fu">=</span> loadWorld E.loadTexts mapData</a>
+<a class="sourceLine" id="cb11-18" title="18">        }</a>
+<a class="sourceLine" id="cb11-19" title="19">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb11-20" title="20">    mkConfig <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-21" title="21">      <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [(<span class="st">&quot;t&quot;</span>, <span class="st">&quot;test&quot;</span>)] }</a>
+<a class="sourceLine" id="cb11-22" title="22"></a>
+<a class="sourceLine" id="cb11-23" title="23">    mkPlayer <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-24" title="24">      <span class="dt">Player</span> { _plConn <span class="fu">=</span> conn</a>
+<a class="sourceLine" id="cb11-25" title="25">             , _plScreenSize <span class="fu">=</span> screenSize</a>
+<a class="sourceLine" id="cb11-26" title="26">             , _plWorldTopLeft <span class="fu">=</span> <span class="dt">WorldPos</span> (<span class="dv">0</span>, <span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb11-27" title="27">             }</a></code></pre></div>
 <p><em>loadWorld</em> calls <em>parseWorld</em> to parse the CSV and then converts the player coordinates to world coordinates.</p>
 <p><em>parseWorld</em> does the following</p>
 <ol type="1">
@@ -195,51 +195,51 @@ w,w,w,w,w,w,w,w,w,w,w,w,w,w</code></pre>
 </ol>
 <p>(I’m not using a CSV parser as I control the CSV generation and know its well formed and simple. Don’t do this for any other scenario :) )</p>
 <h6 id="load_mapsrcgameengine.hs-183-to-204">04_load_map/src/GameEngine.hs (183 to 204)</h6>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ot">loadWorld ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb12-2" data-line-number="2">loadWorld chars csv <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb12-3" data-line-number="3">  translatePlayerMap (<span class="dt">WorldPos</span> (<span class="dv">0</span>, <span class="dv">0</span>)) <span class="fu">$</span> parseWorld chars csv</a>
-<a class="sourceLine" id="cb12-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb12-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb12-6" data-line-number="6"><span class="ot">parseWorld ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb12-7" data-line-number="7">parseWorld chars csv <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb12-8" data-line-number="8">  <span class="kw">let</span> ls <span class="fu">=</span> Txt.lines csv <span class="kw">in</span></a>
-<a class="sourceLine" id="cb12-9" data-line-number="9">  <span class="kw">let</span> lss <span class="fu">=</span> Txt.strip <span class="fu">&lt;&lt;$&gt;&gt;</span> (Txt.splitOn <span class="st">&quot;,&quot;</span> <span class="fu">&lt;$&gt;</span> ls) <span class="kw">in</span></a>
-<a class="sourceLine" id="cb12-10" data-line-number="10">  <span class="kw">let</span> entityMap <span class="fu">=</span> Lst.imap (\r cs <span class="ot">-&gt;</span> Lst.imap (loadCol r) cs) lss <span class="kw">in</span></a>
-<a class="sourceLine" id="cb12-11" data-line-number="11">  Map.fromList <span class="fu">.</span> catMaybes <span class="fu">$</span> concat entityMap</a>
-<a class="sourceLine" id="cb12-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb12-13" data-line-number="13">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb12-14" data-line-number="14">    loadCol y x c <span class="fu">=</span> <span class="kw">case</span> Map.lookup c chars <span class="kw">of</span></a>
-<a class="sourceLine" id="cb12-15" data-line-number="15">                      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a>
-<a class="sourceLine" id="cb12-16" data-line-number="16">                      <span class="dt">Just</span> a <span class="ot">-&gt;</span> <span class="dt">Just</span> (<span class="dt">PlayerPos</span> (x, y), a)</a>
-<a class="sourceLine" id="cb12-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb12-18" data-line-number="18"></a>
-<a class="sourceLine" id="cb12-19" data-line-number="19"><span class="ot">translatePlayerMap ::</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span></a>
-<a class="sourceLine" id="cb12-20" data-line-number="20">translatePlayerMap worldTopLeft entityMap <span class="fu">=</span></a>
-<a class="sourceLine" id="cb12-21" data-line-number="21">  <span class="kw">let</span> entitysInWorld <span class="fu">=</span> Ar.first (playerCoordToWorld worldTopLeft) <span class="fu">&lt;$&gt;</span> Map.toList entityMap  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb12-22" data-line-number="22">  Map.fromList entitysInWorld</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1"><span class="ot">loadWorld ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb12-2" title="2">loadWorld chars csv <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb12-3" title="3">  translatePlayerMap (<span class="dt">WorldPos</span> (<span class="dv">0</span>, <span class="dv">0</span>)) <span class="fu">$</span> parseWorld chars csv</a>
+<a class="sourceLine" id="cb12-4" title="4"></a>
+<a class="sourceLine" id="cb12-5" title="5"></a>
+<a class="sourceLine" id="cb12-6" title="6"><span class="ot">parseWorld ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb12-7" title="7">parseWorld chars csv <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb12-8" title="8">  <span class="kw">let</span> ls <span class="fu">=</span> Txt.lines csv <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-9" title="9">  <span class="kw">let</span> lss <span class="fu">=</span> Txt.strip <span class="fu">&lt;&lt;$&gt;&gt;</span> (Txt.splitOn <span class="st">&quot;,&quot;</span> <span class="fu">&lt;$&gt;</span> ls) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-10" title="10">  <span class="kw">let</span> entityMap <span class="fu">=</span> Lst.imap (\r cs <span class="ot">-&gt;</span> Lst.imap (loadCol r) cs) lss <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-11" title="11">  Map.fromList <span class="fu">.</span> catMaybes <span class="fu">$</span> <span class="fu">concat</span> entityMap</a>
+<a class="sourceLine" id="cb12-12" title="12"></a>
+<a class="sourceLine" id="cb12-13" title="13">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb12-14" title="14">    loadCol y x c <span class="fu">=</span> <span class="kw">case</span> Map.lookup c chars <span class="kw">of</span></a>
+<a class="sourceLine" id="cb12-15" title="15">                      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb12-16" title="16">                      <span class="dt">Just</span> a <span class="ot">-&gt;</span> <span class="dt">Just</span> (<span class="dt">PlayerPos</span> (x, y), a)</a>
+<a class="sourceLine" id="cb12-17" title="17"></a>
+<a class="sourceLine" id="cb12-18" title="18"></a>
+<a class="sourceLine" id="cb12-19" title="19"><span class="ot">translatePlayerMap ::</span> <span class="dt">WorldPos</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span></a>
+<a class="sourceLine" id="cb12-20" title="20">translatePlayerMap worldTopLeft entityMap <span class="fu">=</span></a>
+<a class="sourceLine" id="cb12-21" title="21">  <span class="kw">let</span> entitysInWorld <span class="fu">=</span> Ar.first (playerCoordToWorld worldTopLeft) <span class="fu">&lt;$&gt;</span> Map.toList entityMap  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb12-22" title="22">  Map.fromList entitysInWorld</a></code></pre></div>
 <h1 id="drawing">Drawing</h1>
 <p>We now need a way to tell the frontend which tiles to draw A <em>drMapData</em> field is added to <em>UiDrawCommand</em>. This field has an array of (x, y, tileId) that can be sent to the frontend</p>
 <h6 id="load_mapsrcgamecore.hs-76-to-80">04_load_map/src/GameCore.hs (76 to 80)</h6>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiDrawCommand</span> <span class="fu">=</span> <span class="dt">UiDrawCommand</span></a>
-<a class="sourceLine" id="cb13-2" data-line-number="2">                     {<span class="ot"> drCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb13-3" data-line-number="3">                     ,<span class="ot"> drScreenWidth ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
-<a class="sourceLine" id="cb13-4" data-line-number="4">                     ,<span class="ot"> drMapData ::</span> <span class="fu">!</span>[(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)]</a>
-<a class="sourceLine" id="cb13-5" data-line-number="5">                     } <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">data</span> <span class="dt">UiDrawCommand</span> <span class="fu">=</span> <span class="dt">UiDrawCommand</span></a>
+<a class="sourceLine" id="cb13-2" title="2">                     {<span class="ot"> drCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb13-3" title="3">                     ,<span class="ot"> drScreenWidth ::</span> <span class="fu">!</span><span class="dt">Int</span></a>
+<a class="sourceLine" id="cb13-4" title="4">                     ,<span class="ot"> drMapData ::</span> <span class="fu">!</span>[(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)]</a>
+<a class="sourceLine" id="cb13-5" title="5">                     } <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a></code></pre></div>
 <p><em>drawAndSend</em> is modified to send the <em>UiDrawCommand</em></p>
 <h6 id="load_mapsrcgameengine.hs-166-to-178">04_load_map/src/GameEngine.hs (166 to 178)</h6>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="ot">drawAndSend ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb14-2" data-line-number="2">drawAndSend world <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb14-3" data-line-number="3">  <span class="kw">let</span> playerTiles <span class="fu">=</span> drawTilesForPlayer world (world <span class="fu">^.</span> wdMap) </a>
-<a class="sourceLine" id="cb14-4" data-line-number="4">  </a>
-<a class="sourceLine" id="cb14-5" data-line-number="5">  <span class="kw">let</span> cmd <span class="fu">=</span> Ae.encodeText <span class="dt">UiDrawCommand</span> { drCmd <span class="fu">=</span> <span class="st">&quot;draw&quot;</span></a>
-<a class="sourceLine" id="cb14-6" data-line-number="6">                                        , drScreenWidth <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize <span class="fu">^.</span> _1</a>
-<a class="sourceLine" id="cb14-7" data-line-number="7">                                        , drMapData <span class="fu">=</span> mkDrawMapData <span class="fu">&lt;$&gt;</span> Map.toList playerTiles</a>
-<a class="sourceLine" id="cb14-8" data-line-number="8">                                        }</a>
-<a class="sourceLine" id="cb14-9" data-line-number="9">  sendData (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn) cmd</a>
-<a class="sourceLine" id="cb14-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb14-11" data-line-number="11">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb14-12" data-line-number="12"><span class="ot">    mkDrawMapData ::</span> (<span class="dt">PlayerPos</span>, <span class="dt">Tile</span>) <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb14-13" data-line-number="13">    mkDrawMapData (<span class="dt">PlayerPos</span> (x, y), tile) <span class="fu">=</span> (x, y, tile <span class="fu">^.</span> tlId)</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" title="1"><span class="ot">drawAndSend ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb14-2" title="2">drawAndSend world <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb14-3" title="3">  <span class="kw">let</span> playerTiles <span class="fu">=</span> drawTilesForPlayer world (world <span class="fu">^.</span> wdMap) </a>
+<a class="sourceLine" id="cb14-4" title="4">  </a>
+<a class="sourceLine" id="cb14-5" title="5">  <span class="kw">let</span> cmd <span class="fu">=</span> Ae.encodeText <span class="dt">UiDrawCommand</span> { drCmd <span class="fu">=</span> <span class="st">&quot;draw&quot;</span></a>
+<a class="sourceLine" id="cb14-6" title="6">                                        , drScreenWidth <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plScreenSize <span class="fu">^.</span> _1</a>
+<a class="sourceLine" id="cb14-7" title="7">                                        , drMapData <span class="fu">=</span> mkDrawMapData <span class="fu">&lt;$&gt;</span> Map.toList playerTiles</a>
+<a class="sourceLine" id="cb14-8" title="8">                                        }</a>
+<a class="sourceLine" id="cb14-9" title="9">  sendData (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plConn) cmd</a>
+<a class="sourceLine" id="cb14-10" title="10"></a>
+<a class="sourceLine" id="cb14-11" title="11">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb14-12" title="12"><span class="ot">    mkDrawMapData ::</span> (<span class="dt">PlayerPos</span>, <span class="dt">Tile</span>) <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb14-13" title="13">    mkDrawMapData (<span class="dt">PlayerPos</span> (x, y), tile) <span class="fu">=</span> (x, y, tile <span class="fu">^.</span> tlId)</a></code></pre></div>
 <p><em>drawTilesForPlayer</em> creates a map of tiles that need to be drawn.</p>
 <ol type="1">
 <li>Get the player</li>
@@ -252,56 +252,56 @@ w,w,w,w,w,w,w,w,w,w,w,w,w,w</code></pre>
 <li>Convert to player coordinates</li>
 </ol>
 <h6 id="load_mapsrcgameengine.hs-221-to-249">04_load_map/src/GameEngine.hs (221 to 249)</h6>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="ot">drawTilesForPlayer ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb15-2" data-line-number="2">drawTilesForPlayer world entityMap <span class="fu">=</span></a>
-<a class="sourceLine" id="cb15-3" data-line-number="3">  <span class="kw">let</span></a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">    player <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer</a>
-<a class="sourceLine" id="cb15-5" data-line-number="5">    </a>
-<a class="sourceLine" id="cb15-6" data-line-number="6">    <span class="co">-- Top left of player's grid</span></a>
-<a class="sourceLine" id="cb15-7" data-line-number="7">    (<span class="dt">WorldPos</span> (topX, topY)) <span class="fu">=</span> player <span class="fu">^.</span> plWorldTopLeft</a>
-<a class="sourceLine" id="cb15-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb15-9" data-line-number="9">    <span class="co">-- Players screen/grid dimensions</span></a>
-<a class="sourceLine" id="cb15-10" data-line-number="10">    (screenX, screenY) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
-<a class="sourceLine" id="cb15-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb15-12" data-line-number="12">    <span class="co">-- Bottom right corner</span></a>
-<a class="sourceLine" id="cb15-13" data-line-number="13">    (bottomX, bottomY) <span class="fu">=</span> (topX <span class="fu">+</span> screenX, topY <span class="fu">-</span> screenY)</a>
-<a class="sourceLine" id="cb15-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb15-15" data-line-number="15">      <span class="co">-- Filter out blank</span></a>
-<a class="sourceLine" id="cb15-16" data-line-number="16">    noEmptyMap <span class="fu">=</span> Map.filter (\e <span class="ot">-&gt;</span> e <span class="fu">^.</span> enTile <span class="fu">^.</span> tlName <span class="fu">/=</span> <span class="st">&quot;blank&quot;</span>) entityMap</a>
-<a class="sourceLine" id="cb15-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb15-18" data-line-number="18">    <span class="co">-- Only get the entitys that are at positions on the player's screen</span></a>
-<a class="sourceLine" id="cb15-19" data-line-number="19">    visibleEntitys <span class="fu">=</span> Map.filterWithKey (inView topX topY bottomX bottomY) noEmptyMap</a>
-<a class="sourceLine" id="cb15-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb15-21" data-line-number="21">    <span class="co">-- Get the tile for each entity</span></a>
-<a class="sourceLine" id="cb15-22" data-line-number="22">    tileMap <span class="fu">=</span> (<span class="fu">^.</span> enTile) <span class="fu">&lt;$&gt;</span> visibleEntitys</a>
-<a class="sourceLine" id="cb15-23" data-line-number="23">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb15-24" data-line-number="24">  <span class="co">-- Get it with player positions</span></a>
-<a class="sourceLine" id="cb15-25" data-line-number="25">  Map.mapKeys (worldCoordToPlayer <span class="fu">$</span> player <span class="fu">^.</span> plWorldTopLeft) tileMap</a>
-<a class="sourceLine" id="cb15-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb15-27" data-line-number="27">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb15-28" data-line-number="28">    inView topX topY bottomX bottomY (<span class="dt">WorldPos</span> (x, y)) _ <span class="fu">=</span></a>
-<a class="sourceLine" id="cb15-29" data-line-number="29">      x <span class="fu">&gt;=</span> topX <span class="fu">&amp;&amp;</span> x <span class="fu">&lt;</span> bottomX <span class="fu">&amp;&amp;</span> y <span class="fu">&gt;</span> bottomY <span class="fu">&amp;&amp;</span> y <span class="fu">&lt;=</span> topY</a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" title="1"><span class="ot">drawTilesForPlayer ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">WorldPos</span> <span class="dt">Entity</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb15-2" title="2">drawTilesForPlayer world entityMap <span class="fu">=</span></a>
+<a class="sourceLine" id="cb15-3" title="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb15-4" title="4">    player <span class="fu">=</span> world <span class="fu">^.</span> wdPlayer</a>
+<a class="sourceLine" id="cb15-5" title="5">    </a>
+<a class="sourceLine" id="cb15-6" title="6">    <span class="co">-- Top left of player's grid</span></a>
+<a class="sourceLine" id="cb15-7" title="7">    (<span class="dt">WorldPos</span> (topX, topY)) <span class="fu">=</span> player <span class="fu">^.</span> plWorldTopLeft</a>
+<a class="sourceLine" id="cb15-8" title="8"></a>
+<a class="sourceLine" id="cb15-9" title="9">    <span class="co">-- Players screen/grid dimensions</span></a>
+<a class="sourceLine" id="cb15-10" title="10">    (screenX, screenY) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
+<a class="sourceLine" id="cb15-11" title="11"></a>
+<a class="sourceLine" id="cb15-12" title="12">    <span class="co">-- Bottom right corner</span></a>
+<a class="sourceLine" id="cb15-13" title="13">    (bottomX, bottomY) <span class="fu">=</span> (topX <span class="fu">+</span> screenX, topY <span class="fu">-</span> screenY)</a>
+<a class="sourceLine" id="cb15-14" title="14"></a>
+<a class="sourceLine" id="cb15-15" title="15">      <span class="co">-- Filter out blank</span></a>
+<a class="sourceLine" id="cb15-16" title="16">    noEmptyMap <span class="fu">=</span> Map.filter (\e <span class="ot">-&gt;</span> e <span class="fu">^.</span> enTile <span class="fu">^.</span> tlName <span class="fu">/=</span> <span class="st">&quot;blank&quot;</span>) entityMap</a>
+<a class="sourceLine" id="cb15-17" title="17"></a>
+<a class="sourceLine" id="cb15-18" title="18">    <span class="co">-- Only get the entitys that are at positions on the player's screen</span></a>
+<a class="sourceLine" id="cb15-19" title="19">    visibleEntitys <span class="fu">=</span> Map.filterWithKey (inView topX topY bottomX bottomY) noEmptyMap</a>
+<a class="sourceLine" id="cb15-20" title="20"></a>
+<a class="sourceLine" id="cb15-21" title="21">    <span class="co">-- Get the tile for each entity</span></a>
+<a class="sourceLine" id="cb15-22" title="22">    tileMap <span class="fu">=</span> (<span class="fu">^.</span> enTile) <span class="fu">&lt;$&gt;</span> visibleEntitys</a>
+<a class="sourceLine" id="cb15-23" title="23">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb15-24" title="24">  <span class="co">-- Get it with player positions</span></a>
+<a class="sourceLine" id="cb15-25" title="25">  Map.mapKeys (worldCoordToPlayer <span class="fu">$</span> player <span class="fu">^.</span> plWorldTopLeft) tileMap</a>
+<a class="sourceLine" id="cb15-26" title="26"></a>
+<a class="sourceLine" id="cb15-27" title="27">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb15-28" title="28">    inView topX topY bottomX bottomY (<span class="dt">WorldPos</span> (x, y)) _ <span class="fu">=</span></a>
+<a class="sourceLine" id="cb15-29" title="29">      x <span class="fu">&gt;=</span> topX <span class="fu">&amp;&amp;</span> x <span class="fu">&lt;</span> bottomX <span class="fu">&amp;&amp;</span> y <span class="fu">&gt;</span> bottomY <span class="fu">&amp;&amp;</span> y <span class="fu">&lt;=</span> topY</a></code></pre></div>
 <p>Next a small addition to the JavaScript. In <em>runWebSocket</em> when the draw command is received the code does a forEach over the (x, y, tileId) array and calls <em>drawTile</em> for each.</p>
 <h6 id="load_maphtmlrogue.js-115-to-133">04_load_map/html/rogue.js (115 to 133)</h6>
-<div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb16-1" data-line-number="1">      <span class="cf">case</span> <span class="st">&quot;draw&quot;</span><span class="op">:</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2">        <span class="va">config</span>.<span class="at">drawId</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">random</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-3" data-line-number="3">        </a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">        <span class="kw">const</span> colWidth <span class="op">=</span> <span class="va">cmd</span>.<span class="at">screenWidth</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb16-5" data-line-number="5">        <span class="kw">const</span> ctx <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>).<span class="at">getContext</span>(<span class="st">&quot;2d&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb16-7" data-line-number="7">        <span class="co">//Draw background image of blank tiles</span></a>
-<a class="sourceLine" id="cb16-8" data-line-number="8">        <span class="va">ctx</span>.<span class="at">drawImage</span>( <span class="at">getCachedBlankCanvas</span>()<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb16-10" data-line-number="10">        <span class="va">R</span>.<span class="at">forEach</span>( ([atX<span class="op">,</span> atY<span class="op">,</span> tid]) <span class="op">=&gt;</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb16-11" data-line-number="11">          <span class="kw">const</span> [tX<span class="op">,</span> tY] <span class="op">=</span> <span class="at">tileFromTileId</span>( tid )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-12" data-line-number="12">          </a>
-<a class="sourceLine" id="cb16-13" data-line-number="13">          <span class="co">//function drawTile( ctx, img, twidth, theight, dx, dy, trow, tcol ){</span></a>
-<a class="sourceLine" id="cb16-14" data-line-number="14">          <span class="at">drawTile</span>( ctx<span class="op">,</span> tilesMain<span class="op">,</span> <span class="va">config</span>.<span class="at">tileWidth</span><span class="op">,</span> <span class="va">config</span>.<span class="at">tileHeight</span><span class="op">,</span> atX<span class="op">,</span> atY<span class="op">,</span> tX<span class="op">,</span> tY )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb16-16" data-line-number="16">        <span class="op">},</span> <span class="va">cmd</span>.<span class="at">mapData</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb16-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb16-18" data-line-number="18">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb16-19" data-line-number="19">      <span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb16-1" title="1">      <span class="cf">case</span> <span class="st">&quot;draw&quot;</span><span class="op">:</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb16-2" title="2">        <span class="va">config</span>.<span class="at">drawId</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">random</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-3" title="3">        </a>
+<a class="sourceLine" id="cb16-4" title="4">        <span class="kw">const</span> colWidth <span class="op">=</span> <span class="va">cmd</span>.<span class="at">screenWidth</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-5" title="5">        <span class="kw">const</span> ctx <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;tilesCanvas&quot;</span>).<span class="at">getContext</span>(<span class="st">&quot;2d&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-6" title="6"></a>
+<a class="sourceLine" id="cb16-7" title="7">        <span class="co">//Draw background image of blank tiles</span></a>
+<a class="sourceLine" id="cb16-8" title="8">        <span class="va">ctx</span>.<span class="at">drawImage</span>( <span class="at">getCachedBlankCanvas</span>()<span class="op">,</span> <span class="dv">0</span><span class="op">,</span> <span class="dv">0</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-9" title="9"></a>
+<a class="sourceLine" id="cb16-10" title="10">        <span class="va">R</span>.<span class="at">forEach</span>( ([atX<span class="op">,</span> atY<span class="op">,</span> tid]) <span class="kw">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb16-11" title="11">          <span class="kw">const</span> [tX<span class="op">,</span> tY] <span class="op">=</span> <span class="at">tileFromTileId</span>( tid )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-12" title="12">          </a>
+<a class="sourceLine" id="cb16-13" title="13">          <span class="co">//function drawTile( ctx, img, twidth, theight, dx, dy, trow, tcol ){</span></a>
+<a class="sourceLine" id="cb16-14" title="14">          <span class="at">drawTile</span>( ctx<span class="op">,</span> tilesMain<span class="op">,</span> <span class="va">config</span>.<span class="at">tileWidth</span><span class="op">,</span> <span class="va">config</span>.<span class="at">tileHeight</span><span class="op">,</span> atX<span class="op">,</span> atY<span class="op">,</span> tX<span class="op">,</span> tY )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-15" title="15"></a>
+<a class="sourceLine" id="cb16-16" title="16">        <span class="op">},</span> <span class="va">cmd</span>.<span class="at">mapData</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb16-17" title="17"></a>
+<a class="sourceLine" id="cb16-18" title="18">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-19" title="19">      <span class="op">}</span></a></code></pre></div>
 <p><img src="../../images/rogue_04_loaded.png" /></p>
 <p>Yay! Finally, something that looks vaguely roguelike. So far thats ~360 lines of haskell and ~150 lines of JavaScript. This is a pretty good foundation and adding features from this point on should start feeling more like the logic of the game than support code.</p>
 <h1 id="chapters">Chapters</h1>

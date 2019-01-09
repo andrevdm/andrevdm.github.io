@@ -32,16 +32,16 @@
 <h2 id="installing-node-js">Installing Node JS</h2>
 <p>The version of NodeJs available in most of the distros is quite old. There are a few ways to get a new version. Personally I found that installing the same version of node that I have on my desktop on the pi worked best. To do this get the version you need from <a href="https://nodejs.org/dist/" class="uri">https://nodejs.org/dist/</a>.</p>
 <p>Then run the commands with the appropriate version numbers</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="fu">tar</span> -xvf node-v4nnn</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="bu">cd</span> node-v4nnn</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="fu">sudo</span> cp -R . /usr/local</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" title="1"><span class="fu">tar</span> -xvf node-v4nnn</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="bu">cd</span> node-v4nnn</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="fu">sudo</span> cp -R . /usr/local</a></code></pre></div>
 <p>if you prefer to get the latest, and a more automated install, then you can follow the instructions here <a href="http://thisdavej.com/beginners-guide-to-installing-node-js-on-a-raspberry-pi/">Beginner’s Guide to Installing Node.js on a Raspberry Pi</a></p>
 <h2 id="purescript-on-the-pi">PureScript on the Pi</h2>
 <p>PureScript itself does not seem to install on the pi, so you’ll need to compile on a desktop machine and copy the resulting JavaScript files across</p>
 <h2 id="raspberry-pi-gpio">Raspberry Pi GPIO</h2>
 <p>GPIO can quite easily be done using unix files. This is not particularly fast but it should be more that sufficient for many use cases. It is also simple enough that it can even be done directly from the shell. If you need faster access FFI to one of the broadcom libraries is probably the way to go.</p>
 <p>The GPIO ports are exposed here</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ex">/sys/class/gpio/gpio</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb2-1" title="1"><span class="ex">/sys/class/gpio/gpio</span></a></code></pre></div>
 <p>To use a GPIO pin for basic IO you need to do the following</p>
 <ol type="1">
 <li>Ensure that the port is “open”. Write the port number to <code>/sys/class/gpio/export</code></li>
@@ -55,101 +55,101 @@
 <p><a href="http://raspi.tv/wp-content/uploads/2014/07/Raspberry-Pi-GPIO-pinouts.png">Here is a good reference</a> showing pin number and GPIO numbers</p>
 <h1 id="purescript">PureScript</h1>
 <h2 id="gpio-types">GPIO types</h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">module</span> <span class="dt">Gpio</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="kw">data</span> <span class="dt">Direction</span> <span class="fu">=</span> <span class="dt">In</span> <span class="fu">|</span> <span class="dt">Out</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="kw">newtype</span> <span class="dt">Pin</span> <span class="fu">=</span> <span class="dt">Pin</span> <span class="dt">Int</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">module</span> <span class="dt">Gpio</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-2" title="2"></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">data</span> <span class="dt">Direction</span> <span class="fu">=</span> <span class="dt">In</span> <span class="fu">|</span> <span class="dt">Out</span></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="kw">newtype</span> <span class="dt">Pin</span> <span class="fu">=</span> <span class="dt">Pin</span> <span class="dt">Int</span></a></code></pre></div>
 <h2 id="dealing-with-the-various-pin-numbering-schemes">Dealing with the various pin numbering schemes</h2>
 <p>As shown above the physical pin numbers are used when working with GPIO, so all the functions here work with a pin number (Pin newtype). Then there is a module per board that can be used to map from a logical GPIO number to a pin. In this example I’ve only defined the layout for the Rev 2 A &amp; B P1 boards.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">import</span> <span class="dt">Gpio</span> (<span class="dt">Pin</span> (..))</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3"><span class="kw">data</span> <span class="dt">GpioPin</span> <span class="fu">=</span> <span class="dt">GpioPin2</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">             <span class="fu">|</span> <span class="dt">GpioPin3</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">             <span class="fu">|</span> <span class="dt">GpioPin4</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">             <span class="fu">|</span> <span class="dt">GpioPin17</span></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">             <span class="fu">|</span> <span class="dt">GpioPin27</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">             <span class="fu">|</span> <span class="dt">GpioPin22</span></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">             <span class="fu">|</span> <span class="dt">GpioPin10</span></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">             <span class="fu">|</span> <span class="dt">GpioPin9</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">             <span class="fu">|</span> <span class="dt">GpioPin11</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12">             <span class="fu">|</span> <span class="dt">GpioPin14</span></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">             <span class="fu">|</span> <span class="dt">GpioPin15</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">             <span class="fu">|</span> <span class="dt">GpioPin18</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15">             <span class="fu">|</span> <span class="dt">GpioPin23</span></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16">             <span class="fu">|</span> <span class="dt">GpioPin24</span></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">             <span class="fu">|</span> <span class="dt">GpioPin25</span></a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">             <span class="fu">|</span> <span class="dt">GpioPin8</span></a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">             <span class="fu">|</span> <span class="dt">GpioPin7</span></a>
-<a class="sourceLine" id="cb4-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb4-21" data-line-number="21"><span class="ot">toPin ::</span> <span class="dt">GpioPin</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span></a>
-<a class="sourceLine" id="cb4-22" data-line-number="22">toPin g <span class="fu">=</span></a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">  <span class="kw">case</span> g <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-24" data-line-number="24">    <span class="dt">GpioPin2</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">3</span></a>
-<a class="sourceLine" id="cb4-25" data-line-number="25">    <span class="dt">GpioPin3</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">4</span></a>
-<a class="sourceLine" id="cb4-26" data-line-number="26">    <span class="dt">GpioPin4</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">7</span></a>
-<a class="sourceLine" id="cb4-27" data-line-number="27">    <span class="dt">GpioPin17</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">11</span></a>
-<a class="sourceLine" id="cb4-28" data-line-number="28">    <span class="dt">GpioPin27</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">13</span></a>
-<a class="sourceLine" id="cb4-29" data-line-number="29">    <span class="dt">GpioPin22</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">15</span></a>
-<a class="sourceLine" id="cb4-30" data-line-number="30">    <span class="dt">GpioPin10</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">19</span></a>
-<a class="sourceLine" id="cb4-31" data-line-number="31">    <span class="dt">GpioPin9</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">21</span></a>
-<a class="sourceLine" id="cb4-32" data-line-number="32">    <span class="dt">GpioPin11</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">23</span></a>
-<a class="sourceLine" id="cb4-33" data-line-number="33">    <span class="dt">GpioPin14</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">8</span></a>
-<a class="sourceLine" id="cb4-34" data-line-number="34">    <span class="dt">GpioPin15</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">10</span></a>
-<a class="sourceLine" id="cb4-35" data-line-number="35">    <span class="dt">GpioPin18</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">12</span></a>
-<a class="sourceLine" id="cb4-36" data-line-number="36">    <span class="dt">GpioPin23</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">16</span></a>
-<a class="sourceLine" id="cb4-37" data-line-number="37">    <span class="dt">GpioPin24</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">18</span></a>
-<a class="sourceLine" id="cb4-38" data-line-number="38">    <span class="dt">GpioPin25</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">22</span></a>
-<a class="sourceLine" id="cb4-39" data-line-number="39">    <span class="dt">GpioPin8</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">24</span></a>
-<a class="sourceLine" id="cb4-40" data-line-number="40">    <span class="dt">GpioPin7</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">26</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">import</span> <span class="dt">Gpio</span> (<span class="dt">Pin</span> (..))</a>
+<a class="sourceLine" id="cb4-2" title="2"></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="kw">data</span> <span class="dt">GpioPin</span> <span class="fu">=</span> <span class="dt">GpioPin2</span></a>
+<a class="sourceLine" id="cb4-4" title="4">             <span class="fu">|</span> <span class="dt">GpioPin3</span></a>
+<a class="sourceLine" id="cb4-5" title="5">             <span class="fu">|</span> <span class="dt">GpioPin4</span></a>
+<a class="sourceLine" id="cb4-6" title="6">             <span class="fu">|</span> <span class="dt">GpioPin17</span></a>
+<a class="sourceLine" id="cb4-7" title="7">             <span class="fu">|</span> <span class="dt">GpioPin27</span></a>
+<a class="sourceLine" id="cb4-8" title="8">             <span class="fu">|</span> <span class="dt">GpioPin22</span></a>
+<a class="sourceLine" id="cb4-9" title="9">             <span class="fu">|</span> <span class="dt">GpioPin10</span></a>
+<a class="sourceLine" id="cb4-10" title="10">             <span class="fu">|</span> <span class="dt">GpioPin9</span></a>
+<a class="sourceLine" id="cb4-11" title="11">             <span class="fu">|</span> <span class="dt">GpioPin11</span></a>
+<a class="sourceLine" id="cb4-12" title="12">             <span class="fu">|</span> <span class="dt">GpioPin14</span></a>
+<a class="sourceLine" id="cb4-13" title="13">             <span class="fu">|</span> <span class="dt">GpioPin15</span></a>
+<a class="sourceLine" id="cb4-14" title="14">             <span class="fu">|</span> <span class="dt">GpioPin18</span></a>
+<a class="sourceLine" id="cb4-15" title="15">             <span class="fu">|</span> <span class="dt">GpioPin23</span></a>
+<a class="sourceLine" id="cb4-16" title="16">             <span class="fu">|</span> <span class="dt">GpioPin24</span></a>
+<a class="sourceLine" id="cb4-17" title="17">             <span class="fu">|</span> <span class="dt">GpioPin25</span></a>
+<a class="sourceLine" id="cb4-18" title="18">             <span class="fu">|</span> <span class="dt">GpioPin8</span></a>
+<a class="sourceLine" id="cb4-19" title="19">             <span class="fu">|</span> <span class="dt">GpioPin7</span></a>
+<a class="sourceLine" id="cb4-20" title="20"></a>
+<a class="sourceLine" id="cb4-21" title="21"><span class="ot">toPin ::</span> <span class="dt">GpioPin</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span></a>
+<a class="sourceLine" id="cb4-22" title="22">toPin g <span class="fu">=</span></a>
+<a class="sourceLine" id="cb4-23" title="23">  <span class="kw">case</span> g <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-24" title="24">    <span class="dt">GpioPin2</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">3</span></a>
+<a class="sourceLine" id="cb4-25" title="25">    <span class="dt">GpioPin3</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">4</span></a>
+<a class="sourceLine" id="cb4-26" title="26">    <span class="dt">GpioPin4</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">7</span></a>
+<a class="sourceLine" id="cb4-27" title="27">    <span class="dt">GpioPin17</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">11</span></a>
+<a class="sourceLine" id="cb4-28" title="28">    <span class="dt">GpioPin27</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">13</span></a>
+<a class="sourceLine" id="cb4-29" title="29">    <span class="dt">GpioPin22</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">15</span></a>
+<a class="sourceLine" id="cb4-30" title="30">    <span class="dt">GpioPin10</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">19</span></a>
+<a class="sourceLine" id="cb4-31" title="31">    <span class="dt">GpioPin9</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">21</span></a>
+<a class="sourceLine" id="cb4-32" title="32">    <span class="dt">GpioPin11</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">23</span></a>
+<a class="sourceLine" id="cb4-33" title="33">    <span class="dt">GpioPin14</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">8</span></a>
+<a class="sourceLine" id="cb4-34" title="34">    <span class="dt">GpioPin15</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">10</span></a>
+<a class="sourceLine" id="cb4-35" title="35">    <span class="dt">GpioPin18</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">12</span></a>
+<a class="sourceLine" id="cb4-36" title="36">    <span class="dt">GpioPin23</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">16</span></a>
+<a class="sourceLine" id="cb4-37" title="37">    <span class="dt">GpioPin24</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">18</span></a>
+<a class="sourceLine" id="cb4-38" title="38">    <span class="dt">GpioPin25</span> <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">22</span></a>
+<a class="sourceLine" id="cb4-39" title="39">    <span class="dt">GpioPin8</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">24</span></a>
+<a class="sourceLine" id="cb4-40" title="40">    <span class="dt">GpioPin7</span>  <span class="ot">-&gt;</span> <span class="dt">Pin</span> <span class="dv">26</span></a></code></pre></div>
 <h2 id="gpio">GPIO</h2>
 <p>To “open” a port you write the port number to the export file. This function first checks if the port is open</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">open ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> forall e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">open (<span class="dt">Pin</span> pin) <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">  e <span class="ot">&lt;-</span> S.exists <span class="fu">$</span> <span class="st">&quot;/sys/class/gpio/gpio&quot;</span> <span class="fu">&lt;&gt;</span> show pin</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">  <span class="kw">if</span> not e </a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">    <span class="kw">then</span> </a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">      S.writeTextFile <span class="dt">E.ASCII</span> <span class="st">&quot;/sys/class/gpio/export&quot;</span> (show pin)</a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">    <span class="kw">else</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">      pure unit</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="ot">open ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> <span class="kw">forall</span> e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
+<a class="sourceLine" id="cb5-2" title="2">open (<span class="dt">Pin</span> pin) <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-3" title="3">  e <span class="ot">&lt;-</span> S.exists <span class="fu">$</span> <span class="st">&quot;/sys/class/gpio/gpio&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> pin</a>
+<a class="sourceLine" id="cb5-4" title="4">  <span class="kw">if</span> <span class="fu">not</span> e </a>
+<a class="sourceLine" id="cb5-5" title="5">    <span class="kw">then</span> </a>
+<a class="sourceLine" id="cb5-6" title="6">      S.writeTextFile <span class="dt">E.ASCII</span> <span class="st">&quot;/sys/class/gpio/export&quot;</span> (<span class="fu">show</span> pin)</a>
+<a class="sourceLine" id="cb5-7" title="7">    <span class="kw">else</span></a>
+<a class="sourceLine" id="cb5-8" title="8">      <span class="fu">pure</span> unit</a></code></pre></div>
 <p>Set a port to be <em>in</em> or <em>out</em>. Remember that you can read a value from a port that is set to be output, you read if the port was set to on or off. Reading from a port set to <em>in</em> means that you are reading the value from the pin, i.e. is the pin being held high or low by an external input.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">setDirection ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> <span class="dt">Direction</span> <span class="ot">-&gt;</span> forall e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">setDirection (<span class="dt">Pin</span> pin) dir <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">let</span> dirStr <span class="fu">=</span> <span class="kw">case</span> dir <span class="kw">of</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">                  <span class="dt">In</span> <span class="ot">-&gt;</span> <span class="st">&quot;in&quot;</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">                  <span class="dt">Out</span> <span class="ot">-&gt;</span> <span class="st">&quot;out&quot;</span> </a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">  S.writeTextFile <span class="dt">E.ASCII</span> <span class="st">&quot;/sys/class/gpio/gpio18/direction&quot;</span> dirStr</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">setDirection ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> <span class="dt">Direction</span> <span class="ot">-&gt;</span> <span class="kw">forall</span> e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
+<a class="sourceLine" id="cb6-2" title="2">setDirection (<span class="dt">Pin</span> pin) dir <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-3" title="3">  <span class="kw">let</span> dirStr <span class="fu">=</span> <span class="kw">case</span> dir <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-4" title="4">                  <span class="dt">In</span> <span class="ot">-&gt;</span> <span class="st">&quot;in&quot;</span></a>
+<a class="sourceLine" id="cb6-5" title="5">                  <span class="dt">Out</span> <span class="ot">-&gt;</span> <span class="st">&quot;out&quot;</span> </a>
+<a class="sourceLine" id="cb6-6" title="6">  S.writeTextFile <span class="dt">E.ASCII</span> <span class="st">&quot;/sys/class/gpio/gpio18/direction&quot;</span> dirStr</a></code></pre></div>
 <p>Set an <em>output</em> pin to high or low</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">setValue ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> <span class="dt">Boolean</span> <span class="ot">-&gt;</span> forall e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">setValue (<span class="dt">Pin</span> pin) on <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="kw">let</span> val <span class="fu">=</span> <span class="kw">if</span> on <span class="kw">then</span> <span class="st">&quot;1&quot;</span> <span class="kw">else</span> <span class="st">&quot;0&quot;</span></a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">  S.writeTextFile <span class="dt">E.ASCII</span> (<span class="st">&quot;/sys/class/gpio/gpio&quot;</span> <span class="fu">&lt;&gt;</span> (show pin) <span class="fu">&lt;&gt;</span> <span class="st">&quot;/value&quot;</span>) val</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="ot">setValue ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> <span class="dt">Boolean</span> <span class="ot">-&gt;</span> <span class="kw">forall</span> e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
+<a class="sourceLine" id="cb7-2" title="2">setValue (<span class="dt">Pin</span> pin) on <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb7-3" title="3">  <span class="kw">let</span> val <span class="fu">=</span> <span class="kw">if</span> on <span class="kw">then</span> <span class="st">&quot;1&quot;</span> <span class="kw">else</span> <span class="st">&quot;0&quot;</span></a>
+<a class="sourceLine" id="cb7-4" title="4">  S.writeTextFile <span class="dt">E.ASCII</span> (<span class="st">&quot;/sys/class/gpio/gpio&quot;</span> <span class="fu">&lt;&gt;</span> (<span class="fu">show</span> pin) <span class="fu">&lt;&gt;</span> <span class="st">&quot;/value&quot;</span>) val</a></code></pre></div>
 <p>Read the current value from the pin</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">getValue ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> forall e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Boolean</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">getValue (<span class="dt">Pin</span> pin) <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">  val <span class="ot">&lt;-</span> (Str.trim <span class="fu">&lt;$&gt;</span> S.readTextFile <span class="dt">E.ASCII</span> <span class="st">&quot;/sys/class/gpio/gpio18/value&quot;</span>)</a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">  pure <span class="fu">$</span> val <span class="fu">/=</span> <span class="st">&quot;0&quot;</span></a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="ot">getValue ::</span> <span class="dt">Pin</span> <span class="ot">-&gt;</span> <span class="kw">forall</span> e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Boolean</span></a>
+<a class="sourceLine" id="cb8-2" title="2">getValue (<span class="dt">Pin</span> pin) <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb8-3" title="3">  val <span class="ot">&lt;-</span> (Str.trim <span class="fu">&lt;$&gt;</span> S.readTextFile <span class="dt">E.ASCII</span> <span class="st">&quot;/sys/class/gpio/gpio18/value&quot;</span>)</a>
+<a class="sourceLine" id="cb8-4" title="4">  <span class="fu">pure</span> <span class="fu">$</span> val <span class="fu">/=</span> <span class="st">&quot;0&quot;</span></a></code></pre></div>
 <h2 id="e.g.-toggle-gpio-24">E.g. Toggle GPIO 24</h2>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ot">main ::</span> forall e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">console ::</span> <span class="dt">CONSOLE</span>,<span class="ot"> fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">main <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="kw">let</span> pin <span class="fu">=</span> R.toPin <span class="dt">R.GpioPin24</span></a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">  </a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">  R.open pin </a>
-<a class="sourceLine" id="cb9-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">  v <span class="ot">&lt;-</span> R.getValue pin</a>
-<a class="sourceLine" id="cb9-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb9-9" data-line-number="9">  R.setDirection pin <span class="dt">R.Out</span></a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">  R.setValue pin <span class="fu">$</span> not v</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="ot">main ::</span> <span class="kw">forall</span> e<span class="fu">.</span> <span class="dt">Eff</span> (<span class="ot">console ::</span> <span class="dt">CONSOLE</span>,<span class="ot"> fs ::</span> <span class="dt">FS</span>,<span class="ot"> err ::</span> <span class="dt">EXCEPTION</span> <span class="fu">|</span> e) <span class="dt">Unit</span></a>
+<a class="sourceLine" id="cb9-2" title="2">main <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-3" title="3">  <span class="kw">let</span> pin <span class="fu">=</span> R.toPin <span class="dt">R.GpioPin24</span></a>
+<a class="sourceLine" id="cb9-4" title="4">  </a>
+<a class="sourceLine" id="cb9-5" title="5">  R.open pin </a>
+<a class="sourceLine" id="cb9-6" title="6"></a>
+<a class="sourceLine" id="cb9-7" title="7">  v <span class="ot">&lt;-</span> R.getValue pin</a>
+<a class="sourceLine" id="cb9-8" title="8"></a>
+<a class="sourceLine" id="cb9-9" title="9">  R.setDirection pin <span class="dt">R.Out</span></a>
+<a class="sourceLine" id="cb9-10" title="10">  R.setValue pin <span class="fu">$</span> <span class="fu">not</span> v</a></code></pre></div>
 <h1 id="building-and-running">Building and running</h1>
 <h2 id="build-the-purescript">Build the purescript</h2>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ex">pulp</span> build --optimise --to ripiTest.js</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb10-1" title="1"><span class="ex">pulp</span> build --optimise --to ripiTest.js</a></code></pre></div>
 <p>You then need to copy everything from the output folder to a folder on the pi</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="fu">scp</span> -r ./output pi@192.168.0.99:/home/pi/ripiTest/output</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb11-1" title="1"><span class="fu">scp</span> -r ./output pi@192.168.0.99:/home/pi/ripiTest/output</a></code></pre></div>
 <p>Finally copy your compiled bundle across</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="fu">scp</span> -r ./ripiTest.js pi@192.168.0.99:/home/pi/ripiTest/</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb12-1" title="1"><span class="fu">scp</span> -r ./ripiTest.js pi@192.168.0.99:/home/pi/ripiTest/</a></code></pre></div>
 <p>Note that you only need to copy the <em>output</em> folder again when you add more imports. Otherwise just copy your bundle to save time.</p>
 <h2 id="running">Running</h2>
-<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="bu">cd</span> /home/pi/ripiTest</a>
-<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="fu">sudo</span> node ripiTest.js</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb13-1" title="1"><span class="bu">cd</span> /home/pi/ripiTest</a>
+<a class="sourceLine" id="cb13-2" title="2"><span class="fu">sudo</span> node ripiTest.js</a></code></pre></div>
 <h1 id="links">Links</h1>
 <ol type="1">
 <li><a href="https://github.com/andrevdm/raspberryPiGpio">Source code</a></li>

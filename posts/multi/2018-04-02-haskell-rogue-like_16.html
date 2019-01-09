@@ -33,54 +33,54 @@
 <h1 id="toggle-the-lights">Toggle the lights</h1>
 <p>Let’s add a simple debug command for toggling the lights. I’m using <code>shift+d</code> as the prefix for debug commands, and <code>d</code> as the key to toggle darkness.</p>
 <h6 id="debugsrcgameengine.hs-145-to-145">16_debug/src/GameEngine.hs (145 to 145)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1">  , (<span class="st">&quot;shift+d d&quot;</span>, <span class="st">&quot;Debug:Light:Toggle&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1">  , (<span class="st">&quot;shift+d d&quot;</span>, <span class="st">&quot;Debug:Light:Toggle&quot;</span>)</a></code></pre></div>
 <p>In <em>handleKey</em> this is set to toggle a property named <code>debug:light</code></p>
 <h6 id="debugsrcgameengine.hs-444-to-444">16_debug/src/GameEngine.hs (444 to 444)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  <span class="st">&quot;Debug:Light:Toggle&quot;</span> <span class="ot">-&gt;</span> [<span class="dt">ActTogglePlayerProp</span> <span class="st">&quot;debug:light&quot;</span> <span class="st">&quot;on&quot;</span>]</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1">  <span class="st">&quot;Debug:Light:Toggle&quot;</span> <span class="ot">-&gt;</span> [<span class="dt">ActTogglePlayerProp</span> <span class="st">&quot;debug:light&quot;</span> <span class="st">&quot;on&quot;</span>]</a></code></pre></div>
 <h1 id="actor-properties">Actor Properties</h1>
 <p>The actor gets a map of properties</p>
 <h6 id="debugsrcgamecore.hs-60-to-60">16_debug/src/GameCore.hs (60 to 60)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1">  ,<span class="ot"> _acProps ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1">  ,<span class="ot"> _acProps ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a></code></pre></div>
 <h2 id="action">Action</h2>
 <p><em>ActTogglePlayerProp</em> is added to <em>RogueAction</em></p>
 <h6 id="debugsrcgamecore.hs-100-to-102">16_debug/src/GameCore.hs (100 to 102)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">data</span> <span class="dt">RogueAction</span> <span class="fu">=</span> <span class="dt">ActMovePlayer</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">                 <span class="fu">|</span> <span class="dt">ActSetPlayerViewPortStyle</span> <span class="dt">ViewPortStyle</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">                 <span class="fu">|</span> <span class="dt">ActTogglePlayerProp</span> <span class="dt">Text</span> <span class="dt">Text</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">data</span> <span class="dt">RogueAction</span> <span class="fu">=</span> <span class="dt">ActMovePlayer</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb4-2" title="2">                 <span class="fu">|</span> <span class="dt">ActSetPlayerViewPortStyle</span> <span class="dt">ViewPortStyle</span></a>
+<a class="sourceLine" id="cb4-3" title="3">                 <span class="fu">|</span> <span class="dt">ActTogglePlayerProp</span> <span class="dt">Text</span> <span class="dt">Text</span></a></code></pre></div>
 <h2 id="toggle">Toggle</h2>
 <p>The action handler for <em>ActTogglePlayerProp</em> either adds the value to the map or removes the property if it already exists</p>
 <h6 id="debugsrcgameengine.hs-466-to-471">16_debug/src/GameEngine.hs (466 to 471)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">    <span class="dt">ActTogglePlayerProp</span> prop valEnabled <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">      world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acProps) <span class="fu">%~</span> Map.alter (toggleMapProp valEnabled) prop</a>
-<a class="sourceLine" id="cb5-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">    toggleMapProp v <span class="dt">Nothing</span> <span class="fu">=</span> <span class="dt">Just</span> v</a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">    toggleMapProp _ (<span class="dt">Just</span> _) <span class="fu">=</span> <span class="dt">Nothing</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1">    <span class="dt">ActTogglePlayerProp</span> prop valEnabled <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb5-2" title="2">      world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acProps) <span class="fu">%~</span> Map.alter (toggleMapProp valEnabled) prop</a>
+<a class="sourceLine" id="cb5-3" title="3"></a>
+<a class="sourceLine" id="cb5-4" title="4">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-5" title="5">    toggleMapProp v <span class="dt">Nothing</span> <span class="fu">=</span> <span class="dt">Just</span> v</a>
+<a class="sourceLine" id="cb5-6" title="6">    toggleMapProp _ (<span class="dt">Just</span> _) <span class="fu">=</span> <span class="dt">Nothing</span></a></code></pre></div>
 <h2 id="using-the-property">Using the property</h2>
 <p><em>darknessFovOverlay</em> then checks if the property is set, if it is no overlay (<em>Map.empty</em>) is returned</p>
 <h6 id="debugsrcgameengine.hs-677-to-698">16_debug/src/GameEngine.hs (677 to 698)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">darknessFovOverlay ::</span> <span class="dt">Player</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">darknessFovOverlay player actor <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">case</span> player <span class="fu">^.</span> plActor <span class="fu">^.</span> acProps <span class="fu">^.</span>at <span class="st">&quot;debug:light&quot;</span> <span class="kw">of</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">      <span class="kw">let</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">        (screenWidth, screenHeight) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
-<a class="sourceLine" id="cb6-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">        <span class="co">-- Create a full grid of darkness</span></a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">        blackBg <span class="fu">=</span> Map.fromList [ (<span class="dt">PlayerPos</span> (x, y), E.getTile <span class="dt">E.Dark</span>)</a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">                               <span class="fu">|</span> x <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenWidth <span class="fu">-</span> <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb6-11" data-line-number="11">                               , y <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenHeight <span class="fu">-</span> <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb6-12" data-line-number="12">                               ] </a>
-<a class="sourceLine" id="cb6-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb6-14" data-line-number="14">        lightAt <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> flatFov (actor <span class="fu">^.</span> acFov)</a>
-<a class="sourceLine" id="cb6-15" data-line-number="15">        seen <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> Set.toList (actor <span class="fu">^.</span> acFovHistory)</a>
-<a class="sourceLine" id="cb6-16" data-line-number="16">      <span class="kw">in</span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17">      <span class="co">-- Remove the darkness overlay at any position that is to be lit</span></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18">      <span class="co">--  I.e. any position in the field of view, or previously in the field of view</span></a>
-<a class="sourceLine" id="cb6-19" data-line-number="19">      foldr Map.delete blackBg <span class="fu">$</span> lightAt <span class="fu">&lt;&gt;</span> seen</a>
-<a class="sourceLine" id="cb6-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb6-21" data-line-number="21">    <span class="dt">Just</span> _ <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb6-22" data-line-number="22">      Map.empty</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">darknessFovOverlay ::</span> <span class="dt">Player</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb6-2" title="2">darknessFovOverlay player actor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" title="3">  <span class="kw">case</span> player <span class="fu">^.</span> plActor <span class="fu">^.</span> acProps <span class="fu">^.</span>at <span class="st">&quot;debug:light&quot;</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-4" title="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb6-5" title="5">      <span class="kw">let</span></a>
+<a class="sourceLine" id="cb6-6" title="6">        (screenWidth, screenHeight) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
+<a class="sourceLine" id="cb6-7" title="7"></a>
+<a class="sourceLine" id="cb6-8" title="8">        <span class="co">-- Create a full grid of darkness</span></a>
+<a class="sourceLine" id="cb6-9" title="9">        blackBg <span class="fu">=</span> Map.fromList [ (<span class="dt">PlayerPos</span> (x, y), E.getTile <span class="dt">E.Dark</span>)</a>
+<a class="sourceLine" id="cb6-10" title="10">                               <span class="fu">|</span> x <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenWidth <span class="fu">-</span> <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb6-11" title="11">                               , y <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenHeight <span class="fu">-</span> <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb6-12" title="12">                               ] </a>
+<a class="sourceLine" id="cb6-13" title="13"></a>
+<a class="sourceLine" id="cb6-14" title="14">        lightAt <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> flatFov (actor <span class="fu">^.</span> acFov)</a>
+<a class="sourceLine" id="cb6-15" title="15">        seen <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> Set.toList (actor <span class="fu">^.</span> acFovHistory)</a>
+<a class="sourceLine" id="cb6-16" title="16">      <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-17" title="17">      <span class="co">-- Remove the darkness overlay at any position that is to be lit</span></a>
+<a class="sourceLine" id="cb6-18" title="18">      <span class="co">--  I.e. any position in the field of view, or previously in the field of view</span></a>
+<a class="sourceLine" id="cb6-19" title="19">      <span class="fu">foldr</span> Map.delete blackBg <span class="fu">$</span> lightAt <span class="fu">&lt;&gt;</span> seen</a>
+<a class="sourceLine" id="cb6-20" title="20"></a>
+<a class="sourceLine" id="cb6-21" title="21">    <span class="dt">Just</span> _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb6-22" title="22">      Map.empty</a></code></pre></div>
 <h1 id="other-ideas">Other ideas</h1>
 <p>This was quite a simple addition that makes testing your game a lot easier. There are many other features you can add to assist development. One that helped me was having an option to enable making the actor’s fov visible. These features sometimes also can become game features (e.g. switching on a levels lights with a switch) so it is worth deciding if they are actually debug features or just world features that you have debug access to.</p>
 <h1 id="chapters">Chapters</h1>

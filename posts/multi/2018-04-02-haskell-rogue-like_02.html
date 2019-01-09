@@ -36,50 +36,50 @@
 <h2 id="scotty-host-code">Scotty host code</h2>
 <p>First the require imports</p>
 <h6 id="web_uisrcgamehost.hs-12-to-20">01_web_ui/src/GameHost.hs (12 to 20)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">import</span> <span class="dt">Protolude</span> <span class="kw">hiding</span> (<span class="dt">Map</span>)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Web.Scotty</span> <span class="kw">as</span> <span class="dt">Sc</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.ByteString.Lazy</span> <span class="kw">as</span> <span class="dt">BSL</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">import</span>           <span class="dt">Control.Lens.TH</span> (makeLenses)</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai</span> <span class="kw">as</span> <span class="dt">Wai</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai.Middleware.Gzip</span> <span class="kw">as</span> <span class="dt">Sc</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai.Handler.Warp</span> <span class="kw">as</span> <span class="dt">Warp</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai.Handler.WebSockets</span> <span class="kw">as</span> <span class="dt">WaiWs</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.WebSockets</span> <span class="kw">as</span> <span class="dt">WS</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">import</span> <span class="dt">Protolude</span> <span class="kw">hiding</span> (<span class="dt">Map</span>)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Web.Scotty</span> <span class="kw">as</span> <span class="dt">Sc</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.ByteString.Lazy</span> <span class="kw">as</span> <span class="dt">BSL</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="kw">import</span>           <span class="dt">Control.Lens.TH</span> (makeLenses)</a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai</span> <span class="kw">as</span> <span class="dt">Wai</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai.Middleware.Gzip</span> <span class="kw">as</span> <span class="dt">Sc</span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai.Handler.Warp</span> <span class="kw">as</span> <span class="dt">Warp</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.Wai.Handler.WebSockets</span> <span class="kw">as</span> <span class="dt">WaiWs</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Network.WebSockets</span> <span class="kw">as</span> <span class="dt">WS</span></a></code></pre></div>
 <p>The connection type lets us wrap up the scotty connection details so that other code can pass it around without having to know anything about scotty.</p>
 <h6 id="web_uisrcgamehost.hs-24-to-28">01_web_ui/src/GameHost.hs (24 to 28)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Connection</span> <span class="fu">=</span> <span class="dt">Connection</span> {<span class="ot"> _conSendData ::</span> <span class="dt">BSL.ByteString</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">                             ,<span class="ot"> _conReceiveText ::</span> <span class="dt">IO</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">                             }</a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">makeLenses <span class="ch">''</span><span class="dt">Connection</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">data</span> <span class="dt">Connection</span> <span class="fu">=</span> <span class="dt">Connection</span> {<span class="ot"> _conSendData ::</span> <span class="dt">BSL.ByteString</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-2" title="2">                             ,<span class="ot"> _conReceiveText ::</span> <span class="dt">IO</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-3" title="3">                             }</a>
+<a class="sourceLine" id="cb2-4" title="4"></a>
+<a class="sourceLine" id="cb2-5" title="5">makeLenses '<span class="dt">'Connection</span></a></code></pre></div>
 <p><em>runHost</em> starts scotty listening on port 61492 and sets up the web sockets.</p>
 <h6 id="web_uisrcgamehost.hs-32-to-36">01_web_ui/src/GameHost.hs (32 to 36)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">runHost ::</span> (<span class="dt">Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">runHost startHost <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="kw">let</span> settings <span class="fu">=</span> Warp.setPort <span class="dv">61492</span> <span class="fu">$</span> Warp.setHost <span class="st">&quot;127.0.0.1&quot;</span> Warp.defaultSettings</a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">  sapp <span class="ot">&lt;-</span> scottyApp </a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">  Warp.runSettings settings <span class="fu">$</span> WaiWs.websocketsOr WS.defaultConnectionOptions (wsapp startHost) sapp</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">runHost ::</span> (<span class="dt">Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb3-2" title="2">runHost startHost <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-3" title="3">  <span class="kw">let</span> settings <span class="fu">=</span> Warp.setPort <span class="dv">61492</span> <span class="fu">$</span> Warp.setHost <span class="st">&quot;127.0.0.1&quot;</span> Warp.defaultSettings</a>
+<a class="sourceLine" id="cb3-4" title="4">  sapp <span class="ot">&lt;-</span> scottyApp </a>
+<a class="sourceLine" id="cb3-5" title="5">  Warp.runSettings settings <span class="fu">$</span> WaiWs.websocketsOr WS.defaultConnectionOptions (wsapp startHost) sapp</a></code></pre></div>
 <p><em>scottyApp</em> handles the serving of the static resources. Here several <em>get</em> routes have been configured.</p>
 <h6 id="web_uisrcgamehost.hs-40-to-58">01_web_ui/src/GameHost.hs (40 to 58)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">scottyApp ::</span> <span class="dt">IO</span> <span class="dt">Wai.Application</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">scottyApp <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">  Sc.scottyApp <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">    Sc.middleware <span class="fu">$</span> Sc.gzip <span class="fu">$</span> Sc.def { Sc.gzipFiles <span class="fu">=</span> <span class="dt">Sc.GzipCompress</span> }</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="co">--Sc.middleware S.logStdoutDev</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">    Sc.get <span class="st">&quot;/&quot;</span> <span class="fu">$</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">      Sc.file <span class="st">&quot;html/rogue.html&quot;</span></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">    Sc.get <span class="st">&quot;/ping&quot;</span> <span class="fu">$</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">      Sc.text <span class="st">&quot;pong&quot;</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">    Sc.get <span class="st">&quot;/:res&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">      res <span class="ot">&lt;-</span> Sc.param <span class="st">&quot;res&quot;</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15">      Sc.file <span class="fu">$</span> <span class="st">&quot;html/&quot;</span> <span class="fu">&lt;&gt;</span> res</a>
-<a class="sourceLine" id="cb4-16" data-line-number="16"></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">    Sc.get <span class="st">&quot;/images/:img&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">      img <span class="ot">&lt;-</span> Sc.param <span class="st">&quot;img&quot;</span></a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">      Sc.file <span class="fu">$</span> <span class="st">&quot;html/images/&quot;</span> <span class="fu">&lt;&gt;</span> img</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">scottyApp ::</span> <span class="dt">IO</span> <span class="dt">Wai.Application</span></a>
+<a class="sourceLine" id="cb4-2" title="2">scottyApp <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-3" title="3">  Sc.scottyApp <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-4" title="4">    Sc.middleware <span class="fu">$</span> Sc.gzip <span class="fu">$</span> Sc.def { Sc.gzipFiles <span class="fu">=</span> <span class="dt">Sc.GzipCompress</span> }</a>
+<a class="sourceLine" id="cb4-5" title="5">    <span class="co">--Sc.middleware S.logStdoutDev</span></a>
+<a class="sourceLine" id="cb4-6" title="6"></a>
+<a class="sourceLine" id="cb4-7" title="7">    Sc.get <span class="st">&quot;/&quot;</span> <span class="fu">$</span></a>
+<a class="sourceLine" id="cb4-8" title="8">      Sc.file <span class="st">&quot;html/rogue.html&quot;</span></a>
+<a class="sourceLine" id="cb4-9" title="9"></a>
+<a class="sourceLine" id="cb4-10" title="10">    Sc.get <span class="st">&quot;/ping&quot;</span> <span class="fu">$</span></a>
+<a class="sourceLine" id="cb4-11" title="11">      Sc.text <span class="st">&quot;pong&quot;</span></a>
+<a class="sourceLine" id="cb4-12" title="12"></a>
+<a class="sourceLine" id="cb4-13" title="13">    Sc.get <span class="st">&quot;/:res&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-14" title="14">      res <span class="ot">&lt;-</span> Sc.param <span class="st">&quot;res&quot;</span></a>
+<a class="sourceLine" id="cb4-15" title="15">      Sc.file <span class="fu">$</span> <span class="st">&quot;html/&quot;</span> <span class="fu">&lt;&gt;</span> res</a>
+<a class="sourceLine" id="cb4-16" title="16"></a>
+<a class="sourceLine" id="cb4-17" title="17">    Sc.get <span class="st">&quot;/images/:img&quot;</span> <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-18" title="18">      img <span class="ot">&lt;-</span> Sc.param <span class="st">&quot;img&quot;</span></a>
+<a class="sourceLine" id="cb4-19" title="19">      Sc.file <span class="fu">$</span> <span class="st">&quot;html/images/&quot;</span> <span class="fu">&lt;&gt;</span> img</a></code></pre></div>
 <p>Finally <em>wsapp</em> handles the web socket calls. A new connection object is created and passed to the <em>startHost</em> function</p>
 <h2 id="communication-between-the-browser-and-haskell">Communication between the browser and haskell</h2>
 <p>The browser will send haskell simple text based commands such as <em>redraw</em>. Haskell will send JSON encoded objects.</p>
@@ -90,46 +90,46 @@
 <li>UiConfig is used to send initial configuration to the UI. For now the config only contains shortcut key definitions. See the section on keyboard handling below.</li>
 </ul>
 <h6 id="web_uisrcgamecore.hs-33-to-72">01_web_ui/src/GameCore.hs (33 to 72)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UiMessage</span> <span class="fu">=</span> <span class="dt">UiMessage</span> {<span class="ot"> umCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">                           ,<span class="ot"> umMessage ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">                           }</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">                           <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">  </a>
-<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="kw">data</span> <span class="dt">UiConfig</span> <span class="fu">=</span> <span class="dt">UiConfig</span> {<span class="ot"> ucCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">                         ,<span class="ot"> ucData ::</span> <span class="fu">!</span><span class="dt">UiConfigData</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">                         }</a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">                         <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb5-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="kw">newtype</span> <span class="dt">UiConfigData</span> <span class="fu">=</span> <span class="dt">UiConfigData</span> {<span class="ot"> udKeys ::</span> [<span class="dt">UiKey</span>]</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">                                    }</a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">                                    <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb5-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb5-15" data-line-number="15"><span class="kw">data</span> <span class="dt">UiKey</span> <span class="fu">=</span> <span class="dt">UiKey</span> {<span class="ot"> ukShortcut ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb5-16" data-line-number="16">                   ,<span class="ot"> ukAction ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
-<a class="sourceLine" id="cb5-17" data-line-number="17">                   }</a>
-<a class="sourceLine" id="cb5-18" data-line-number="18">                   <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
-<a class="sourceLine" id="cb5-19" data-line-number="19"></a>
-<a class="sourceLine" id="cb5-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb5-21" data-line-number="21"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiMessage</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-22" data-line-number="22">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
-<a class="sourceLine" id="cb5-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb5-24" data-line-number="24"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiConfig</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-25" data-line-number="25">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
-<a class="sourceLine" id="cb5-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb5-27" data-line-number="27"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiConfigData</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-28" data-line-number="28">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
-<a class="sourceLine" id="cb5-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb5-30" data-line-number="30"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiKey</span> <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-31" data-line-number="31">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
-<a class="sourceLine" id="cb5-32" data-line-number="32"></a>
-<a class="sourceLine" id="cb5-33" data-line-number="33"></a>
-<a class="sourceLine" id="cb5-34" data-line-number="34"><span class="co">-- | drop prefix, and then lower case</span></a>
-<a class="sourceLine" id="cb5-35" data-line-number="35"><span class="co">-- | renField 3 &quot;tskBla&quot; == &quot;bla&quot;</span></a>
-<a class="sourceLine" id="cb5-36" data-line-number="36"><span class="ot">renField ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]</a>
-<a class="sourceLine" id="cb5-37" data-line-number="37">renField drp toLower <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-38" data-line-number="38">  Txt.unpack <span class="fu">.</span> (<span class="kw">if</span> toLower <span class="kw">then</span> mkLower <span class="kw">else</span> identity) <span class="fu">.</span> Txt.drop drp <span class="fu">.</span> Txt.pack</a>
-<a class="sourceLine" id="cb5-39" data-line-number="39">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb5-40" data-line-number="40">    mkLower t <span class="fu">=</span> Txt.toLower (Txt.take <span class="dv">1</span> t) <span class="fu">&lt;&gt;</span> Txt.drop <span class="dv">1</span> t</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">data</span> <span class="dt">UiMessage</span> <span class="fu">=</span> <span class="dt">UiMessage</span> {<span class="ot"> umCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-2" title="2">                           ,<span class="ot"> umMessage ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-3" title="3">                           }</a>
+<a class="sourceLine" id="cb5-4" title="4">                           <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb5-5" title="5">  </a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="kw">data</span> <span class="dt">UiConfig</span> <span class="fu">=</span> <span class="dt">UiConfig</span> {<span class="ot"> ucCmd ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-7" title="7">                         ,<span class="ot"> ucData ::</span> <span class="fu">!</span><span class="dt">UiConfigData</span></a>
+<a class="sourceLine" id="cb5-8" title="8">                         }</a>
+<a class="sourceLine" id="cb5-9" title="9">                         <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb5-10" title="10"></a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="kw">newtype</span> <span class="dt">UiConfigData</span> <span class="fu">=</span> <span class="dt">UiConfigData</span> {<span class="ot"> udKeys ::</span> [<span class="dt">UiKey</span>]</a>
+<a class="sourceLine" id="cb5-12" title="12">                                    }</a>
+<a class="sourceLine" id="cb5-13" title="13">                                    <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb5-14" title="14"></a>
+<a class="sourceLine" id="cb5-15" title="15"><span class="kw">data</span> <span class="dt">UiKey</span> <span class="fu">=</span> <span class="dt">UiKey</span> {<span class="ot"> ukShortcut ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-16" title="16">                   ,<span class="ot"> ukAction ::</span> <span class="fu">!</span><span class="dt">Text</span></a>
+<a class="sourceLine" id="cb5-17" title="17">                   }</a>
+<a class="sourceLine" id="cb5-18" title="18">                   <span class="kw">deriving</span> (<span class="dt">Generic</span>)</a>
+<a class="sourceLine" id="cb5-19" title="19"></a>
+<a class="sourceLine" id="cb5-20" title="20"></a>
+<a class="sourceLine" id="cb5-21" title="21"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiMessage</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-22" title="22">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
+<a class="sourceLine" id="cb5-23" title="23"></a>
+<a class="sourceLine" id="cb5-24" title="24"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiConfig</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-25" title="25">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
+<a class="sourceLine" id="cb5-26" title="26"></a>
+<a class="sourceLine" id="cb5-27" title="27"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiConfigData</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-28" title="28">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
+<a class="sourceLine" id="cb5-29" title="29"></a>
+<a class="sourceLine" id="cb5-30" title="30"><span class="kw">instance</span> <span class="dt">Ae.ToJSON</span> <span class="dt">UiKey</span> <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-31" title="31">  toJSON <span class="fu">=</span> Ae.genericToJSON Ae.defaultOptions { Ae.fieldLabelModifier <span class="fu">=</span> renField <span class="dv">2</span> <span class="dt">True</span> }</a>
+<a class="sourceLine" id="cb5-32" title="32"></a>
+<a class="sourceLine" id="cb5-33" title="33"></a>
+<a class="sourceLine" id="cb5-34" title="34"><span class="co">-- | drop prefix, and then lower case</span></a>
+<a class="sourceLine" id="cb5-35" title="35"><span class="co">-- | renField 3 &quot;tskBla&quot; == &quot;bla&quot;</span></a>
+<a class="sourceLine" id="cb5-36" title="36"><span class="ot">renField ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]</a>
+<a class="sourceLine" id="cb5-37" title="37">renField drp <span class="fu">toLower</span> <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-38" title="38">  Txt.unpack <span class="fu">.</span> (<span class="kw">if</span> <span class="fu">toLower</span> <span class="kw">then</span> mkLower <span class="kw">else</span> identity) <span class="fu">.</span> Txt.drop drp <span class="fu">.</span> Txt.pack</a>
+<a class="sourceLine" id="cb5-39" title="39">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb5-40" title="40">    mkLower t <span class="fu">=</span> Txt.toLower (Txt.take <span class="dv">1</span> t) <span class="fu">&lt;&gt;</span> Txt.drop <span class="dv">1</span> t</a></code></pre></div>
 <h2 id="types-for-the-game">Types for the game</h2>
 <ul>
 <li><em>Player</em>: The player represents the person playing the game. Currently it only stores the connection and the current screen size</li>
@@ -137,88 +137,88 @@
 <li><em>Config</em>: Configuration data, again for now just the shortcut keys</li>
 </ul>
 <h6 id="web_uisrcgamecore.hs-19-to-28">01_web_ui/src/GameCore.hs (19 to 28)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Player</span> <span class="fu">=</span> <span class="dt">Player</span> {<span class="ot"> _plConn ::</span> <span class="fu">!</span><span class="dt">Host.Connection</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">                     ,<span class="ot"> _plScreenSize ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">                     }</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="kw">data</span> <span class="dt">World</span> <span class="fu">=</span> <span class="dt">World</span> {<span class="ot"> _wdPlayer ::</span> <span class="fu">!</span><span class="dt">Player</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">                   ,<span class="ot"> _wdConfig ::</span> <span class="fu">!</span><span class="dt">Config</span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">                   }</a>
-<a class="sourceLine" id="cb6-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="kw">newtype</span> <span class="dt">Config</span> <span class="fu">=</span> <span class="dt">Config</span> {<span class="ot"> _cfgKeys ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">                        }</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">data</span> <span class="dt">Player</span> <span class="fu">=</span> <span class="dt">Player</span> {<span class="ot"> _plConn ::</span> <span class="fu">!</span><span class="dt">Host.Connection</span></a>
+<a class="sourceLine" id="cb6-2" title="2">                     ,<span class="ot"> _plScreenSize ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb6-3" title="3">                     }</a>
+<a class="sourceLine" id="cb6-4" title="4"></a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="kw">data</span> <span class="dt">World</span> <span class="fu">=</span> <span class="dt">World</span> {<span class="ot"> _wdPlayer ::</span> <span class="fu">!</span><span class="dt">Player</span></a>
+<a class="sourceLine" id="cb6-6" title="6">                   ,<span class="ot"> _wdConfig ::</span> <span class="fu">!</span><span class="dt">Config</span></a>
+<a class="sourceLine" id="cb6-7" title="7">                   }</a>
+<a class="sourceLine" id="cb6-8" title="8"></a>
+<a class="sourceLine" id="cb6-9" title="9"><span class="kw">newtype</span> <span class="dt">Config</span> <span class="fu">=</span> <span class="dt">Config</span> {<span class="ot"> _cfgKeys ::</span> <span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb6-10" title="10">                        }</a></code></pre></div>
 <h2 id="running-the-host">Running the host</h2>
 <p><em>runGame</em> is called to start the host and pass control to <em>manageConnection</em></p>
 <h6 id="web_uisrcgameengine.hs-22-to-23">01_web_ui/src/GameEngine.hs (22 to 23)</h6>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">runGame ::</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">runGame <span class="fu">=</span> Host.runHost manageConnection</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="ot">runGame ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb7-2" title="2">runGame <span class="fu">=</span> Host.runHost manageConnection</a></code></pre></div>
 <p><em>manageConnection</em> waits for a command from the browser, parses it and executes the instruction.</p>
 <p>If <em>manageConnection</em> gets a <em>init</em> command, it will created a new <em>World</em> and store it in a TVar. This is the mutable state of the world managed by STM.</p>
 <h6 id="web_uisrcgameengine.hs-28-to-58">01_web_ui/src/GameEngine.hs (28 to 58)</h6>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">manageConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">manageConnection conn <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb8-7" data-line-number="7">      <span class="kw">case</span> initialiseConnection conn cmdData <span class="kw">of</span></a>
-<a class="sourceLine" id="cb8-8" data-line-number="8">        <span class="dt">Right</span> world <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-9" data-line-number="9">         worldV <span class="ot">&lt;-</span> atomically <span class="fu">$</span> newTVar world</a>
-<a class="sourceLine" id="cb8-10" data-line-number="10">         sendConfig conn <span class="fu">$</span> world <span class="fu">^.</span> wdConfig</a>
-<a class="sourceLine" id="cb8-11" data-line-number="11">         runConnection worldV</a>
-<a class="sourceLine" id="cb8-12" data-line-number="12">        <span class="dt">Left</span> e <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb8-13" data-line-number="13">          sendError conn e</a>
-<a class="sourceLine" id="cb8-14" data-line-number="14">          </a>
-<a class="sourceLine" id="cb8-15" data-line-number="15">    _ <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb8-16" data-line-number="16">      pass</a>
-<a class="sourceLine" id="cb8-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb8-18" data-line-number="18">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb8-19" data-line-number="19">    runConnection worldV <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb8-20" data-line-number="20">      forever <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-21" data-line-number="21">        t <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText</a>
-<a class="sourceLine" id="cb8-22" data-line-number="22"></a>
-<a class="sourceLine" id="cb8-23" data-line-number="23">        <span class="kw">case</span> parseCommand t <span class="kw">of</span></a>
-<a class="sourceLine" id="cb8-24" data-line-number="24">          <span class="dt">Nothing</span> <span class="ot">-&gt;</span> putText <span class="fu">$</span> <span class="st">&quot;error parsing: &quot;</span> <span class="fu">&lt;&gt;</span> t</a>
-<a class="sourceLine" id="cb8-25" data-line-number="25">          <span class="dt">Just</span> (cmd, cmdData) <span class="ot">-&gt;</span> runCmd conn worldV cmd cmdData</a>
-<a class="sourceLine" id="cb8-26" data-line-number="26"></a>
-<a class="sourceLine" id="cb8-27" data-line-number="27"><span class="ot">    parseCommand ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Text</span>, [<span class="dt">Text</span>])</a>
-<a class="sourceLine" id="cb8-28" data-line-number="28">    parseCommand t <span class="fu">=</span></a>
-<a class="sourceLine" id="cb8-29" data-line-number="29">      <span class="kw">case</span> Txt.splitOn <span class="st">&quot;|&quot;</span> t <span class="kw">of</span></a>
-<a class="sourceLine" id="cb8-30" data-line-number="30">        (c<span class="fu">:</span>d) <span class="ot">-&gt;</span> <span class="dt">Just</span> (c, d)</a>
-<a class="sourceLine" id="cb8-31" data-line-number="31">        _ <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="ot">manageConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb8-2" title="2">manageConnection conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb8-3" title="3">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
+<a class="sourceLine" id="cb8-4" title="4"></a>
+<a class="sourceLine" id="cb8-5" title="5">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb8-6" title="6">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb8-7" title="7">      <span class="kw">case</span> initialiseConnection conn cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb8-8" title="8">        <span class="dt">Right</span> world <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb8-9" title="9">         worldV <span class="ot">&lt;-</span> atomically <span class="fu">$</span> newTVar world</a>
+<a class="sourceLine" id="cb8-10" title="10">         sendConfig conn <span class="fu">$</span> world <span class="fu">^.</span> wdConfig</a>
+<a class="sourceLine" id="cb8-11" title="11">         runConnection worldV</a>
+<a class="sourceLine" id="cb8-12" title="12">        <span class="dt">Left</span> e <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb8-13" title="13">          sendError conn e</a>
+<a class="sourceLine" id="cb8-14" title="14">          </a>
+<a class="sourceLine" id="cb8-15" title="15">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb8-16" title="16">      pass</a>
+<a class="sourceLine" id="cb8-17" title="17"></a>
+<a class="sourceLine" id="cb8-18" title="18">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb8-19" title="19">    runConnection worldV <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb8-20" title="20">      forever <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb8-21" title="21">        t <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb8-22" title="22"></a>
+<a class="sourceLine" id="cb8-23" title="23">        <span class="kw">case</span> parseCommand t <span class="kw">of</span></a>
+<a class="sourceLine" id="cb8-24" title="24">          <span class="dt">Nothing</span> <span class="ot">-&gt;</span> putText <span class="fu">$</span> <span class="st">&quot;error parsing: &quot;</span> <span class="fu">&lt;&gt;</span> t</a>
+<a class="sourceLine" id="cb8-25" title="25">          <span class="dt">Just</span> (cmd, cmdData) <span class="ot">-&gt;</span> runCmd conn worldV cmd cmdData</a>
+<a class="sourceLine" id="cb8-26" title="26"></a>
+<a class="sourceLine" id="cb8-27" title="27"><span class="ot">    parseCommand ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Text</span>, [<span class="dt">Text</span>])</a>
+<a class="sourceLine" id="cb8-28" title="28">    parseCommand t <span class="fu">=</span></a>
+<a class="sourceLine" id="cb8-29" title="29">      <span class="kw">case</span> Txt.splitOn <span class="st">&quot;|&quot;</span> t <span class="kw">of</span></a>
+<a class="sourceLine" id="cb8-30" title="30">        (c<span class="fu">:</span>d) <span class="ot">-&gt;</span> <span class="dt">Just</span> (c, d)</a>
+<a class="sourceLine" id="cb8-31" title="31">        _ <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a></code></pre></div>
 <p>The <em>init</em> command is expected to pass the size of the screen as a parameter. <em>initialiseConnection</em> and <em>parseScreenSize</em> handle this logic</p>
 <h6 id="web_uisrcgameengine.hs-63-to-70">01_web_ui/src/GameEngine.hs (63 to 70)</h6>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ot">initialiseConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Text</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">initialiseConnection conn cmdData <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">  <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">      <span class="dt">Left</span> <span class="st">&quot;missing / invalid screen size&quot;</span></a>
-<a class="sourceLine" id="cb9-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">    <span class="dt">Just</span> (width, height) <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">      <span class="dt">Right</span> <span class="fu">$</span> bootWorld conn (width, height) </a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="ot">initialiseConnection ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">Text</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb9-2" title="2">initialiseConnection conn cmdData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb9-3" title="3">  <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-4" title="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb9-5" title="5">      <span class="dt">Left</span> <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb9-6" title="6"></a>
+<a class="sourceLine" id="cb9-7" title="7">    <span class="dt">Just</span> (width, height) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb9-8" title="8">      <span class="dt">Right</span> <span class="fu">$</span> bootWorld conn (width, height) </a></code></pre></div>
 <h6 id="web_uisrcgameengine.hs-145-to-153">01_web_ui/src/GameEngine.hs (145 to 153)</h6>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ot">parseScreenSize ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">parseScreenSize cmd <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">  (tx, ty) <span class="ot">&lt;-</span> <span class="kw">case</span> cmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">                (tx <span class="fu">:</span> ty <span class="fu">:</span> _) <span class="ot">-&gt;</span> <span class="dt">Just</span> (tx, ty)</a>
-<a class="sourceLine" id="cb10-5" data-line-number="5">                _ <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">  x <span class="ot">&lt;-</span> (readMaybe <span class="fu">.</span> Txt.unpack <span class="fu">$</span> tx)<span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8">  y <span class="ot">&lt;-</span> (readMaybe <span class="fu">.</span> Txt.unpack <span class="fu">$</span> ty)<span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span></a>
-<a class="sourceLine" id="cb10-9" data-line-number="9">  pure (x, y)</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1"><span class="ot">parseScreenSize ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb10-2" title="2">parseScreenSize cmd <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb10-3" title="3">  (tx, ty) <span class="ot">&lt;-</span> <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb10-4" title="4">                (tx <span class="fu">:</span> ty <span class="fu">:</span> _) <span class="ot">-&gt;</span> <span class="dt">Just</span> (tx, ty)</a>
+<a class="sourceLine" id="cb10-5" title="5">                _ <span class="ot">-&gt;</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb10-6" title="6"></a>
+<a class="sourceLine" id="cb10-7" title="7">  x <span class="ot">&lt;-</span> (readMaybe <span class="fu">.</span> Txt.unpack <span class="fu">$</span> tx)<span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb10-8" title="8">  y <span class="ot">&lt;-</span> (readMaybe <span class="fu">.</span> Txt.unpack <span class="fu">$</span> ty)<span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span></a>
+<a class="sourceLine" id="cb10-9" title="9">  <span class="fu">pure</span> (x, y)</a></code></pre></div>
 <p><em>bootWorld</em> creates a new <em>World</em> and <em>Config</em>. For this chapter it sets up a single shortcut key <em>t</em>, that should send the <em>test</em> command back</p>
 <h6 id="web_uisrcgameengine.hs-75-to-85">01_web_ui/src/GameEngine.hs (75 to 85)</h6>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb11-2" data-line-number="2">bootWorld conn screenSize <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
-<a class="sourceLine" id="cb11-4" data-line-number="4">        , _wdConfig <span class="fu">=</span> mkConfig</a>
-<a class="sourceLine" id="cb11-5" data-line-number="5">        }</a>
-<a class="sourceLine" id="cb11-6" data-line-number="6">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb11-7" data-line-number="7">    mkConfig <span class="fu">=</span></a>
-<a class="sourceLine" id="cb11-8" data-line-number="8">      <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [(<span class="st">&quot;t&quot;</span>, <span class="st">&quot;test&quot;</span>)] }</a>
-<a class="sourceLine" id="cb11-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb11-10" data-line-number="10">    mkPlayer <span class="fu">=</span></a>
-<a class="sourceLine" id="cb11-11" data-line-number="11">      <span class="dt">Player</span> conn screenSize</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1"><span class="ot">bootWorld ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb11-2" title="2">bootWorld conn screenSize <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb11-3" title="3">  <span class="dt">World</span> { _wdPlayer <span class="fu">=</span> mkPlayer</a>
+<a class="sourceLine" id="cb11-4" title="4">        , _wdConfig <span class="fu">=</span> mkConfig</a>
+<a class="sourceLine" id="cb11-5" title="5">        }</a>
+<a class="sourceLine" id="cb11-6" title="6">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb11-7" title="7">    mkConfig <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-8" title="8">      <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [(<span class="st">&quot;t&quot;</span>, <span class="st">&quot;test&quot;</span>)] }</a>
+<a class="sourceLine" id="cb11-9" title="9"></a>
+<a class="sourceLine" id="cb11-10" title="10">    mkPlayer <span class="fu">=</span></a>
+<a class="sourceLine" id="cb11-11" title="11">      <span class="dt">Player</span> conn screenSize</a></code></pre></div>
 <p>Once the world is initialised, a thread is started in <em>manageConnection</em>’s <em>runConnection</em> function that waits for commands from the web socket. Each command is passed to <em>runCmd</em> for handling</p>
 <p>The current version of <em>runCmd</em> will</p>
 <ul>
@@ -227,73 +227,73 @@
 <li>Raise an error on all other commands</li>
 </ul>
 <h6 id="web_uisrcgameengine.hs-90-to-107">01_web_ui/src/GameEngine.hs (90 to 107)</h6>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ot">runCmd ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb12-2" data-line-number="2">runCmd conn worldV cmd cmdData <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb12-3" data-line-number="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb12-4" data-line-number="4">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
-<a class="sourceLine" id="cb12-5" data-line-number="5">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
-<a class="sourceLine" id="cb12-6" data-line-number="6">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendError conn <span class="st">&quot;missing / invalid screen size&quot;</span></a>
-<a class="sourceLine" id="cb12-7" data-line-number="7">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb12-8" data-line-number="8">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
-<a class="sourceLine" id="cb12-9" data-line-number="9">          sendLog conn <span class="fu">$</span> <span class="st">&quot;TODO: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
-<a class="sourceLine" id="cb12-10" data-line-number="10">      </a>
-<a class="sourceLine" id="cb12-11" data-line-number="11">    <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb12-12" data-line-number="12">      sendLog conn <span class="fu">$</span> <span class="st">&quot;TODO: &quot;</span> <span class="fu">&lt;&gt;</span> cmd <span class="fu">&lt;&gt;</span> <span class="st">&quot;: &quot;</span> <span class="fu">&lt;&gt;</span> show cmdData</a>
-<a class="sourceLine" id="cb12-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb12-14" data-line-number="14">    _ <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb12-15" data-line-number="15">      sendError conn <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
-<a class="sourceLine" id="cb12-16" data-line-number="16"></a>
-<a class="sourceLine" id="cb12-17" data-line-number="17">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb12-18" data-line-number="18">    updatePlayer f <span class="fu">=</span> atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1"><span class="ot">runCmd ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb12-2" title="2">runCmd conn worldV cmd cmdData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb12-3" title="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb12-4" title="4">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb12-5" title="5">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb12-6" title="6">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendError conn <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb12-7" title="7">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb12-8" title="8">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
+<a class="sourceLine" id="cb12-9" title="9">          sendLog conn <span class="fu">$</span> <span class="st">&quot;TODO: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
+<a class="sourceLine" id="cb12-10" title="10">      </a>
+<a class="sourceLine" id="cb12-11" title="11">    <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb12-12" title="12">      sendLog conn <span class="fu">$</span> <span class="st">&quot;TODO: &quot;</span> <span class="fu">&lt;&gt;</span> cmd <span class="fu">&lt;&gt;</span> <span class="st">&quot;: &quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> cmdData</a>
+<a class="sourceLine" id="cb12-13" title="13"></a>
+<a class="sourceLine" id="cb12-14" title="14">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb12-15" title="15">      sendError conn <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
+<a class="sourceLine" id="cb12-16" title="16"></a>
+<a class="sourceLine" id="cb12-17" title="17">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb12-18" title="18">    updatePlayer f <span class="fu">=</span> atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a></code></pre></div>
 <p>Since the JSON data payload could get large it is being compressed with bzip before being sent over the websocket. <a href="https://hackage.haskell.org/package/bzlib">bzlib</a> handles this for us.</p>
 <h6 id="web_uisrcgameengine.hs-137-to-140">01_web_ui/src/GameEngine.hs (137 to 140)</h6>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="ot">sendData ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb13-2" data-line-number="2">sendData conn t <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb13-3" data-line-number="3">  <span class="kw">let</span> lz <span class="fu">=</span> Bz.compress <span class="fu">.</span> BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> t</a>
-<a class="sourceLine" id="cb13-4" data-line-number="4">  conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb13-1" title="1"><span class="ot">sendData ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb13-2" title="2">sendData conn t <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb13-3" title="3">  <span class="kw">let</span> lz <span class="fu">=</span> Bz.compress <span class="fu">.</span> BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> t</a>
+<a class="sourceLine" id="cb13-4" title="4">  conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a></code></pre></div>
 <p>And the final few helper functions.</p>
 <h6 id="web_uisrcgameengine.hs-112-to-133">01_web_ui/src/GameEngine.hs (112 to 133)</h6>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="ot">sendLog ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb14-2" data-line-number="2">sendLog conn err <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-3" data-line-number="3">  sendData conn <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;log&quot;</span> err</a>
-<a class="sourceLine" id="cb14-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb14-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb14-6" data-line-number="6"><span class="ot">sendError ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb14-7" data-line-number="7">sendError conn err <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-8" data-line-number="8">  sendData conn <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;error&quot;</span> err</a>
-<a class="sourceLine" id="cb14-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb14-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb14-11" data-line-number="11"><span class="ot">sendConfig ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb14-12" data-line-number="12">sendConfig conn config <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-13" data-line-number="13">  sendData conn <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> (buildConfig config)</a>
-<a class="sourceLine" id="cb14-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb14-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb14-16" data-line-number="16"><span class="ot">buildConfig ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">UiConfigData</span></a>
-<a class="sourceLine" id="cb14-17" data-line-number="17">buildConfig cfg <span class="fu">=</span></a>
-<a class="sourceLine" id="cb14-18" data-line-number="18">  <span class="dt">UiConfigData</span> <span class="fu">$</span> buildKeys (cfg <span class="fu">^.</span> cfgKeys)</a>
-<a class="sourceLine" id="cb14-19" data-line-number="19"></a>
-<a class="sourceLine" id="cb14-20" data-line-number="20">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb14-21" data-line-number="21">    buildKeys ks <span class="fu">=</span> buildKey <span class="fu">&lt;$&gt;</span> Map.toList ks</a>
-<a class="sourceLine" id="cb14-22" data-line-number="22">    buildKey (s, a) <span class="fu">=</span> <span class="dt">UiKey</span> s a</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb14-1" title="1"><span class="ot">sendLog ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb14-2" title="2">sendLog conn err <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-3" title="3">  sendData conn <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;log&quot;</span> err</a>
+<a class="sourceLine" id="cb14-4" title="4"></a>
+<a class="sourceLine" id="cb14-5" title="5"></a>
+<a class="sourceLine" id="cb14-6" title="6"><span class="ot">sendError ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb14-7" title="7">sendError conn err <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-8" title="8">  sendData conn <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;error&quot;</span> err</a>
+<a class="sourceLine" id="cb14-9" title="9"></a>
+<a class="sourceLine" id="cb14-10" title="10"></a>
+<a class="sourceLine" id="cb14-11" title="11"><span class="ot">sendConfig ::</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb14-12" title="12">sendConfig conn config <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-13" title="13">  sendData conn <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> (buildConfig config)</a>
+<a class="sourceLine" id="cb14-14" title="14"></a>
+<a class="sourceLine" id="cb14-15" title="15"></a>
+<a class="sourceLine" id="cb14-16" title="16"><span class="ot">buildConfig ::</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> <span class="dt">UiConfigData</span></a>
+<a class="sourceLine" id="cb14-17" title="17">buildConfig cfg <span class="fu">=</span></a>
+<a class="sourceLine" id="cb14-18" title="18">  <span class="dt">UiConfigData</span> <span class="fu">$</span> buildKeys (cfg <span class="fu">^.</span> cfgKeys)</a>
+<a class="sourceLine" id="cb14-19" title="19"></a>
+<a class="sourceLine" id="cb14-20" title="20">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb14-21" title="21">    buildKeys ks <span class="fu">=</span> buildKey <span class="fu">&lt;$&gt;</span> Map.toList ks</a>
+<a class="sourceLine" id="cb14-22" title="22">    buildKey (s, a) <span class="fu">=</span> <span class="dt">UiKey</span> s a</a></code></pre></div>
 <h2 id="json-encoding">Json encoding</h2>
 <p>As I’m using Text it would be nice to have an Aeson function that encodes to Text rather than ByteString. The <em>Data.Aeson.Text.Extended</em> module defines <em>encodeText</em> to do this and re-exports <em>Data.Aeson</em></p>
 <h6 id="web_uisrcdataaesontextextended.hs-2-to-17">01_web_ui/src/Data/Aeson/Text/Extended.hs (2 to 17)</h6>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
-<a class="sourceLine" id="cb15-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb15-3" data-line-number="3"><span class="kw">module</span> <span class="dt">Data.Aeson.Text.Extended</span></a>
-<a class="sourceLine" id="cb15-4" data-line-number="4">  ( encodeText</a>
-<a class="sourceLine" id="cb15-5" data-line-number="5">  , <span class="kw">module</span> <span class="dt">Data.Aeson.Text</span></a>
-<a class="sourceLine" id="cb15-6" data-line-number="6">  )</a>
-<a class="sourceLine" id="cb15-7" data-line-number="7">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb15-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb15-9" data-line-number="9"><span class="kw">import</span> <span class="dt">Protolude</span></a>
-<a class="sourceLine" id="cb15-10" data-line-number="10"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Text.Lazy</span> <span class="kw">as</span> <span class="dt">TxtL</span></a>
-<a class="sourceLine" id="cb15-11" data-line-number="11"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Aeson</span> <span class="kw">as</span> <span class="dt">Ae</span></a>
-<a class="sourceLine" id="cb15-12" data-line-number="12"><span class="kw">import</span>           <span class="dt">Data.Aeson.Text</span></a>
-<a class="sourceLine" id="cb15-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb15-14" data-line-number="14"><span class="ot">encodeText ::</span> <span class="dt">Ae.ToJSON</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb15-15" data-line-number="15">encodeText <span class="fu">=</span></a>
-<a class="sourceLine" id="cb15-16" data-line-number="16">  TxtL.toStrict <span class="fu">.</span> encodeToLazyText</a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb15-1" title="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
+<a class="sourceLine" id="cb15-2" title="2"></a>
+<a class="sourceLine" id="cb15-3" title="3"><span class="kw">module</span> <span class="dt">Data.Aeson.Text.Extended</span></a>
+<a class="sourceLine" id="cb15-4" title="4">  ( encodeText</a>
+<a class="sourceLine" id="cb15-5" title="5">  , <span class="kw">module</span> <span class="dt">Data.Aeson.Text</span></a>
+<a class="sourceLine" id="cb15-6" title="6">  )</a>
+<a class="sourceLine" id="cb15-7" title="7">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb15-8" title="8"></a>
+<a class="sourceLine" id="cb15-9" title="9"><span class="kw">import</span> <span class="dt">Protolude</span></a>
+<a class="sourceLine" id="cb15-10" title="10"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Text.Lazy</span> <span class="kw">as</span> <span class="dt">TxtL</span></a>
+<a class="sourceLine" id="cb15-11" title="11"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Aeson</span> <span class="kw">as</span> <span class="dt">Ae</span></a>
+<a class="sourceLine" id="cb15-12" title="12"><span class="kw">import</span>           <span class="dt">Data.Aeson.Text</span></a>
+<a class="sourceLine" id="cb15-13" title="13"></a>
+<a class="sourceLine" id="cb15-14" title="14"><span class="ot">encodeText ::</span> <span class="dt">Ae.ToJSON</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb15-15" title="15">encodeText <span class="fu">=</span></a>
+<a class="sourceLine" id="cb15-16" title="16">  TxtL.toStrict <span class="fu">.</span> encodeToLazyText</a></code></pre></div>
 <h1 id="html-and-javascript">HTML and Javascript</h1>
 <p>Here is the full HTML for the game. The core of the html is the <em>canvas</em> on which the tiles will be drawn. Notice that</p>
 <ul>
@@ -302,52 +302,52 @@
 <li>There is a div on top of the canvas. It is responsible for capturing any mouse click etc</li>
 </ul>
 <h6 id="web_uihtmlrogue.html-2-to-47">01_web_ui/html/rogue.html (2 to 47)</h6>
-<div class="sourceCode" id="cb16"><pre class="sourceCode html"><code class="sourceCode html"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="kw">&lt;html&gt;</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2">  <span class="kw">&lt;head&gt;</span></a>
-<a class="sourceLine" id="cb16-3" data-line-number="3">    <span class="kw">&lt;title&gt;</span>RogueLike<span class="kw">&lt;/title&gt;</span></a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">    <span class="kw">&lt;style</span><span class="ot"> type=</span><span class="st">&quot;text/css&quot;</span><span class="kw">&gt;</span></a>
-<a class="sourceLine" id="cb16-5" data-line-number="5">      body {</a>
-<a class="sourceLine" id="cb16-6" data-line-number="6">        <span class="kw">margin</span>:<span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb16-7" data-line-number="7">        <span class="kw">padding</span>:<span class="dv">0</span>;</a>
-<a class="sourceLine" id="cb16-8" data-line-number="8">        <span class="kw">background</span>: <span class="dv">black</span>;</a>
-<a class="sourceLine" id="cb16-9" data-line-number="9">      }</a>
-<a class="sourceLine" id="cb16-10" data-line-number="10">      canvas {</a>
-<a class="sourceLine" id="cb16-11" data-line-number="11">        <span class="kw">display</span>:<span class="dv">block</span>;</a>
-<a class="sourceLine" id="cb16-12" data-line-number="12">        <span class="kw">width</span>: <span class="dv">100%</span>;</a>
-<a class="sourceLine" id="cb16-13" data-line-number="13">        <span class="kw">height</span>: <span class="dv">100%</span></a>
-<a class="sourceLine" id="cb16-14" data-line-number="14">      }</a>
-<a class="sourceLine" id="cb16-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb16-16" data-line-number="16">      <span class="fu">.container</span> {</a>
-<a class="sourceLine" id="cb16-17" data-line-number="17">        <span class="kw">height</span>: <span class="dv">auto</span>;</a>
-<a class="sourceLine" id="cb16-18" data-line-number="18">        <span class="kw">overflow</span>: <span class="dv">hidden</span>;</a>
-<a class="sourceLine" id="cb16-19" data-line-number="19">        <span class="kw">padding</span>: <span class="dv">0px</span>;</a>
-<a class="sourceLine" id="cb16-20" data-line-number="20">        <span class="kw">margin</span>: <span class="dv">0px</span>;</a>
-<a class="sourceLine" id="cb16-21" data-line-number="21">        <span class="kw">height</span>: <span class="dv">100%</span>;</a>
-<a class="sourceLine" id="cb16-22" data-line-number="22">      }</a>
-<a class="sourceLine" id="cb16-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb16-24" data-line-number="24">      <span class="fu">.title</span> {</a>
-<a class="sourceLine" id="cb16-25" data-line-number="25">        <span class="kw">font-weight</span>: <span class="dv">bold</span>;</a>
-<a class="sourceLine" id="cb16-26" data-line-number="26">      }</a>
-<a class="sourceLine" id="cb16-27" data-line-number="27"></a>
-<a class="sourceLine" id="cb16-28" data-line-number="28">    <span class="kw">&lt;/style&gt;</span></a>
-<a class="sourceLine" id="cb16-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb16-30" data-line-number="30">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;bzip2.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
-<a class="sourceLine" id="cb16-31" data-line-number="31">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;mousetrap.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
-<a class="sourceLine" id="cb16-32" data-line-number="32">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;mousetrap.pause.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
-<a class="sourceLine" id="cb16-33" data-line-number="33">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;ramda.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
-<a class="sourceLine" id="cb16-34" data-line-number="34">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;rogue.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
-<a class="sourceLine" id="cb16-35" data-line-number="35">  <span class="kw">&lt;/head&gt;</span></a>
-<a class="sourceLine" id="cb16-36" data-line-number="36">  <span class="kw">&lt;body</span><span class="ot"> onload=</span><span class="st">&quot;start()&quot;</span><span class="kw">&gt;</span></a>
-<a class="sourceLine" id="cb16-37" data-line-number="37">    </a>
-<a class="sourceLine" id="cb16-38" data-line-number="38">    <span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;main&quot;</span><span class="ot"> width=</span><span class="st">&quot;100%&quot;</span><span class="ot"> class=</span><span class="st">&quot;container&quot;</span><span class="kw">&gt;</span></a>
-<a class="sourceLine" id="cb16-39" data-line-number="39">      <span class="kw">&lt;canvas</span><span class="ot"> id=</span><span class="st">&quot;tilesCanvas&quot;</span><span class="ot"> style=</span><span class="st">&quot;position: absolute; left: 0; top: 0; z-index: 0;&quot;</span><span class="kw">&gt;&lt;/canvas&gt;</span></a>
-<a class="sourceLine" id="cb16-40" data-line-number="40"></a>
-<a class="sourceLine" id="cb16-41" data-line-number="41">      <span class="co">&lt;!-- layer for mouse clicks etc, on top of all drawing layers --&gt;</span></a>
-<a class="sourceLine" id="cb16-42" data-line-number="42">      <span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;topInteractionLayer&quot;</span><span class="ot"> style=</span><span class="st">&quot;display:block; position: absolute; left: 0; top: 0; z-index: 1000;&quot;</span><span class="kw">&gt;&lt;/div&gt;</span></a>
-<a class="sourceLine" id="cb16-43" data-line-number="43">    <span class="kw">&lt;/div&gt;</span></a>
-<a class="sourceLine" id="cb16-44" data-line-number="44">  <span class="kw">&lt;/body&gt;</span></a>
-<a class="sourceLine" id="cb16-45" data-line-number="45">  </a>
-<a class="sourceLine" id="cb16-46" data-line-number="46"><span class="kw">&lt;/html&gt;</span></a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode html"><code class="sourceCode html"><a class="sourceLine" id="cb16-1" title="1"><span class="kw">&lt;html&gt;</span></a>
+<a class="sourceLine" id="cb16-2" title="2">  <span class="kw">&lt;head&gt;</span></a>
+<a class="sourceLine" id="cb16-3" title="3">    <span class="kw">&lt;title&gt;</span>RogueLike<span class="kw">&lt;/title&gt;</span></a>
+<a class="sourceLine" id="cb16-4" title="4">    <span class="kw">&lt;style</span><span class="ot"> type=</span><span class="st">&quot;text/css&quot;</span><span class="kw">&gt;</span></a>
+<a class="sourceLine" id="cb16-5" title="5">      body {</a>
+<a class="sourceLine" id="cb16-6" title="6">        <span class="kw">margin</span>:<span class="dv">0</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-7" title="7">        <span class="kw">padding</span>:<span class="dv">0</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-8" title="8">        <span class="kw">background</span>: <span class="cn">black</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-9" title="9">      }</a>
+<a class="sourceLine" id="cb16-10" title="10">      canvas {</a>
+<a class="sourceLine" id="cb16-11" title="11">        <span class="kw">display</span>:<span class="dv">block</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-12" title="12">        <span class="kw">width</span>: <span class="dv">100</span><span class="dt">%</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-13" title="13">        <span class="kw">height</span>: <span class="dv">100</span><span class="dt">%</span></a>
+<a class="sourceLine" id="cb16-14" title="14">      }</a>
+<a class="sourceLine" id="cb16-15" title="15"></a>
+<a class="sourceLine" id="cb16-16" title="16">      <span class="fu">.container</span> {</a>
+<a class="sourceLine" id="cb16-17" title="17">        <span class="kw">height</span>: <span class="bu">auto</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-18" title="18">        <span class="kw">overflow</span>: <span class="dv">hidden</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-19" title="19">        <span class="kw">padding</span>: <span class="dv">0</span><span class="dt">px</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-20" title="20">        <span class="kw">margin</span>: <span class="dv">0</span><span class="dt">px</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-21" title="21">        <span class="kw">height</span>: <span class="dv">100</span><span class="dt">%</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-22" title="22">      }</a>
+<a class="sourceLine" id="cb16-23" title="23"></a>
+<a class="sourceLine" id="cb16-24" title="24">      <span class="fu">.title</span> {</a>
+<a class="sourceLine" id="cb16-25" title="25">        <span class="kw">font-weight</span>: <span class="dv">bold</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb16-26" title="26">      }</a>
+<a class="sourceLine" id="cb16-27" title="27"></a>
+<a class="sourceLine" id="cb16-28" title="28">    <span class="kw">&lt;/style&gt;</span></a>
+<a class="sourceLine" id="cb16-29" title="29"></a>
+<a class="sourceLine" id="cb16-30" title="30">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;bzip2.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
+<a class="sourceLine" id="cb16-31" title="31">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;mousetrap.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
+<a class="sourceLine" id="cb16-32" title="32">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;mousetrap.pause.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
+<a class="sourceLine" id="cb16-33" title="33">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;ramda.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
+<a class="sourceLine" id="cb16-34" title="34">    <span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;rogue.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span></a>
+<a class="sourceLine" id="cb16-35" title="35">  <span class="kw">&lt;/head&gt;</span></a>
+<a class="sourceLine" id="cb16-36" title="36">  <span class="kw">&lt;body</span><span class="ot"> onload=</span><span class="st">&quot;start()&quot;</span><span class="kw">&gt;</span></a>
+<a class="sourceLine" id="cb16-37" title="37">    </a>
+<a class="sourceLine" id="cb16-38" title="38">    <span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;main&quot;</span><span class="ot"> width=</span><span class="st">&quot;100%&quot;</span><span class="ot"> class=</span><span class="st">&quot;container&quot;</span><span class="kw">&gt;</span></a>
+<a class="sourceLine" id="cb16-39" title="39">      <span class="kw">&lt;canvas</span><span class="ot"> id=</span><span class="st">&quot;tilesCanvas&quot;</span><span class="ot"> style=</span><span class="st">&quot;position: absolute; left: 0; top: 0; z-index: 0;&quot;</span><span class="kw">&gt;&lt;/canvas&gt;</span></a>
+<a class="sourceLine" id="cb16-40" title="40"></a>
+<a class="sourceLine" id="cb16-41" title="41">      <span class="co">&lt;!-- layer for mouse clicks etc, on top of all drawing layers --&gt;</span></a>
+<a class="sourceLine" id="cb16-42" title="42">      <span class="kw">&lt;div</span><span class="ot"> id=</span><span class="st">&quot;topInteractionLayer&quot;</span><span class="ot"> style=</span><span class="st">&quot;display:block; position: absolute; left: 0; top: 0; z-index: 1000;&quot;</span><span class="kw">&gt;&lt;/div&gt;</span></a>
+<a class="sourceLine" id="cb16-43" title="43">    <span class="kw">&lt;/div&gt;</span></a>
+<a class="sourceLine" id="cb16-44" title="44">  <span class="kw">&lt;/body&gt;</span></a>
+<a class="sourceLine" id="cb16-45" title="45">  </a>
+<a class="sourceLine" id="cb16-46" title="46"><span class="kw">&lt;/html&gt;</span></a></code></pre></div>
 <h2 id="javascript-libraries">Javascript libraries</h2>
 <p>The following libraries are being used</p>
 <ul>
@@ -359,7 +359,7 @@
 <h2 id="keyboard-handling">Keyboard handling</h2>
 <p>Keyboard handling is made pretty simple by <a href="https://craig.is/killing/mice">mousetrap</a>. As an example here is how the <code>?</code> key is configured to do an alert</p>
 <h6 id="web_uihtmlrogue.js-152-to-152">01_web_ui/html/rogue.js (152 to 152)</h6>
-<div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="va">Mousetrap</span>.<span class="at">bind</span>( <span class="st">&quot;?&quot;</span><span class="op">,</span> () <span class="op">=&gt;</span> <span class="at">alert</span>( <span class="va">config</span>.<span class="at">help</span> ) )<span class="op">;</span> </a></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb17-1" title="1"><span class="va">Mousetrap</span>.<span class="at">bind</span>( <span class="st">&quot;?&quot;</span><span class="op">,</span> () <span class="kw">=&gt;</span> <span class="at">alert</span>( <span class="va">config</span>.<span class="at">help</span> ) )<span class="op">;</span> </a></code></pre></div>
 <p>Mousetrap offers a few fantastic features that we’ll be using for the game</p>
 <ul>
 <li>Simple configuration</li>
@@ -369,97 +369,97 @@
 <p>As you saw above the haskell code sends the shortcut keys that should be setup. This makes it possible to control what shortcuts are available dynamically and sticks with the idea of keeping as much logic in haskell as possible.</p>
 <p>The <em>sendKey</em> function is called when a key is pressed. It stops all further key presses and sends the key press command to the haskell server. Key presses are enabled again when a response is received by <em>runWebSocket</em></p>
 <h6 id="web_uihtmlrogue.js-16-to-25">01_web_ui/html/rogue.js (16 to 25)</h6>
-<div class="sourceCode" id="cb18"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="kw">function</span> <span class="at">sendKey</span>(k)<span class="op">{</span></a>
-<a class="sourceLine" id="cb18-2" data-line-number="2">  <span class="co">//Stop next moves, until the server responds</span></a>
-<a class="sourceLine" id="cb18-3" data-line-number="3">  <span class="va">Mousetrap</span>.<span class="at">pause</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb18-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb18-5" data-line-number="5">  <span class="kw">const</span> act <span class="op">=</span> () <span class="op">=&gt;</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb18-6" data-line-number="6">    <span class="at">sendCmd</span>(<span class="st">&quot;key&quot;</span><span class="op">,</span> k)<span class="op">;</span></a>
-<a class="sourceLine" id="cb18-7" data-line-number="7">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb18-8" data-line-number="8">  </a>
-<a class="sourceLine" id="cb18-9" data-line-number="9">  <span class="at">act</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb18-10" data-line-number="10"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb18-1" title="1"><span class="kw">function</span> <span class="at">sendKey</span>(k)<span class="op">{</span></a>
+<a class="sourceLine" id="cb18-2" title="2">  <span class="co">//Stop next moves, until the server responds</span></a>
+<a class="sourceLine" id="cb18-3" title="3">  <span class="va">Mousetrap</span>.<span class="at">pause</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb18-4" title="4"></a>
+<a class="sourceLine" id="cb18-5" title="5">  <span class="kw">const</span> act <span class="op">=</span> () <span class="kw">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb18-6" title="6">    <span class="at">sendCmd</span>(<span class="st">&quot;key&quot;</span><span class="op">,</span> k)<span class="op">;</span></a>
+<a class="sourceLine" id="cb18-7" title="7">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb18-8" title="8">  </a>
+<a class="sourceLine" id="cb18-9" title="9">  <span class="at">act</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb18-10" title="10"><span class="op">}</span></a></code></pre></div>
 <h2 id="the-websocket-loop">The websocket loop</h2>
 <p><em>runWebSocket</em> handles the communication over websockets and responds to commands.</p>
 <h6 id="web_uihtmlrogue.js-29-to-81">01_web_ui/html/rogue.js (29 to 81)</h6>
-<div class="sourceCode" id="cb19"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb19-1" data-line-number="1"><span class="kw">function</span> <span class="at">runWebSocket</span>(userName)</a>
-<a class="sourceLine" id="cb19-2" data-line-number="2"><span class="op">{</span></a>
-<a class="sourceLine" id="cb19-3" data-line-number="3">  <span class="kw">var</span> ws <span class="op">=</span> <span class="kw">new</span> <span class="at">WebSocket</span>(<span class="st">&quot;ws://localhost:61492/&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-4" data-line-number="4">  <span class="va">ws</span>.<span class="at">binaryType</span> <span class="op">=</span> <span class="st">'arraybuffer'</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-5" data-line-number="5">	</a>
-<a class="sourceLine" id="cb19-6" data-line-number="6">  <span class="va">ws</span>.<span class="at">onopen</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span></a>
-<a class="sourceLine" id="cb19-7" data-line-number="7">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="op">=&gt;</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb19-8" data-line-number="8">      <span class="va">ws</span>.<span class="at">send</span>(c <span class="op">+</span> <span class="st">&quot;|&quot;</span> <span class="op">+</span> (d <span class="op">||</span> <span class="st">&quot;&quot;</span>))<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-9" data-line-number="9">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb19-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb19-11" data-line-number="11">    <span class="at">sendCmd</span>(<span class="st">&quot;init&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-12" data-line-number="12">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb19-13" data-line-number="13">  </a>
-<a class="sourceLine" id="cb19-14" data-line-number="14">  <span class="va">ws</span>.<span class="at">onmessage</span> <span class="op">=</span> <span class="kw">function</span> (evt) <span class="op">{</span> </a>
-<a class="sourceLine" id="cb19-15" data-line-number="15">    <span class="kw">var</span> bytes <span class="op">=</span> <span class="kw">new</span> <span class="at">Uint8Array</span>(<span class="va">evt</span>.<span class="at">data</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-16" data-line-number="16">    <span class="kw">var</span> m <span class="op">=</span> <span class="va">bzip2</span>.<span class="at">simple</span>(<span class="va">bzip2</span>.<span class="at">array</span>(bytes))<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-17" data-line-number="17">    cmd <span class="op">=</span> <span class="va">JSON</span>.<span class="at">parse</span>(m)<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-18" data-line-number="18"></a>
-<a class="sourceLine" id="cb19-19" data-line-number="19">    <span class="cf">switch</span>( <span class="va">cmd</span>.<span class="at">cmd</span> )<span class="op">{</span></a>
-<a class="sourceLine" id="cb19-20" data-line-number="20">      <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span></a>
-<a class="sourceLine" id="cb19-21" data-line-number="21">        <span class="co">//Load keys</span></a>
-<a class="sourceLine" id="cb19-22" data-line-number="22">        <span class="va">config</span>.<span class="at">help</span> <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-23" data-line-number="23">        <span class="cf">for</span>( <span class="kw">var</span> i <span class="kw">in</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span> )<span class="op">{</span></a>
-<a class="sourceLine" id="cb19-24" data-line-number="24">          <span class="kw">const</span> s <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">shortcut</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-25" data-line-number="25">          <span class="kw">const</span> a <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">action</span><span class="op">;</span> <span class="co">//const avoids variable capture in the closure</span></a>
-<a class="sourceLine" id="cb19-26" data-line-number="26">          <span class="va">Mousetrap</span>.<span class="at">bind</span>( s<span class="op">,</span> () <span class="op">=&gt;</span> <span class="at">sendKey</span>( a )<span class="op">,</span> <span class="st">&quot;keyup&quot;</span> )<span class="op">;</span> </a>
-<a class="sourceLine" id="cb19-27" data-line-number="27">          <span class="va">config</span>.<span class="at">help</span> <span class="op">+=</span> s <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> a <span class="op">+</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-28" data-line-number="28">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb19-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb19-30" data-line-number="30">        <span class="at">sendCmd</span>(<span class="st">&quot;redraw&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-31" data-line-number="31">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-32" data-line-number="32">        </a>
-<a class="sourceLine" id="cb19-33" data-line-number="33">      <span class="cf">case</span> <span class="st">&quot;log&quot;</span><span class="op">:</span></a>
-<a class="sourceLine" id="cb19-34" data-line-number="34">        <span class="va">console</span>.<span class="at">log</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-35" data-line-number="35">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-36" data-line-number="36">        </a>
-<a class="sourceLine" id="cb19-37" data-line-number="37">      <span class="cf">case</span> <span class="st">&quot;error&quot;</span><span class="op">:</span></a>
-<a class="sourceLine" id="cb19-38" data-line-number="38">        <span class="at">alert</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-39" data-line-number="39">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb19-40" data-line-number="40">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb19-41" data-line-number="41">    </a>
-<a class="sourceLine" id="cb19-42" data-line-number="42">    <span class="va">Mousetrap</span>.<span class="at">unpause</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-43" data-line-number="43">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb19-44" data-line-number="44">  </a>
-<a class="sourceLine" id="cb19-45" data-line-number="45">  <span class="va">ws</span>.<span class="at">onclose</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span> </a>
-<a class="sourceLine" id="cb19-46" data-line-number="46">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="op">=&gt;</span> <span class="op">{}</span></a>
-<a class="sourceLine" id="cb19-47" data-line-number="47">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb19-48" data-line-number="48">		</a>
-<a class="sourceLine" id="cb19-49" data-line-number="49">  <span class="va">window</span>.<span class="at">onbeforeunload</span> <span class="op">=</span> <span class="kw">function</span>(evt) <span class="op">{</span></a>
-<a class="sourceLine" id="cb19-50" data-line-number="50">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="op">=&gt;</span> <span class="op">{}</span></a>
-<a class="sourceLine" id="cb19-51" data-line-number="51">    <span class="va">socket</span>.<span class="at">close</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb19-52" data-line-number="52">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb19-53" data-line-number="53"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb19-1" title="1"><span class="kw">function</span> <span class="at">runWebSocket</span>(userName)</a>
+<a class="sourceLine" id="cb19-2" title="2"><span class="op">{</span></a>
+<a class="sourceLine" id="cb19-3" title="3">  <span class="kw">var</span> ws <span class="op">=</span> <span class="kw">new</span> <span class="at">WebSocket</span>(<span class="st">&quot;ws://localhost:61492/&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-4" title="4">  <span class="va">ws</span>.<span class="at">binaryType</span> <span class="op">=</span> <span class="st">'arraybuffer'</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-5" title="5">	</a>
+<a class="sourceLine" id="cb19-6" title="6">  <span class="va">ws</span>.<span class="at">onopen</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span></a>
+<a class="sourceLine" id="cb19-7" title="7">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="kw">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb19-8" title="8">      <span class="va">ws</span>.<span class="at">send</span>(c <span class="op">+</span> <span class="st">&quot;|&quot;</span> <span class="op">+</span> (d <span class="op">||</span> <span class="st">&quot;&quot;</span>))<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-9" title="9">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb19-10" title="10"></a>
+<a class="sourceLine" id="cb19-11" title="11">    <span class="at">sendCmd</span>(<span class="st">&quot;init&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-12" title="12">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb19-13" title="13">  </a>
+<a class="sourceLine" id="cb19-14" title="14">  <span class="va">ws</span>.<span class="at">onmessage</span> <span class="op">=</span> <span class="kw">function</span> (evt) <span class="op">{</span> </a>
+<a class="sourceLine" id="cb19-15" title="15">    <span class="kw">var</span> bytes <span class="op">=</span> <span class="kw">new</span> <span class="at">Uint8Array</span>(<span class="va">evt</span>.<span class="at">data</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-16" title="16">    <span class="kw">var</span> m <span class="op">=</span> <span class="va">bzip2</span>.<span class="at">simple</span>(<span class="va">bzip2</span>.<span class="at">array</span>(bytes))<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-17" title="17">    cmd <span class="op">=</span> <span class="va">JSON</span>.<span class="at">parse</span>(m)<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-18" title="18"></a>
+<a class="sourceLine" id="cb19-19" title="19">    <span class="cf">switch</span>( <span class="va">cmd</span>.<span class="at">cmd</span> )<span class="op">{</span></a>
+<a class="sourceLine" id="cb19-20" title="20">      <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span></a>
+<a class="sourceLine" id="cb19-21" title="21">        <span class="co">//Load keys</span></a>
+<a class="sourceLine" id="cb19-22" title="22">        <span class="va">config</span>.<span class="at">help</span> <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-23" title="23">        <span class="cf">for</span>( <span class="kw">var</span> i <span class="kw">in</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span> )<span class="op">{</span></a>
+<a class="sourceLine" id="cb19-24" title="24">          <span class="kw">const</span> s <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">shortcut</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-25" title="25">          <span class="kw">const</span> a <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">action</span><span class="op">;</span> <span class="co">//const avoids variable capture in the closure</span></a>
+<a class="sourceLine" id="cb19-26" title="26">          <span class="va">Mousetrap</span>.<span class="at">bind</span>( s<span class="op">,</span> () <span class="kw">=&gt;</span> <span class="at">sendKey</span>( a )<span class="op">,</span> <span class="st">&quot;keyup&quot;</span> )<span class="op">;</span> </a>
+<a class="sourceLine" id="cb19-27" title="27">          <span class="va">config</span>.<span class="at">help</span> <span class="op">+=</span> s <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> a <span class="op">+</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-28" title="28">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb19-29" title="29"></a>
+<a class="sourceLine" id="cb19-30" title="30">        <span class="at">sendCmd</span>(<span class="st">&quot;redraw&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-31" title="31">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-32" title="32">        </a>
+<a class="sourceLine" id="cb19-33" title="33">      <span class="cf">case</span> <span class="st">&quot;log&quot;</span><span class="op">:</span></a>
+<a class="sourceLine" id="cb19-34" title="34">        <span class="va">console</span>.<span class="at">log</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-35" title="35">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-36" title="36">        </a>
+<a class="sourceLine" id="cb19-37" title="37">      <span class="cf">case</span> <span class="st">&quot;error&quot;</span><span class="op">:</span></a>
+<a class="sourceLine" id="cb19-38" title="38">        <span class="at">alert</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-39" title="39">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb19-40" title="40">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb19-41" title="41">    </a>
+<a class="sourceLine" id="cb19-42" title="42">    <span class="va">Mousetrap</span>.<span class="at">unpause</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-43" title="43">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb19-44" title="44">  </a>
+<a class="sourceLine" id="cb19-45" title="45">  <span class="va">ws</span>.<span class="at">onclose</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span> </a>
+<a class="sourceLine" id="cb19-46" title="46">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="kw">=&gt;</span> <span class="op">{}</span></a>
+<a class="sourceLine" id="cb19-47" title="47">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb19-48" title="48">		</a>
+<a class="sourceLine" id="cb19-49" title="49">  <span class="va">window</span>.<span class="at">onbeforeunload</span> <span class="op">=</span> <span class="kw">function</span>(evt) <span class="op">{</span></a>
+<a class="sourceLine" id="cb19-50" title="50">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="kw">=&gt;</span> <span class="op">{}</span></a>
+<a class="sourceLine" id="cb19-51" title="51">    <span class="va">socket</span>.<span class="at">close</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb19-52" title="52">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb19-53" title="53"><span class="op">}</span></a></code></pre></div>
 <ul>
 <li>The web socket connection is initiated and set to send data as an array buffer</li>
 </ul>
 <h6 id="web_uihtmlrogue.js-32-to-33">01_web_ui/html/rogue.js (32 to 33)</h6>
-<div class="sourceCode" id="cb20"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb20-1" data-line-number="1">  <span class="kw">var</span> ws <span class="op">=</span> <span class="kw">new</span> <span class="at">WebSocket</span>(<span class="st">&quot;ws://localhost:61492/&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb20-2" data-line-number="2">  <span class="va">ws</span>.<span class="at">binaryType</span> <span class="op">=</span> <span class="st">'arraybuffer'</span><span class="op">;</span></a></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb20-1" title="1">  <span class="kw">var</span> ws <span class="op">=</span> <span class="kw">new</span> <span class="at">WebSocket</span>(<span class="st">&quot;ws://localhost:61492/&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb20-2" title="2">  <span class="va">ws</span>.<span class="at">binaryType</span> <span class="op">=</span> <span class="st">'arraybuffer'</span><span class="op">;</span></a></code></pre></div>
 <ul>
 <li>As soon as a connection is made, the <em>init</em> command is sent with the current screen size</li>
 </ul>
 <h6 id="web_uihtmlrogue.js-37-to-43">01_web_ui/html/rogue.js (37 to 43)</h6>
-<div class="sourceCode" id="cb21"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb21-1" data-line-number="1">  <span class="va">ws</span>.<span class="at">onopen</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span></a>
-<a class="sourceLine" id="cb21-2" data-line-number="2">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="op">=&gt;</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb21-3" data-line-number="3">      <span class="va">ws</span>.<span class="at">send</span>(c <span class="op">+</span> <span class="st">&quot;|&quot;</span> <span class="op">+</span> (d <span class="op">||</span> <span class="st">&quot;&quot;</span>))<span class="op">;</span></a>
-<a class="sourceLine" id="cb21-4" data-line-number="4">    <span class="op">}</span></a>
-<a class="sourceLine" id="cb21-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb21-6" data-line-number="6">    <span class="at">sendCmd</span>(<span class="st">&quot;init&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
-<a class="sourceLine" id="cb21-7" data-line-number="7">  <span class="op">};</span></a></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb21-1" title="1">  <span class="va">ws</span>.<span class="at">onopen</span> <span class="op">=</span> <span class="kw">function</span>() <span class="op">{</span></a>
+<a class="sourceLine" id="cb21-2" title="2">    sendCmd <span class="op">=</span> ( c<span class="op">,</span> d ) <span class="kw">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb21-3" title="3">      <span class="va">ws</span>.<span class="at">send</span>(c <span class="op">+</span> <span class="st">&quot;|&quot;</span> <span class="op">+</span> (d <span class="op">||</span> <span class="st">&quot;&quot;</span>))<span class="op">;</span></a>
+<a class="sourceLine" id="cb21-4" title="4">    <span class="op">}</span></a>
+<a class="sourceLine" id="cb21-5" title="5"></a>
+<a class="sourceLine" id="cb21-6" title="6">    <span class="at">sendCmd</span>(<span class="st">&quot;init&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
+<a class="sourceLine" id="cb21-7" title="7">  <span class="op">};</span></a></code></pre></div>
 <ul>
 <li>When a message arrives, it is uncompressed and parsed as JSON</li>
 </ul>
 <h6 id="web_uihtmlrogue.js-47-to-50">01_web_ui/html/rogue.js (47 to 50)</h6>
-<div class="sourceCode" id="cb22"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb22-1" data-line-number="1">  <span class="va">ws</span>.<span class="at">onmessage</span> <span class="op">=</span> <span class="kw">function</span> (evt) <span class="op">{</span> </a>
-<a class="sourceLine" id="cb22-2" data-line-number="2">    <span class="kw">var</span> bytes <span class="op">=</span> <span class="kw">new</span> <span class="at">Uint8Array</span>(<span class="va">evt</span>.<span class="at">data</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb22-3" data-line-number="3">    <span class="kw">var</span> m <span class="op">=</span> <span class="va">bzip2</span>.<span class="at">simple</span>(<span class="va">bzip2</span>.<span class="at">array</span>(bytes))<span class="op">;</span></a>
-<a class="sourceLine" id="cb22-4" data-line-number="4">    cmd <span class="op">=</span> <span class="va">JSON</span>.<span class="at">parse</span>(m)<span class="op">;</span></a></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb22-1" title="1">  <span class="va">ws</span>.<span class="at">onmessage</span> <span class="op">=</span> <span class="kw">function</span> (evt) <span class="op">{</span> </a>
+<a class="sourceLine" id="cb22-2" title="2">    <span class="kw">var</span> bytes <span class="op">=</span> <span class="kw">new</span> <span class="at">Uint8Array</span>(<span class="va">evt</span>.<span class="at">data</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb22-3" title="3">    <span class="kw">var</span> m <span class="op">=</span> <span class="va">bzip2</span>.<span class="at">simple</span>(<span class="va">bzip2</span>.<span class="at">array</span>(bytes))<span class="op">;</span></a>
+<a class="sourceLine" id="cb22-4" title="4">    cmd <span class="op">=</span> <span class="va">JSON</span>.<span class="at">parse</span>(m)<span class="op">;</span></a></code></pre></div>
 <ul>
 <li>The code then switches on the command being sent and performs the appropriate action</li>
 <li>For a <em>config</em> message
@@ -473,28 +473,28 @@
 <li><em>error</em> commands result in an alert</li>
 </ul>
 <h6 id="web_uihtmlrogue.js-54-to-75">01_web_ui/html/rogue.js (54 to 75)</h6>
-<div class="sourceCode" id="cb23"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb23-1" data-line-number="1">    <span class="cf">switch</span>( <span class="va">cmd</span>.<span class="at">cmd</span> )<span class="op">{</span></a>
-<a class="sourceLine" id="cb23-2" data-line-number="2">      <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span></a>
-<a class="sourceLine" id="cb23-3" data-line-number="3">        <span class="co">//Load keys</span></a>
-<a class="sourceLine" id="cb23-4" data-line-number="4">        <span class="va">config</span>.<span class="at">help</span> <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb23-5" data-line-number="5">        <span class="cf">for</span>( <span class="kw">var</span> i <span class="kw">in</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span> )<span class="op">{</span></a>
-<a class="sourceLine" id="cb23-6" data-line-number="6">          <span class="kw">const</span> s <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">shortcut</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb23-7" data-line-number="7">          <span class="kw">const</span> a <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">action</span><span class="op">;</span> <span class="co">//const avoids variable capture in the closure</span></a>
-<a class="sourceLine" id="cb23-8" data-line-number="8">          <span class="va">Mousetrap</span>.<span class="at">bind</span>( s<span class="op">,</span> () <span class="op">=&gt;</span> <span class="at">sendKey</span>( a )<span class="op">,</span> <span class="st">&quot;keyup&quot;</span> )<span class="op">;</span> </a>
-<a class="sourceLine" id="cb23-9" data-line-number="9">          <span class="va">config</span>.<span class="at">help</span> <span class="op">+=</span> s <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> a <span class="op">+</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb23-10" data-line-number="10">        <span class="op">}</span></a>
-<a class="sourceLine" id="cb23-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb23-12" data-line-number="12">        <span class="at">sendCmd</span>(<span class="st">&quot;redraw&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
-<a class="sourceLine" id="cb23-13" data-line-number="13">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb23-14" data-line-number="14">        </a>
-<a class="sourceLine" id="cb23-15" data-line-number="15">      <span class="cf">case</span> <span class="st">&quot;log&quot;</span><span class="op">:</span></a>
-<a class="sourceLine" id="cb23-16" data-line-number="16">        <span class="va">console</span>.<span class="at">log</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb23-17" data-line-number="17">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb23-18" data-line-number="18">        </a>
-<a class="sourceLine" id="cb23-19" data-line-number="19">      <span class="cf">case</span> <span class="st">&quot;error&quot;</span><span class="op">:</span></a>
-<a class="sourceLine" id="cb23-20" data-line-number="20">        <span class="at">alert</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
-<a class="sourceLine" id="cb23-21" data-line-number="21">        <span class="cf">break</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb23-22" data-line-number="22">    <span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb23-1" title="1">    <span class="cf">switch</span>( <span class="va">cmd</span>.<span class="at">cmd</span> )<span class="op">{</span></a>
+<a class="sourceLine" id="cb23-2" title="2">      <span class="cf">case</span> <span class="st">&quot;config&quot;</span><span class="op">:</span></a>
+<a class="sourceLine" id="cb23-3" title="3">        <span class="co">//Load keys</span></a>
+<a class="sourceLine" id="cb23-4" title="4">        <span class="va">config</span>.<span class="at">help</span> <span class="op">=</span> <span class="st">&quot;&quot;</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb23-5" title="5">        <span class="cf">for</span>( <span class="kw">var</span> i <span class="kw">in</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span> )<span class="op">{</span></a>
+<a class="sourceLine" id="cb23-6" title="6">          <span class="kw">const</span> s <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">shortcut</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb23-7" title="7">          <span class="kw">const</span> a <span class="op">=</span> <span class="va">cmd</span>.<span class="va">data</span>.<span class="at">keys</span>[i].<span class="at">action</span><span class="op">;</span> <span class="co">//const avoids variable capture in the closure</span></a>
+<a class="sourceLine" id="cb23-8" title="8">          <span class="va">Mousetrap</span>.<span class="at">bind</span>( s<span class="op">,</span> () <span class="kw">=&gt;</span> <span class="at">sendKey</span>( a )<span class="op">,</span> <span class="st">&quot;keyup&quot;</span> )<span class="op">;</span> </a>
+<a class="sourceLine" id="cb23-9" title="9">          <span class="va">config</span>.<span class="at">help</span> <span class="op">+=</span> s <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> a <span class="op">+</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb23-10" title="10">        <span class="op">}</span></a>
+<a class="sourceLine" id="cb23-11" title="11"></a>
+<a class="sourceLine" id="cb23-12" title="12">        <span class="at">sendCmd</span>(<span class="st">&quot;redraw&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>())<span class="op">;</span></a>
+<a class="sourceLine" id="cb23-13" title="13">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb23-14" title="14">        </a>
+<a class="sourceLine" id="cb23-15" title="15">      <span class="cf">case</span> <span class="st">&quot;log&quot;</span><span class="op">:</span></a>
+<a class="sourceLine" id="cb23-16" title="16">        <span class="va">console</span>.<span class="at">log</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb23-17" title="17">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb23-18" title="18">        </a>
+<a class="sourceLine" id="cb23-19" title="19">      <span class="cf">case</span> <span class="st">&quot;error&quot;</span><span class="op">:</span></a>
+<a class="sourceLine" id="cb23-20" title="20">        <span class="at">alert</span>( <span class="va">cmd</span>.<span class="at">message</span> )<span class="op">;</span></a>
+<a class="sourceLine" id="cb23-21" title="21">        <span class="cf">break</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb23-22" title="22">    <span class="op">}</span></a></code></pre></div>
 <h2 id="dealing-with-resizing">Dealing with resizing</h2>
 <p>The haskell code is going to need to know when the screen is resized so that it can act accordingly. E.g. it may need to recenter the player or clip tiles. The <em>resizeCanvas</em> function does this for us</p>
 <ul>
@@ -503,57 +503,57 @@
 <li>A redraw command is sent</li>
 </ul>
 <h6 id="web_uihtmlrogue.js-5-to-11">01_web_ui/html/rogue.js (5 to 11)</h6>
-<div class="sourceCode" id="cb24"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="kw">var</span> config <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;drawId&quot;</span><span class="op">:</span> <span class="dv">0</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb24-2" data-line-number="2">               <span class="st">&quot;help&quot;</span><span class="op">:</span> <span class="st">&quot;&quot;</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb24-3" data-line-number="3">               <span class="st">&quot;tileWidth&quot;</span><span class="op">:</span> <span class="dv">32</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb24-4" data-line-number="4">               <span class="st">&quot;tileHeight&quot;</span><span class="op">:</span> <span class="dv">32</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb24-5" data-line-number="5">               <span class="st">&quot;gridWidth&quot;</span><span class="op">:</span> <span class="dv">0</span><span class="op">,</span></a>
-<a class="sourceLine" id="cb24-6" data-line-number="6">               <span class="st">&quot;gridHeight&quot;</span> <span class="op">:</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb24-7" data-line-number="7">             <span class="op">};</span></a></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb24-1" title="1"><span class="kw">var</span> config <span class="op">=</span> <span class="op">{</span> <span class="st">&quot;drawId&quot;</span><span class="op">:</span> <span class="dv">0</span><span class="op">,</span></a>
+<a class="sourceLine" id="cb24-2" title="2">               <span class="st">&quot;help&quot;</span><span class="op">:</span> <span class="st">&quot;&quot;</span><span class="op">,</span></a>
+<a class="sourceLine" id="cb24-3" title="3">               <span class="st">&quot;tileWidth&quot;</span><span class="op">:</span> <span class="dv">32</span><span class="op">,</span></a>
+<a class="sourceLine" id="cb24-4" title="4">               <span class="st">&quot;tileHeight&quot;</span><span class="op">:</span> <span class="dv">32</span><span class="op">,</span></a>
+<a class="sourceLine" id="cb24-5" title="5">               <span class="st">&quot;gridWidth&quot;</span><span class="op">:</span> <span class="dv">0</span><span class="op">,</span></a>
+<a class="sourceLine" id="cb24-6" title="6">               <span class="st">&quot;gridHeight&quot;</span> <span class="op">:</span> <span class="dv">0</span></a>
+<a class="sourceLine" id="cb24-7" title="7">             <span class="op">};</span></a></code></pre></div>
 <h6 id="web_uihtmlrogue.js-93-to-116">01_web_ui/html/rogue.js (93 to 116)</h6>
-<div class="sourceCode" id="cb25"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="kw">function</span> <span class="at">resizeCanvas</span>() <span class="op">{</span></a>
-<a class="sourceLine" id="cb25-2" data-line-number="2">  <span class="kw">var</span> container <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;container&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb25-4" data-line-number="4">  <span class="kw">var</span> main <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;main&quot;</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-5" data-line-number="5">  <span class="kw">var</span> mainr <span class="op">=</span> <span class="va">main</span>.<span class="at">getBoundingClientRect</span>()<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb25-7" data-line-number="7">  <span class="kw">const</span> resize <span class="op">=</span> n <span class="op">=&gt;</span> <span class="op">{</span></a>
-<a class="sourceLine" id="cb25-8" data-line-number="8">    <span class="kw">var</span> e <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(n)<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-9" data-line-number="9">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">main</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">x</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb25-10" data-line-number="10">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">top</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">y</span></a>
-<a class="sourceLine" id="cb25-11" data-line-number="11">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">width</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb25-12" data-line-number="12">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">height</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb25-13" data-line-number="13">    <span class="va">e</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">width</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb25-14" data-line-number="14">    <span class="va">e</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">height</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb25-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb25-16" data-line-number="16">    <span class="va">config</span>.<span class="at">blank</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb25-17" data-line-number="17">    <span class="va">config</span>.<span class="at">gridWidth</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">floor</span>(<span class="va">e</span>.<span class="at">width</span> / <span class="va">config</span>.<span class="at">tileWidth</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-18" data-line-number="18">    <span class="va">config</span>.<span class="at">gridHeight</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">floor</span>(<span class="va">e</span>.<span class="at">height</span> / <span class="va">config</span>.<span class="at">tileHeight</span>)<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-19" data-line-number="19">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb25-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb25-21" data-line-number="21">  <span class="va">R</span>.<span class="at">forEach</span>( resize<span class="op">,</span> [<span class="st">&quot;tilesCanvas&quot;</span><span class="op">,</span> <span class="st">&quot;topInteractionLayer&quot;</span>] )<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-22" data-line-number="22">  </a>
-<a class="sourceLine" id="cb25-23" data-line-number="23">  <span class="at">sendCmd</span>(<span class="st">&quot;redraw&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>() )<span class="op">;</span></a>
-<a class="sourceLine" id="cb25-24" data-line-number="24"><span class="op">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb25-1" title="1"><span class="kw">function</span> <span class="at">resizeCanvas</span>() <span class="op">{</span></a>
+<a class="sourceLine" id="cb25-2" title="2">  <span class="kw">var</span> container <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;container&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-3" title="3"></a>
+<a class="sourceLine" id="cb25-4" title="4">  <span class="kw">var</span> main <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(<span class="st">&quot;main&quot;</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-5" title="5">  <span class="kw">var</span> mainr <span class="op">=</span> <span class="va">main</span>.<span class="at">getBoundingClientRect</span>()<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-6" title="6"></a>
+<a class="sourceLine" id="cb25-7" title="7">  <span class="kw">const</span> resize <span class="op">=</span> n <span class="kw">=&gt;</span> <span class="op">{</span></a>
+<a class="sourceLine" id="cb25-8" title="8">    <span class="kw">var</span> e <span class="op">=</span> <span class="va">document</span>.<span class="at">getElementById</span>(n)<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-9" title="9">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">main</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">x</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb25-10" title="10">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">top</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">y</span></a>
+<a class="sourceLine" id="cb25-11" title="11">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">width</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb25-12" title="12">    <span class="va">e</span>.<span class="va">style</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">height</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb25-13" title="13">    <span class="va">e</span>.<span class="at">width</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">width</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb25-14" title="14">    <span class="va">e</span>.<span class="at">height</span> <span class="op">=</span> <span class="va">mainr</span>.<span class="at">height</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb25-15" title="15"></a>
+<a class="sourceLine" id="cb25-16" title="16">    <span class="va">config</span>.<span class="at">blank</span> <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb25-17" title="17">    <span class="va">config</span>.<span class="at">gridWidth</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">floor</span>(<span class="va">e</span>.<span class="at">width</span> / <span class="va">config</span>.<span class="at">tileWidth</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-18" title="18">    <span class="va">config</span>.<span class="at">gridHeight</span> <span class="op">=</span> <span class="va">Math</span>.<span class="at">floor</span>(<span class="va">e</span>.<span class="at">height</span> / <span class="va">config</span>.<span class="at">tileHeight</span>)<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-19" title="19">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb25-20" title="20"></a>
+<a class="sourceLine" id="cb25-21" title="21">  <span class="va">R</span>.<span class="at">forEach</span>( resize<span class="op">,</span> [<span class="st">&quot;tilesCanvas&quot;</span><span class="op">,</span> <span class="st">&quot;topInteractionLayer&quot;</span>] )<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-22" title="22">  </a>
+<a class="sourceLine" id="cb25-23" title="23">  <span class="at">sendCmd</span>(<span class="st">&quot;redraw&quot;</span><span class="op">,</span> <span class="at">gridSizeStr</span>() )<span class="op">;</span></a>
+<a class="sourceLine" id="cb25-24" title="24"><span class="op">}</span></a></code></pre></div>
 <p>Browsers will trigger the redraw handler while the browser window is being resized, i.e. as the user is dragging it to the desired size. We definitely do not want to request a redraw hundreds of times while the window is being dragged. So a debounce routine is used to minimise the number of requests sent.</p>
 <p>The window resize event is setup to call <em>resizeCanvas</em> after it has been debounced. Here I’m setting it up to only send the command after no subsequent resize events are triggered for 250ms.</p>
 <h6 id="web_uihtmlrogue.js-132-to-147">01_web_ui/html/rogue.js (132 to 147)</h6>
-<div class="sourceCode" id="cb26"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="co">//Debounce: https://gist.github.com/nmsdvid/8807205</span></a>
-<a class="sourceLine" id="cb26-2" data-line-number="2"><span class="kw">function</span> <span class="at">debounce</span>(func<span class="op">,</span> wait<span class="op">,</span> immediate) <span class="op">{</span></a>
-<a class="sourceLine" id="cb26-3" data-line-number="3">  <span class="kw">var</span> timeout<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-4" data-line-number="4">  <span class="cf">return</span> <span class="kw">function</span>() <span class="op">{</span></a>
-<a class="sourceLine" id="cb26-5" data-line-number="5">    <span class="kw">var</span> context <span class="op">=</span> <span class="kw">this</span><span class="op">,</span> args <span class="op">=</span> arguments<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-6" data-line-number="6">    <span class="at">clearTimeout</span>(timeout)<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-7" data-line-number="7">    timeout <span class="op">=</span> <span class="at">setTimeout</span>(<span class="kw">function</span>() <span class="op">{</span></a>
-<a class="sourceLine" id="cb26-8" data-line-number="8">      timeout <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></a>
-<a class="sourceLine" id="cb26-9" data-line-number="9">      <span class="cf">if</span> (<span class="op">!</span>immediate)</a>
-<a class="sourceLine" id="cb26-10" data-line-number="10">        <span class="va">func</span>.<span class="at">apply</span>(context<span class="op">,</span> args)<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-11" data-line-number="11">    <span class="op">},</span> wait)<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-12" data-line-number="12">    <span class="cf">if</span> (immediate <span class="op">&amp;&amp;</span> <span class="op">!</span>timeout) <span class="va">func</span>.<span class="at">apply</span>(context<span class="op">,</span> args)<span class="op">;</span></a>
-<a class="sourceLine" id="cb26-13" data-line-number="13">  <span class="op">};</span></a>
-<a class="sourceLine" id="cb26-14" data-line-number="14"><span class="op">}</span></a>
-<a class="sourceLine" id="cb26-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb26-16" data-line-number="16"><span class="va">window</span>.<span class="at">addEventListener</span>(<span class="st">'resize'</span><span class="op">,</span> <span class="at">debounce</span>(resizeCanvas<span class="op">,</span> <span class="dv">250</span>)<span class="op">,</span> <span class="kw">false</span>)<span class="op">;</span></a></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode javascript"><code class="sourceCode javascript"><a class="sourceLine" id="cb26-1" title="1"><span class="co">//Debounce: https://gist.github.com/nmsdvid/8807205</span></a>
+<a class="sourceLine" id="cb26-2" title="2"><span class="kw">function</span> <span class="at">debounce</span>(func<span class="op">,</span> wait<span class="op">,</span> immediate) <span class="op">{</span></a>
+<a class="sourceLine" id="cb26-3" title="3">  <span class="kw">var</span> timeout<span class="op">;</span></a>
+<a class="sourceLine" id="cb26-4" title="4">  <span class="cf">return</span> <span class="kw">function</span>() <span class="op">{</span></a>
+<a class="sourceLine" id="cb26-5" title="5">    <span class="kw">var</span> context <span class="op">=</span> <span class="kw">this</span><span class="op">,</span> args <span class="op">=</span> <span class="kw">arguments</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb26-6" title="6">    <span class="at">clearTimeout</span>(timeout)<span class="op">;</span></a>
+<a class="sourceLine" id="cb26-7" title="7">    timeout <span class="op">=</span> <span class="at">setTimeout</span>(<span class="kw">function</span>() <span class="op">{</span></a>
+<a class="sourceLine" id="cb26-8" title="8">      timeout <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></a>
+<a class="sourceLine" id="cb26-9" title="9">      <span class="cf">if</span> (<span class="op">!</span>immediate)</a>
+<a class="sourceLine" id="cb26-10" title="10">        <span class="va">func</span>.<span class="at">apply</span>(context<span class="op">,</span> args)<span class="op">;</span></a>
+<a class="sourceLine" id="cb26-11" title="11">    <span class="op">},</span> wait)<span class="op">;</span></a>
+<a class="sourceLine" id="cb26-12" title="12">    <span class="cf">if</span> (immediate <span class="op">&amp;&amp;</span> <span class="op">!</span>timeout) <span class="va">func</span>.<span class="at">apply</span>(context<span class="op">,</span> args)<span class="op">;</span></a>
+<a class="sourceLine" id="cb26-13" title="13">  <span class="op">};</span></a>
+<a class="sourceLine" id="cb26-14" title="14"><span class="op">}</span></a>
+<a class="sourceLine" id="cb26-15" title="15"></a>
+<a class="sourceLine" id="cb26-16" title="16"><span class="va">window</span>.<span class="at">addEventListener</span>(<span class="st">'resize'</span><span class="op">,</span> <span class="at">debounce</span>(resizeCanvas<span class="op">,</span> <span class="dv">250</span>)<span class="op">,</span> <span class="kw">false</span>)<span class="op">;</span></a></code></pre></div>
 <h2 id="done">Done</h2>
 <p>That is quite a lot of functionality for ~100 lines of JavaScript so far. There is about another 50 lines that needs to be added in later chapters to deal with drawing of the tiles. But that is it for the front-end logic, everything else happens in Haskell.</p>
 <p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_01.html">prev</a> <a href="2018-04-02-haskell-rogue-like_03.html">next</a></p>

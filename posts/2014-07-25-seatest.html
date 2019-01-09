@@ -47,8 +47,8 @@
 </ol></li>
 </ol>
 <p><strong>Test runner bash script</strong></p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" data-line-number="1">    <span class="co">#/bin/sh</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="fu">gcc</span> -std=c99 -o test.o -D TESTING -I . -I .. xc.c test.c ../buttons.c ../lcd.c ../dateTime.c ../timerUi.c ../timer.c seatest.c <span class="kw">&amp;&amp;</span> <span class="ex">./test.o</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" title="1">    <span class="co">#/bin/sh</span></a>
+<a class="sourceLine" id="cb1-2" title="2">    <span class="fu">gcc</span> -std=c99 -o test.o -D TESTING -I . -I .. xc.c test.c ../buttons.c ../lcd.c ../dateTime.c ../timerUi.c ../timer.c seatest.c <span class="kw">&amp;&amp;</span> <span class="ex">./test.o</span></a></code></pre></div>
 <p>Nothing fancy… It does this</p>
 <ul>
 <li>Defines a TESTING constant</li>

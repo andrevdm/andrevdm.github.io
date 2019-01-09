@@ -32,84 +32,84 @@
 <h1 id="interacting-with-the-terminal">Interacting with the terminal</h1>
 <h2 id="parsing-command-line-arguments">Parsing command line arguments</h2>
 <p><a href="https://hackage.haskell.org/package/optparse-generic">OptParse-generic</a> makes parsing command line arguments easy. Doing this manually is tedious and not terribly interesting so its great to have a simple library that handles this well.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="ot">{-# LANGUAGE DeriveGeneric #-}</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="ot">{-# LANGUAGE DataKinds #-}</span></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="ot">{-# LANGUAGE TypeOperators #-}</span></a>
-<a class="sourceLine" id="cb1-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="kw">data</span> <span class="dt">Arguments</span> <span class="fu">=</span> <span class="dt">Arguments</span> {<span class="ot">train ::</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Path to training data&quot;</span></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">                           ,<span class="ot">input ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Input file to categorise. If missing stdin will be used&quot;</span></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9">                           ,<span class="ot">parser ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser type, defaults to lines. Options are lines/detail/csv&quot;</span></a>
-<a class="sourceLine" id="cb1-10" data-line-number="10">                           ,<span class="ot">popts ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser options&quot;</span></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">                           ,<span class="ot">clean ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Options name of text cleaner - see docs&quot;</span></a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">                           } <span class="kw">deriving</span> (<span class="dt">Generic</span>, <span class="dt">Show</span>)</a>
-<a class="sourceLine" id="cb1-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb1-14" data-line-number="14"><span class="kw">instance</span> <span class="dt">ParseRecord</span> <span class="dt">Arguments</span></a>
-<a class="sourceLine" id="cb1-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb1-16" data-line-number="16"><span class="ot">getArgs ::</span> <span class="dt">IO</span> <span class="dt">Arguments</span></a>
-<a class="sourceLine" id="cb1-17" data-line-number="17">getArgs <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb1-18" data-line-number="18">  args <span class="ot">&lt;-</span> getRecord <span class="st">&quot;Your app name here.&quot;</span></a>
-<a class="sourceLine" id="cb1-19" data-line-number="19">  pure (<span class="ot">args ::</span> <span class="dt">Arguments</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="ot">{-# LANGUAGE DeriveGeneric #-}</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="ot">{-# LANGUAGE DataKinds #-}</span></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="ot">{-# LANGUAGE TypeOperators #-}</span></a>
+<a class="sourceLine" id="cb1-6" title="6"></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="kw">data</span> <span class="dt">Arguments</span> <span class="fu">=</span> <span class="dt">Arguments</span> {<span class="ot">train ::</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Path to training data&quot;</span></a>
+<a class="sourceLine" id="cb1-8" title="8">                           ,<span class="ot">input ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Input file to categorise. If missing stdin will be used&quot;</span></a>
+<a class="sourceLine" id="cb1-9" title="9">                           ,<span class="ot">parser ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser type, defaults to lines. Options are lines/detail/csv&quot;</span></a>
+<a class="sourceLine" id="cb1-10" title="10">                           ,<span class="ot">popts ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Parser options&quot;</span></a>
+<a class="sourceLine" id="cb1-11" title="11">                           ,<span class="ot">clean ::</span> <span class="dt">Maybe</span> <span class="dt">Text</span> <span class="fu">&lt;?&gt;</span> <span class="st">&quot;Options name of text cleaner - see docs&quot;</span></a>
+<a class="sourceLine" id="cb1-12" title="12">                           } <span class="kw">deriving</span> (<span class="dt">Generic</span>, <span class="dt">Show</span>)</a>
+<a class="sourceLine" id="cb1-13" title="13"></a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="kw">instance</span> <span class="dt">ParseRecord</span> <span class="dt">Arguments</span></a>
+<a class="sourceLine" id="cb1-15" title="15"></a>
+<a class="sourceLine" id="cb1-16" title="16"><span class="ot">getArgs ::</span> <span class="dt">IO</span> <span class="dt">Arguments</span></a>
+<a class="sourceLine" id="cb1-17" title="17">getArgs <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-18" title="18">  args <span class="ot">&lt;-</span> getRecord <span class="st">&quot;Your app name here.&quot;</span></a>
+<a class="sourceLine" id="cb1-19" title="19">  <span class="fu">pure</span> (<span class="ot">args ::</span> <span class="dt">Arguments</span>)</a></code></pre></div>
 <p>The <code>&lt;?&gt;</code> operator here lets you specify help text for each argument. Running your app with –help will print the help message using this text</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode email"><code class="sourceCode email"><a class="sourceLine" id="cb2-1" data-line-number="1">  Usage: appName --train STRING [--input STRING] [--parser TEXT] [--popts TEXT]</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">                [--clean TEXT]</a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">  </a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">  Available options:</a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">    -h,--help                Show this help text</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">    --train TEXT             Path to training data</a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">    --input TEXT             Input file to categorise. If missing stdin will be</a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">                             used</a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">    --parser TEXT            Parser type, defaults to lines. Options are</a>
-<a class="sourceLine" id="cb2-10" data-line-number="10">                             lines/detail/csv</a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">    --popts TEXT             Parser options</a>
-<a class="sourceLine" id="cb2-12" data-line-number="12">    --clean TEXT             Options name of text cleaner - see docs</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode email"><code class="sourceCode email"><a class="sourceLine" id="cb2-1" title="1">  Usage: appName --train STRING [--input STRING] [--parser TEXT] [--popts TEXT]</a>
+<a class="sourceLine" id="cb2-2" title="2">                [--clean TEXT]</a>
+<a class="sourceLine" id="cb2-3" title="3">  </a>
+<a class="sourceLine" id="cb2-4" title="4">  Available options:</a>
+<a class="sourceLine" id="cb2-5" title="5">    -h,--help                Show this help text</a>
+<a class="sourceLine" id="cb2-6" title="6">    --train TEXT             Path to training data</a>
+<a class="sourceLine" id="cb2-7" title="7">    --input TEXT             Input file to categorise. If missing stdin will be</a>
+<a class="sourceLine" id="cb2-8" title="8">                             used</a>
+<a class="sourceLine" id="cb2-9" title="9">    --parser TEXT            Parser type, defaults to lines. Options are</a>
+<a class="sourceLine" id="cb2-10" title="10">                             lines/detail/csv</a>
+<a class="sourceLine" id="cb2-11" title="11">    --popts TEXT             Parser options</a>
+<a class="sourceLine" id="cb2-12" title="12">    --clean TEXT             Options name of text cleaner - see docs</a></code></pre></div>
 <h2 id="input-from-stdin-or-a-file">Input from stdin or a file</h2>
 <p>It is often useful to allow terminal apps to get their input data either from an input file or have it piped to the app (stdin). <code>System.IO</code> defines a set of functions for reading and writing IO that all take an explicit handle. For example hGetLine</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">hGetLine ::</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">hGetLine ::</span> <span class="dt">Handle</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">String</span></a></code></pre></div>
 <p>System.IO also defines the stdin, stdout and stderr standard IO handles.</p>
 <p>This means that you can pass either stdin or a file handle to hGetLine and it will work the same.</p>
 <p>In the example arguments above I’ve allowed the user to specify an input file by using the –input option. If that is missing stdin is used.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1">handle <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">            <span class="dt">Just</span> t <span class="ot">-&gt;</span> </a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">              openFile (Txt.unpack t) <span class="dt">ReadMode</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">            <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">               pure stdin</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1">handle <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-2" title="2">            <span class="dt">Just</span> t <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb4-3" title="3">              openFile (Txt.unpack t) <span class="dt">ReadMode</span></a>
+<a class="sourceLine" id="cb4-4" title="4">            <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb4-5" title="5">               <span class="fu">pure</span> stdin</a></code></pre></div>
 <p>Notice that <code>unHelpful</code> is called to get the value from a record field with a description</p>
 <p>While you could use the parsed data directly I chose to rather create another record populated from the parsed command line arguments. This allows me to have names tailored for command line in one record and for my code in another. In this interpreted record I also store the handle to use for input</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">getOptions <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">  args <span class="ot">&lt;-</span> getRecord <span class="st">&quot;Your app name here.&quot;</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">  hin_ <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">             <span class="dt">Just</span> t <span class="ot">-&gt;</span> </a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">               openFile (Txt.unpack t) <span class="dt">ReadMode</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">             <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">                pure stdin</a>
-<a class="sourceLine" id="cb5-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">  pure <span class="dt">Options</span> {trainingPath <span class="fu">=</span> unHelpful (train args)</a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">               ,parserType <span class="fu">=</span> fromMaybe <span class="st">&quot;lines&quot;</span> <span class="fu">$</span> unHelpful (parser args)</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">               ,parserOptions <span class="fu">=</span> unHelpful (popts args)</a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">               ,hout <span class="fu">=</span> stdout</a>
-<a class="sourceLine" id="cb5-14" data-line-number="14">               ,hin <span class="fu">=</span> hin_</a>
-<a class="sourceLine" id="cb5-15" data-line-number="15">               }</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="ot">getOptions ::</span> <span class="dt">IO</span> <span class="dt">Options</span></a>
+<a class="sourceLine" id="cb5-2" title="2">getOptions <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-3" title="3">  args <span class="ot">&lt;-</span> getRecord <span class="st">&quot;Your app name here.&quot;</span></a>
+<a class="sourceLine" id="cb5-4" title="4">  hin_ <span class="ot">&lt;-</span> <span class="kw">case</span> unHelpful <span class="fu">$</span> input args <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-5" title="5">             <span class="dt">Just</span> t <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb5-6" title="6">               openFile (Txt.unpack t) <span class="dt">ReadMode</span></a>
+<a class="sourceLine" id="cb5-7" title="7">             <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb5-8" title="8">                <span class="fu">pure</span> stdin</a>
+<a class="sourceLine" id="cb5-9" title="9"></a>
+<a class="sourceLine" id="cb5-10" title="10">  <span class="fu">pure</span> <span class="dt">Options</span> {trainingPath <span class="fu">=</span> unHelpful (train args)</a>
+<a class="sourceLine" id="cb5-11" title="11">               ,parserType <span class="fu">=</span> fromMaybe <span class="st">&quot;lines&quot;</span> <span class="fu">$</span> unHelpful (parser args)</a>
+<a class="sourceLine" id="cb5-12" title="12">               ,parserOptions <span class="fu">=</span> unHelpful (popts args)</a>
+<a class="sourceLine" id="cb5-13" title="13">               ,hout <span class="fu">=</span> stdout</a>
+<a class="sourceLine" id="cb5-14" title="14">               ,hin <span class="fu">=</span> hin_</a>
+<a class="sourceLine" id="cb5-15" title="15">               }</a></code></pre></div>
 <h2 id="processing-a-line-at-a-time">Processing a line at a time</h2>
 <p>It is often desirable to allow terminal applications to process and respond to a single line of data at a time (e.g. sed). There are several ways to do this in haskell. One of the simplest it to use <code>whileM_</code> and check for EOF.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">import</span> <span class="dt">System.IO</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="co">--where inputH is the input handle stdin or a file as above</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">hSetBuffering inputH <span class="dt">LineBuffering</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">whileM_ (not <span class="fu">&lt;$&gt;</span> hIsEOF inputH) <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">  line <span class="ot">&lt;-</span> hGetLine inputH</a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">  <span class="co">--</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">import</span> <span class="dt">System.IO</span></a>
+<a class="sourceLine" id="cb6-2" title="2"></a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="co">--where inputH is the input handle stdin or a file as above</span></a>
+<a class="sourceLine" id="cb6-4" title="4">hSetBuffering inputH <span class="dt">LineBuffering</span></a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6">whileM_ (<span class="fu">not</span> <span class="fu">&lt;$&gt;</span> hIsEOF inputH) <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-7" title="7">  line <span class="ot">&lt;-</span> hGetLine inputH</a>
+<a class="sourceLine" id="cb6-8" title="8">  <span class="co">--</span></a></code></pre></div>
 <h2 id="using-another-terminal-app-for-processing">Using another terminal app for processing</h2>
 <p>Using an existing terminal application is a quick way to leverage existing functionality. For example you may want to use sed to manipulate some text. This is fairly strait-forward in haskell.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw">import</span> <span class="dt">System.IO</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="kw">import</span> <span class="dt">System.Process</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">(<span class="dt">Just</span> inp, <span class="dt">Just</span> outp, _, phandle) <span class="ot">&lt;-</span> createProcess (proc <span class="st">&quot;command_name_here&quot;</span> []) { std_out <span class="fu">=</span> <span class="dt">CreatePipe</span>, std_in <span class="fu">=</span> <span class="dt">CreatePipe</span> }</a>
-<a class="sourceLine" id="cb7-5" data-line-number="5">hSetBuffering outp <span class="dt">NoBuffering</span></a>
-<a class="sourceLine" id="cb7-6" data-line-number="6">hSetBuffering inp <span class="dt">LineBuffering</span></a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">import</span> <span class="dt">System.IO</span></a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="kw">import</span> <span class="dt">System.Process</span></a>
+<a class="sourceLine" id="cb7-3" title="3"></a>
+<a class="sourceLine" id="cb7-4" title="4">(<span class="dt">Just</span> inp, <span class="dt">Just</span> outp, _, phandle) <span class="ot">&lt;-</span> createProcess (proc <span class="st">&quot;command_name_here&quot;</span> []) { std_out <span class="fu">=</span> <span class="dt">CreatePipe</span>, std_in <span class="fu">=</span> <span class="dt">CreatePipe</span> }</a>
+<a class="sourceLine" id="cb7-5" title="5">hSetBuffering outp <span class="dt">NoBuffering</span></a>
+<a class="sourceLine" id="cb7-6" title="6">hSetBuffering inp <span class="dt">LineBuffering</span></a></code></pre></div>
 <p>You now have and an input (inp) and output (outp) handle for the application. If the application supports line at a time input from stdin you can simply write your data and read the result back. Alternatively you may need to write the entire contents and wait for a result.</p>
 <p>See <a href="2016-09-21-haskell-tfidf">part two</a> to see these techniques in use in a text classification application</p>
 <h1 id="links">Links</h1>

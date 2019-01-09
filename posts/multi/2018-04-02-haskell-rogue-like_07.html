@@ -34,32 +34,32 @@
 <h2 id="world-size">World size</h2>
 <p>The code supports an infinite world, but it often makes sense to have a limit e.g. for a level with a small map. <em>cfgMinMaxBounds</em> constrains the world size (in world coordinates). The values are interpreted as <code>(minX, maxX, minY, maxY)</code></p>
 <h6 id="collisionssrcgamecore.hs-46-to-48">07_collisions/src/GameCore.hs (46 to 48)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">data</span> <span class="dt">Config</span> <span class="fu">=</span> <span class="dt">Config</span> {<span class="ot"> _cfgKeys ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">                     ,<span class="ot"> _cfgMinMaxBounds ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>) <span class="co">-- (minX, maxX, minY, maxY)</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3">                    }</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">data</span> <span class="dt">Config</span> <span class="fu">=</span> <span class="dt">Config</span> {<span class="ot"> _cfgKeys ::</span> <span class="fu">!</span>(<span class="dt">Map</span> <span class="dt">Text</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb1-2" title="2">                     ,<span class="ot"> _cfgMinMaxBounds ::</span> <span class="fu">!</span>(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>) <span class="co">-- (minX, maxX, minY, maxY)</span></a>
+<a class="sourceLine" id="cb1-3" title="3">                    }</a></code></pre></div>
 <h6 id="collisionssrcgameengine.hs-115-to-115">07_collisions/src/GameEngine.hs (115 to 115)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  , _cfgMinMaxBounds <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">30</span>, <span class="fu">-</span><span class="dv">30</span>, <span class="dv">0</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1">  , _cfgMinMaxBounds <span class="fu">=</span> (<span class="dv">0</span>, <span class="dv">30</span>, <span class="fu">-</span><span class="dv">30</span>, <span class="dv">0</span>)</a></code></pre></div>
 <h2 id="unacceptable-moves">Unacceptable moves</h2>
 <p><em>runAction</em> is changed from simply applying the move (the delta x &amp; y) to calling <em>tryMoveActor</em> which does collision detection.</p>
 <h6 id="collisionssrcgameengine.hs-330-to-334">07_collisions/src/GameEngine.hs (330 to 334)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">runAction ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">RogueAction</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">runAction world action <span class="fu">=</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="kw">case</span> action <span class="kw">of</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">    <span class="dt">ActMovePlayer</span> move  <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">      fromMaybe world <span class="fu">$</span> tryMoveActor world (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor) move</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">runAction ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">RogueAction</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb3-2" title="2">runAction world action <span class="fu">=</span></a>
+<a class="sourceLine" id="cb3-3" title="3">  <span class="kw">case</span> action <span class="kw">of</span></a>
+<a class="sourceLine" id="cb3-4" title="4">    <span class="dt">ActMovePlayer</span> move  <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb3-5" title="5">      fromMaybe world <span class="fu">$</span> tryMoveActor world (world <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor) move</a></code></pre></div>
 <p><em>tryMoveActor</em> is defined as</p>
 <h6 id="collisionssrcgameengine.hs-339-to-339">07_collisions/src/GameEngine.hs (339 to 339)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">tryMoveActor ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">World</span></a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">tryMoveActor ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">World</span></a></code></pre></div>
 <p><em>tryMoveActor</em> returns a <em>Maybe World</em>. If the move is not accepted it returns <em>Nothing</em>. <em>runAction</em> uses <em>fromMaybe</em> to return the current world if it gets a <em>Nothing</em>. I.e. nothing changes, unless a <em>Just World</em> is returned.</p>
 <h2 id="working-with-any-actor">Working with any actor</h2>
 <p>There is already a function to get all actors (normal actors and the player’s actor). Let’s add a function that can update (replace) any actor.</p>
 <h6 id="collisionssrcgameengine.hs-388-to-393">07_collisions/src/GameEngine.hs (388 to 393)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="co">-- | Update either the player's actor, or one of the world actors</span></a>
-<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="ot">updateActor ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">updateActor w actor <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">  <span class="kw">if</span> w <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor <span class="fu">^.</span> acId <span class="fu">==</span> (actor <span class="fu">^.</span> acId)</a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">  <span class="kw">then</span> w <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor) <span class="fu">.~</span> actor                         <span class="co">-- update the player's actor</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">  <span class="kw">else</span> w <span class="fu">&amp;</span> wdActors <span class="fu">%~</span> Map.adjust (const actor) (actor <span class="fu">^.</span> acId)  <span class="co">-- update other actor, nop if aid not found</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="co">-- | Update either the player's actor, or one of the world actors</span></a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="ot">updateActor ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb5-3" title="3">updateActor w actor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-4" title="4">  <span class="kw">if</span> w <span class="fu">^.</span> wdPlayer <span class="fu">^.</span> plActor <span class="fu">^.</span> acId <span class="fu">==</span> (actor <span class="fu">^.</span> acId)</a>
+<a class="sourceLine" id="cb5-5" title="5">  <span class="kw">then</span> w <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor) <span class="fu">.~</span> actor                         <span class="co">-- update the player's actor</span></a>
+<a class="sourceLine" id="cb5-6" title="6">  <span class="kw">else</span> w <span class="fu">&amp;</span> wdActors <span class="fu">%~</span> Map.adjust (<span class="fu">const</span> actor) (actor <span class="fu">^.</span> acId)  <span class="co">-- update other actor, nop if aid not found</span></a></code></pre></div>
 <ul>
 <li>Check if the actor’s id matches the player’s actors’ id.</li>
 <li>If it is update the player’s actor.</li>
@@ -67,74 +67,74 @@
 </ul>
 <h2 id="collisions-1">Collisions</h2>
 <h6 id="collisionssrcgameengine.hs-340-to-376">07_collisions/src/GameEngine.hs (340 to 376)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">tryMoveActor ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">tryMoveActor world actor (dx, dy) <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">let</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="co">-- Get the world bounds</span></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">    (minX, maxX, minY, maxY) <span class="fu">=</span> world <span class="fu">^.</span> wdConfig <span class="fu">^.</span> cfgMinMaxBounds</a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">    <span class="co">-- Actor's position</span></a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">    (<span class="dt">WorldPos</span> wdPos) <span class="fu">=</span> actor <span class="fu">^.</span> acWorldPos </a>
-<a class="sourceLine" id="cb6-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">    <span class="co">-- Where the actor whats to move to, using bimap :: (a -&gt; b) -&gt; (c -&gt; d) -&gt; (a, c) -&gt; (b, d)</span></a>
-<a class="sourceLine" id="cb6-11" data-line-number="11">    tryWorldTo<span class="fu">@</span>(tx, ty) <span class="fu">=</span> bimap (<span class="fu">+</span> dx) (<span class="fu">+</span> dy) wdPos </a>
-<a class="sourceLine" id="cb6-12" data-line-number="12">    tryWorldTo' <span class="fu">=</span> <span class="dt">WorldPos</span> tryWorldTo </a>
-<a class="sourceLine" id="cb6-13" data-line-number="13">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb6-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb6-15" data-line-number="15">  <span class="co">-- Is the actor trying to move out of the world?</span></a>
-<a class="sourceLine" id="cb6-16" data-line-number="16">  <span class="kw">if</span> tx <span class="fu">&lt;</span> minX <span class="fu">||</span> ty <span class="fu">&lt;</span> minY <span class="fu">||</span> tx <span class="fu">&gt;=</span> maxX <span class="fu">||</span> ty <span class="fu">&gt;=</span> maxY</a>
-<a class="sourceLine" id="cb6-17" data-line-number="17">  <span class="kw">then</span> <span class="dt">Nothing</span></a>
-<a class="sourceLine" id="cb6-18" data-line-number="18">  <span class="kw">else</span></a>
-<a class="sourceLine" id="cb6-19" data-line-number="19">    <span class="kw">let</span></a>
-<a class="sourceLine" id="cb6-20" data-line-number="20">      <span class="co">-- Entity at destination</span></a>
-<a class="sourceLine" id="cb6-21" data-line-number="21">      destEntity <span class="fu">=</span> (world <span class="fu">^.</span> wdMap <span class="fu">^.</span>at tryWorldTo') </a>
-<a class="sourceLine" id="cb6-22" data-line-number="22">      destEntityType <span class="fu">=</span> _enType <span class="fu">&lt;$&gt;</span> destEntity</a>
-<a class="sourceLine" id="cb6-23" data-line-number="23">      <span class="co">-- Actors at destination</span></a>
-<a class="sourceLine" id="cb6-24" data-line-number="24">      destActors <span class="fu">=</span> filter (\a <span class="ot">-&gt;</span> a <span class="fu">^.</span> acWorldPos <span class="fu">==</span> tryWorldTo') (getAllActors world)</a>
-<a class="sourceLine" id="cb6-25" data-line-number="25">      <span class="co">-- Is the move allowed</span></a>
-<a class="sourceLine" id="cb6-26" data-line-number="26">      canMove <span class="fu">=</span> <span class="kw">case</span> (destActors, destEntityType) <span class="kw">of</span></a>
-<a class="sourceLine" id="cb6-27" data-line-number="27">                  ([], <span class="dt">Just</span> <span class="dt">E.Blank</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
-<a class="sourceLine" id="cb6-28" data-line-number="28">                  ([], <span class="dt">Just</span> <span class="dt">E.Door</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
-<a class="sourceLine" id="cb6-29" data-line-number="29">                  ([], <span class="dt">Nothing</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
-<a class="sourceLine" id="cb6-30" data-line-number="30">                  _ <span class="ot">-&gt;</span> <span class="dt">False</span></a>
-<a class="sourceLine" id="cb6-31" data-line-number="31">      <span class="kw">in</span></a>
-<a class="sourceLine" id="cb6-32" data-line-number="32">      <span class="kw">if</span> canMove</a>
-<a class="sourceLine" id="cb6-33" data-line-number="33">      <span class="kw">then</span></a>
-<a class="sourceLine" id="cb6-34" data-line-number="34">        <span class="kw">let</span> movedActor <span class="fu">=</span> actor <span class="fu">&amp;</span> acWorldPos <span class="fu">.~</span> tryWorldTo' <span class="kw">in</span></a>
-<a class="sourceLine" id="cb6-35" data-line-number="35">        <span class="dt">Just</span> <span class="fu">$</span> updateActor world movedActor</a>
-<a class="sourceLine" id="cb6-36" data-line-number="36">      <span class="kw">else</span></a>
-<a class="sourceLine" id="cb6-37" data-line-number="37">        <span class="dt">Nothing</span></a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">tryMoveActor ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> (<span class="dt">Int</span>, <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb6-2" title="2">tryMoveActor world actor (dx, dy) <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" title="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb6-4" title="4">    <span class="co">-- Get the world bounds</span></a>
+<a class="sourceLine" id="cb6-5" title="5">    (minX, maxX, minY, maxY) <span class="fu">=</span> world <span class="fu">^.</span> wdConfig <span class="fu">^.</span> cfgMinMaxBounds</a>
+<a class="sourceLine" id="cb6-6" title="6"></a>
+<a class="sourceLine" id="cb6-7" title="7">    <span class="co">-- Actor's position</span></a>
+<a class="sourceLine" id="cb6-8" title="8">    (<span class="dt">WorldPos</span> wdPos) <span class="fu">=</span> actor <span class="fu">^.</span> acWorldPos </a>
+<a class="sourceLine" id="cb6-9" title="9"></a>
+<a class="sourceLine" id="cb6-10" title="10">    <span class="co">-- Where the actor whats to move to, using bimap :: (a -&gt; b) -&gt; (c -&gt; d) -&gt; (a, c) -&gt; (b, d)</span></a>
+<a class="sourceLine" id="cb6-11" title="11">    tryWorldTo<span class="fu">@</span>(tx, ty) <span class="fu">=</span> bimap (<span class="fu">+</span> dx) (<span class="fu">+</span> dy) wdPos </a>
+<a class="sourceLine" id="cb6-12" title="12">    tryWorldTo' <span class="fu">=</span> <span class="dt">WorldPos</span> tryWorldTo </a>
+<a class="sourceLine" id="cb6-13" title="13">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-14" title="14"></a>
+<a class="sourceLine" id="cb6-15" title="15">  <span class="co">-- Is the actor trying to move out of the world?</span></a>
+<a class="sourceLine" id="cb6-16" title="16">  <span class="kw">if</span> tx <span class="fu">&lt;</span> minX <span class="fu">||</span> ty <span class="fu">&lt;</span> minY <span class="fu">||</span> tx <span class="fu">&gt;=</span> maxX <span class="fu">||</span> ty <span class="fu">&gt;=</span> maxY</a>
+<a class="sourceLine" id="cb6-17" title="17">  <span class="kw">then</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb6-18" title="18">  <span class="kw">else</span></a>
+<a class="sourceLine" id="cb6-19" title="19">    <span class="kw">let</span></a>
+<a class="sourceLine" id="cb6-20" title="20">      <span class="co">-- Entity at destination</span></a>
+<a class="sourceLine" id="cb6-21" title="21">      destEntity <span class="fu">=</span> (world <span class="fu">^.</span> wdMap <span class="fu">^.</span>at tryWorldTo') </a>
+<a class="sourceLine" id="cb6-22" title="22">      destEntityType <span class="fu">=</span> _enType <span class="fu">&lt;$&gt;</span> destEntity</a>
+<a class="sourceLine" id="cb6-23" title="23">      <span class="co">-- Actors at destination</span></a>
+<a class="sourceLine" id="cb6-24" title="24">      destActors <span class="fu">=</span> <span class="fu">filter</span> (\a <span class="ot">-&gt;</span> a <span class="fu">^.</span> acWorldPos <span class="fu">==</span> tryWorldTo') (getAllActors world)</a>
+<a class="sourceLine" id="cb6-25" title="25">      <span class="co">-- Is the move allowed</span></a>
+<a class="sourceLine" id="cb6-26" title="26">      canMove <span class="fu">=</span> <span class="kw">case</span> (destActors, destEntityType) <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-27" title="27">                  ([], <span class="dt">Just</span> <span class="dt">E.Blank</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb6-28" title="28">                  ([], <span class="dt">Just</span> <span class="dt">E.Door</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb6-29" title="29">                  ([], <span class="dt">Nothing</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb6-30" title="30">                  _ <span class="ot">-&gt;</span> <span class="dt">False</span></a>
+<a class="sourceLine" id="cb6-31" title="31">      <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-32" title="32">      <span class="kw">if</span> canMove</a>
+<a class="sourceLine" id="cb6-33" title="33">      <span class="kw">then</span></a>
+<a class="sourceLine" id="cb6-34" title="34">        <span class="kw">let</span> movedActor <span class="fu">=</span> actor <span class="fu">&amp;</span> acWorldPos <span class="fu">.~</span> tryWorldTo' <span class="kw">in</span></a>
+<a class="sourceLine" id="cb6-35" title="35">        <span class="dt">Just</span> <span class="fu">$</span> updateActor world movedActor</a>
+<a class="sourceLine" id="cb6-36" title="36">      <span class="kw">else</span></a>
+<a class="sourceLine" id="cb6-37" title="37">        <span class="dt">Nothing</span></a></code></pre></div>
 <p><em>tryWorldTo</em> is the position the actor is trying to move to. It is created by applying the delta (x, y) to the actors current position using <em>bimap</em>, which can apply a function to both parts of the (x, y) tuple.</p>
 <h6 id="collisionssrcgameengine.hs-351-to-352">07_collisions/src/GameEngine.hs (351 to 352)</h6>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1">  <span class="co">-- Where the actor whats to move to, using bimap :: (a -&gt; b) -&gt; (c -&gt; d) -&gt; (a, c) -&gt; (b, d)</span></a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">  tryWorldTo<span class="fu">@</span>(tx, ty) <span class="fu">=</span> bimap (<span class="fu">+</span> dx) (<span class="fu">+</span> dy) wdPos </a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1">  <span class="co">-- Where the actor whats to move to, using bimap :: (a -&gt; b) -&gt; (c -&gt; d) -&gt; (a, c) -&gt; (b, d)</span></a>
+<a class="sourceLine" id="cb7-2" title="2">  tryWorldTo<span class="fu">@</span>(tx, ty) <span class="fu">=</span> bimap (<span class="fu">+</span> dx) (<span class="fu">+</span> dy) wdPos </a></code></pre></div>
 <p>check if the player is trying to move out of the world</p>
 <h6 id="collisionssrcgameengine.hs-358-to-361">07_collisions/src/GameEngine.hs (358 to 361)</h6>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1">  <span class="co">-- Is the actor trying to move out of the world?</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">  <span class="kw">if</span> tx <span class="fu">&lt;</span> minX <span class="fu">||</span> ty <span class="fu">&lt;</span> minY <span class="fu">||</span> tx <span class="fu">&gt;=</span> maxX <span class="fu">||</span> ty <span class="fu">&gt;=</span> maxY</a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="kw">then</span> <span class="dt">Nothing</span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">  <span class="kw">else</span></a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1">  <span class="co">-- Is the actor trying to move out of the world?</span></a>
+<a class="sourceLine" id="cb8-2" title="2">  <span class="kw">if</span> tx <span class="fu">&lt;</span> minX <span class="fu">||</span> ty <span class="fu">&lt;</span> minY <span class="fu">||</span> tx <span class="fu">&gt;=</span> maxX <span class="fu">||</span> ty <span class="fu">&gt;=</span> maxY</a>
+<a class="sourceLine" id="cb8-3" title="3">  <span class="kw">then</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb8-4" title="4">  <span class="kw">else</span></a></code></pre></div>
 <p>then we check for collisions</p>
 <h6 id="collisionssrcgameengine.hs-364-to-382">07_collisions/src/GameEngine.hs (364 to 382)</h6>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1">  <span class="kw">let</span></a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">    <span class="co">-- Entity at destination</span></a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">    destEntity <span class="fu">=</span> (world <span class="fu">^.</span> wdMap <span class="fu">^.</span>at tryWorldTo') </a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">    destEntityType <span class="fu">=</span> _enType <span class="fu">&lt;$&gt;</span> destEntity</a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">    <span class="co">-- Actors at destination</span></a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">    destActors <span class="fu">=</span> filter (\a <span class="ot">-&gt;</span> a <span class="fu">^.</span> acWorldPos <span class="fu">==</span> tryWorldTo') (getAllActors world)</a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">    <span class="co">-- Is the move allowed</span></a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">    canMove <span class="fu">=</span> <span class="kw">case</span> (destActors, destEntityType) <span class="kw">of</span></a>
-<a class="sourceLine" id="cb9-9" data-line-number="9">                ([], <span class="dt">Just</span> <span class="dt">E.Blank</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">                ([], <span class="dt">Just</span> <span class="dt">E.Door</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
-<a class="sourceLine" id="cb9-11" data-line-number="11">                ([], <span class="dt">Nothing</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
-<a class="sourceLine" id="cb9-12" data-line-number="12">                _ <span class="ot">-&gt;</span> <span class="dt">False</span></a>
-<a class="sourceLine" id="cb9-13" data-line-number="13">    <span class="kw">in</span></a>
-<a class="sourceLine" id="cb9-14" data-line-number="14">    <span class="kw">if</span> canMove</a>
-<a class="sourceLine" id="cb9-15" data-line-number="15">    <span class="kw">then</span></a>
-<a class="sourceLine" id="cb9-16" data-line-number="16">      <span class="kw">let</span> movedActor <span class="fu">=</span> actor <span class="fu">&amp;</span> acWorldPos <span class="fu">.~</span> tryWorldTo' <span class="kw">in</span></a>
-<a class="sourceLine" id="cb9-17" data-line-number="17">      <span class="dt">Just</span> <span class="fu">$</span> updateActor world movedActor</a>
-<a class="sourceLine" id="cb9-18" data-line-number="18">    <span class="kw">else</span></a>
-<a class="sourceLine" id="cb9-19" data-line-number="19">      <span class="dt">Nothing</span></a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb9-2" title="2">    <span class="co">-- Entity at destination</span></a>
+<a class="sourceLine" id="cb9-3" title="3">    destEntity <span class="fu">=</span> (world <span class="fu">^.</span> wdMap <span class="fu">^.</span>at tryWorldTo') </a>
+<a class="sourceLine" id="cb9-4" title="4">    destEntityType <span class="fu">=</span> _enType <span class="fu">&lt;$&gt;</span> destEntity</a>
+<a class="sourceLine" id="cb9-5" title="5">    <span class="co">-- Actors at destination</span></a>
+<a class="sourceLine" id="cb9-6" title="6">    destActors <span class="fu">=</span> <span class="fu">filter</span> (\a <span class="ot">-&gt;</span> a <span class="fu">^.</span> acWorldPos <span class="fu">==</span> tryWorldTo') (getAllActors world)</a>
+<a class="sourceLine" id="cb9-7" title="7">    <span class="co">-- Is the move allowed</span></a>
+<a class="sourceLine" id="cb9-8" title="8">    canMove <span class="fu">=</span> <span class="kw">case</span> (destActors, destEntityType) <span class="kw">of</span></a>
+<a class="sourceLine" id="cb9-9" title="9">                ([], <span class="dt">Just</span> <span class="dt">E.Blank</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb9-10" title="10">                ([], <span class="dt">Just</span> <span class="dt">E.Door</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb9-11" title="11">                ([], <span class="dt">Nothing</span>) <span class="ot">-&gt;</span> <span class="dt">True</span></a>
+<a class="sourceLine" id="cb9-12" title="12">                _ <span class="ot">-&gt;</span> <span class="dt">False</span></a>
+<a class="sourceLine" id="cb9-13" title="13">    <span class="kw">in</span></a>
+<a class="sourceLine" id="cb9-14" title="14">    <span class="kw">if</span> canMove</a>
+<a class="sourceLine" id="cb9-15" title="15">    <span class="kw">then</span></a>
+<a class="sourceLine" id="cb9-16" title="16">      <span class="kw">let</span> movedActor <span class="fu">=</span> actor <span class="fu">&amp;</span> acWorldPos <span class="fu">.~</span> tryWorldTo' <span class="kw">in</span></a>
+<a class="sourceLine" id="cb9-17" title="17">      <span class="dt">Just</span> <span class="fu">$</span> updateActor world movedActor</a>
+<a class="sourceLine" id="cb9-18" title="18">    <span class="kw">else</span></a>
+<a class="sourceLine" id="cb9-19" title="19">      <span class="dt">Nothing</span></a></code></pre></div>
 <ul>
 <li>Get all actors and entities at the destination</li>
 <li>Decide if the move is allowed. Here we are allowing any actor to move only over blank tiles, open doors and empty cells.</li>

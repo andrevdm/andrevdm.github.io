@@ -36,141 +36,141 @@
 <p>Skip this chapter if you do not need the annotations or are not comfortable with the writer monad.</p>
 <h1 id="annotations">Annotations</h1>
 <h2 id="writer">Writer</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">import</span> <span class="dt">Data.DList</span> (<span class="dt">DList</span>)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">import</span> <span class="dt">Control.Monad.Writer.Strict</span> (<span class="dt">Writer</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">import</span> <span class="dt">Data.DList</span> (<span class="dt">DList</span>)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">import</span> <span class="dt">Control.Monad.Writer.Strict</span> (<span class="dt">Writer</span>)</a></code></pre></div>
 <p>I’m using a strict writer to try avoid space leak issues, and <a href="https://hackage.haskell.org/package/dlist">Data.DList</a> which provides O(1) appending.</p>
 <h2 id="annotation-entries">Annotation entries</h2>
 <p>Lets use a sum type to define the type of annotations we will be adding</p>
 <h6 id="utility_annotatesrcgamecore.hs-127-to-132">14_utility_annotate/src/GameCore.hs (127 to 132)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">data</span> <span class="dt">UtilAnnotationEntry</span> <span class="fu">=</span> <span class="dt">UeAt</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">                         <span class="fu">|</span> <span class="dt">UeSelectTopNone</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">                         <span class="fu">|</span> <span class="dt">UeSelectTopAbove</span> <span class="dt">Float</span> </a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">                         <span class="fu">|</span> <span class="dt">UeSelectTopOne</span> <span class="dt">Float</span> <span class="dt">Text</span> <span class="dt">Impulse</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">                         <span class="fu">|</span> <span class="dt">UeNote</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">                         <span class="kw">deriving</span> (<span class="dt">Show</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">data</span> <span class="dt">UtilAnnotationEntry</span> <span class="fu">=</span> <span class="dt">UeAt</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-2" title="2">                         <span class="fu">|</span> <span class="dt">UeSelectTopNone</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-3" title="3">                         <span class="fu">|</span> <span class="dt">UeSelectTopAbove</span> <span class="dt">Float</span> </a>
+<a class="sourceLine" id="cb2-4" title="4">                         <span class="fu">|</span> <span class="dt">UeSelectTopOne</span> <span class="dt">Float</span> <span class="dt">Text</span> <span class="dt">Impulse</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-5" title="5">                         <span class="fu">|</span> <span class="dt">UeNote</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb2-6" title="6">                         <span class="kw">deriving</span> (<span class="dt">Show</span>)</a></code></pre></div>
 <p>This gives us the type of the annotator</p>
 <h6 id="utility_annotatesrcgamecore.hs-30-to-30">14_utility_annotate/src/GameCore.hs (30 to 30)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">type</span> <span class="dt">UtilAnnotator</span> m <span class="fu">=</span> <span class="dt">Writer</span> (<span class="dt">DList</span> <span class="dt">UtilAnnotationEntry</span>) m</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="kw">type</span> <span class="dt">UtilAnnotator</span> m <span class="fu">=</span> <span class="dt">Writer</span> (<span class="dt">DList</span> <span class="dt">UtilAnnotationEntry</span>) m</a></code></pre></div>
 <h2 id="storing-the-annotations">Storing the annotations</h2>
 <p>The actor’s utilities need to use the annotator.</p>
 <h6 id="utility_annotatesrcgamecore.hs-50-to-50">14_utility_annotate/src/GameCore.hs (50 to 50)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1">  ,<span class="ot"> _acUtilities ::</span> <span class="fu">!</span>[<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)]</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1">  ,<span class="ot"> _acUtilities ::</span> <span class="fu">!</span>[<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)]</a></code></pre></div>
 <p>The world gets a property in which the latest annotations can be stored. This way its possible to get the annotations and display them to the user (e.g. print to the console)</p>
 <h6 id="utility_annotatesrcgamecore.hs-72-to-72">14_utility_annotate/src/GameCore.hs (72 to 72)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1">  ,<span class="ot"> _wdUtilBrainAnnotations ::</span> <span class="fu">!</span>[(<span class="dt">E.EntityType</span>, [<span class="dt">UtilAnnotationEntry</span>], [<span class="dt">UtilAnnotationEntry</span>])]</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1">  ,<span class="ot"> _wdUtilBrainAnnotations ::</span> <span class="fu">!</span>[(<span class="dt">E.EntityType</span>, [<span class="dt">UtilAnnotationEntry</span>], [<span class="dt">UtilAnnotationEntry</span>])]</a></code></pre></div>
 <h2 id="annotations-in-the-utility-brain">Annotations in the utility brain</h2>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.DList</span> <span class="kw">as</span> <span class="dt">DLst</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="kw">import</span>           <span class="dt">Control.Monad.Writer.Strict</span> (tell, <span class="dt">MonadWriter</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.DList</span> <span class="kw">as</span> <span class="dt">DLst</span></a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="kw">import</span>           <span class="dt">Control.Monad.Writer.Strict</span> (tell, <span class="dt">MonadWriter</span>)</a></code></pre></div>
 <p><em>telld</em> is a helper that calls <em>Data.Monad.Writer.Strict.tell</em> with a single DList element.</p>
 <h6 id="utility_annotatesrcutilitybrain.hs-28-to-29">14_utility_annotate/src/UtilityBrain.hs (28 to 29)</h6>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">telld ::</span> <span class="dt">MonadWriter</span> (<span class="dt">DLst.DList</span> a) m <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">telld t <span class="fu">=</span> tell (DLst.singleton t)</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="ot">telld ::</span> <span class="dt">MonadWriter</span> (<span class="dt">DLst.DList</span> a) m <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb7-2" title="2">telld t <span class="fu">=</span> tell (DLst.singleton t)</a></code></pre></div>
 <p>The utility brain functions are then changed to return a <code>UtilAnnotator a</code> where <code>a</code> was whatever they were returning before. These changes are not terribly interesting so I’ll only show one of them. See the diff below to see the others</p>
 <h6 id="utility_annotatesrcutilitybrain.hs-151-to-162">14_utility_annotate/src/UtilityBrain.hs (151 to 162)</h6>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="ot">utilityOfInfatuation ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)</a>
-<a class="sourceLine" id="cb8-2" data-line-number="2">utilityOfInfatuation world actor allPaths <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">  telld <span class="fu">.</span> <span class="dt">UeAt</span> <span class="fu">$</span> <span class="st">&quot;Infatuation: &quot;</span> <span class="fu">&lt;&gt;</span> show (length allPaths) <span class="co">-- debugShowPathTos allPaths --show (actor ^. acDisposition ^. dsSmitten)</span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">  <span class="kw">let</span> rule x <span class="fu">=</span> clamp <span class="fu">$</span> <span class="fu">-</span>x <span class="fu">**</span> <span class="dv">4</span> <span class="fu">+</span> clamp (actor <span class="fu">^.</span> acDisposition <span class="fu">^.</span> dsSmitten) </a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">  <span class="kw">let</span> clampedResults <span class="fu">=</span> moveTowardsUtil (actor <span class="fu">^.</span> acDisposition <span class="fu">^.</span> dsSmittenWith) rule allPaths actor</a>
-<a class="sourceLine" id="cb8-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb8-8" data-line-number="8">  <span class="kw">let</span> (r, _) <span class="fu">=</span> ((\(p, score) <span class="ot">-&gt;</span> (score, actor, <span class="dt">ImpMoveTowards</span> (path p), <span class="st">&quot;infatuation&quot;</span>, <span class="dt">Just</span> p)) <span class="fu">&lt;$&gt;</span> clampedResults, world)</a>
-<a class="sourceLine" id="cb8-9" data-line-number="9">  <span class="kw">let</span> r2 <span class="fu">=</span> (\(f, _, _, _, _) <span class="ot">-&gt;</span> showF f) <span class="fu">&lt;$&gt;</span> r</a>
-<a class="sourceLine" id="cb8-10" data-line-number="10">  telld <span class="fu">.</span> <span class="dt">UeNote</span> <span class="fu">$</span> <span class="st">&quot;infatuation: &quot;</span> <span class="fu">&lt;&gt;</span> show r2</a>
-<a class="sourceLine" id="cb8-11" data-line-number="11">  </a>
-<a class="sourceLine" id="cb8-12" data-line-number="12">  pure ((\(p, score) <span class="ot">-&gt;</span> (score, actor, <span class="dt">ImpMoveTowards</span> (path p), <span class="st">&quot;infatuation&quot;</span>, <span class="dt">Just</span> p)) <span class="fu">&lt;$&gt;</span> clampedResults, world)</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="ot">utilityOfInfatuation ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb8-2" title="2">utilityOfInfatuation world actor allPaths <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb8-3" title="3">  telld <span class="fu">.</span> <span class="dt">UeAt</span> <span class="fu">$</span> <span class="st">&quot;Infatuation: &quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> (<span class="fu">length</span> allPaths) <span class="co">-- debugShowPathTos allPaths --show (actor ^. acDisposition ^. dsSmitten)</span></a>
+<a class="sourceLine" id="cb8-4" title="4"></a>
+<a class="sourceLine" id="cb8-5" title="5">  <span class="kw">let</span> rule x <span class="fu">=</span> clamp <span class="fu">$</span> <span class="fu">-</span>x <span class="fu">**</span> <span class="dv">4</span> <span class="fu">+</span> clamp (actor <span class="fu">^.</span> acDisposition <span class="fu">^.</span> dsSmitten) </a>
+<a class="sourceLine" id="cb8-6" title="6">  <span class="kw">let</span> clampedResults <span class="fu">=</span> moveTowardsUtil (actor <span class="fu">^.</span> acDisposition <span class="fu">^.</span> dsSmittenWith) rule allPaths actor</a>
+<a class="sourceLine" id="cb8-7" title="7"></a>
+<a class="sourceLine" id="cb8-8" title="8">  <span class="kw">let</span> (r, _) <span class="fu">=</span> ((\(p, score) <span class="ot">-&gt;</span> (score, actor, <span class="dt">ImpMoveTowards</span> (path p), <span class="st">&quot;infatuation&quot;</span>, <span class="dt">Just</span> p)) <span class="fu">&lt;$&gt;</span> clampedResults, world)</a>
+<a class="sourceLine" id="cb8-9" title="9">  <span class="kw">let</span> r2 <span class="fu">=</span> (\(f, _, _, _, _) <span class="ot">-&gt;</span> showF f) <span class="fu">&lt;$&gt;</span> r</a>
+<a class="sourceLine" id="cb8-10" title="10">  telld <span class="fu">.</span> <span class="dt">UeNote</span> <span class="fu">$</span> <span class="st">&quot;infatuation: &quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> r2</a>
+<a class="sourceLine" id="cb8-11" title="11">  </a>
+<a class="sourceLine" id="cb8-12" title="12">  <span class="fu">pure</span> ((\(p, score) <span class="ot">-&gt;</span> (score, actor, <span class="dt">ImpMoveTowards</span> (path p), <span class="st">&quot;infatuation&quot;</span>, <span class="dt">Just</span> p)) <span class="fu">&lt;$&gt;</span> clampedResults, world)</a></code></pre></div>
 <ul>
 <li>Add a <em>UeAt</em> annotation to show that infatuation was evaulated</li>
 <li>Add a <em>UeNote</em> annotation to show the calculated score</li>
 </ul>
 <p><em>assessUtilities</em> has to change from using <code>fold'</code> to <code>foldM</code> as we are now folding over the <em>Writer</em> monad results.</p>
 <h6 id="utility_annotatesrcutilitybrain.hs-72-to-82">14_utility_annotate/src/UtilityBrain.hs (72 to 82)</h6>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ot">assessUtilities ::</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)</a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">assessUtilities paths world actor <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">  (rs, wNext) <span class="ot">&lt;-</span> foldM assess ([], world) (actor <span class="fu">^.</span> acUtilities)</a>
-<a class="sourceLine" id="cb9-4" data-line-number="4">  ranked <span class="ot">&lt;-</span> rankUtility rs</a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">  pure (ranked, wNext)</a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">  </a>
-<a class="sourceLine" id="cb9-7" data-line-number="7">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb9-8" data-line-number="8">    assess (hist, w) u <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb9-9" data-line-number="9">      <span class="kw">let</span> a <span class="fu">=</span> fromMaybe actor <span class="fu">$</span> w <span class="fu">^.</span> wdActors <span class="fu">^.</span>at (actor <span class="fu">^.</span> acId) </a>
-<a class="sourceLine" id="cb9-10" data-line-number="10">      (rs, wNext) <span class="ot">&lt;-</span> u w a paths</a>
-<a class="sourceLine" id="cb9-11" data-line-number="11">      pure (hist <span class="fu">&lt;&gt;</span> rs, wNext)</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb9-1" title="1"><span class="ot">assessUtilities ::</span> [<span class="dt">PathTo</span>] <span class="ot">-&gt;</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">UtilAnnotator</span> ([(<span class="dt">Float</span>, <span class="dt">Actor</span>, <span class="dt">Impulse</span>, <span class="dt">Text</span>, <span class="dt">Maybe</span> <span class="dt">PathTo</span>)], <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb9-2" title="2">assessUtilities paths world actor <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-3" title="3">  (rs, wNext) <span class="ot">&lt;-</span> foldM assess ([], world) (actor <span class="fu">^.</span> acUtilities)</a>
+<a class="sourceLine" id="cb9-4" title="4">  ranked <span class="ot">&lt;-</span> rankUtility rs</a>
+<a class="sourceLine" id="cb9-5" title="5">  <span class="fu">pure</span> (ranked, wNext)</a>
+<a class="sourceLine" id="cb9-6" title="6">  </a>
+<a class="sourceLine" id="cb9-7" title="7">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb9-8" title="8">    assess (hist, w) u <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb9-9" title="9">      <span class="kw">let</span> a <span class="fu">=</span> fromMaybe actor <span class="fu">$</span> w <span class="fu">^.</span> wdActors <span class="fu">^.</span>at (actor <span class="fu">^.</span> acId) </a>
+<a class="sourceLine" id="cb9-10" title="10">      (rs, wNext) <span class="ot">&lt;-</span> u w a paths</a>
+<a class="sourceLine" id="cb9-11" title="11">      <span class="fu">pure</span> (hist <span class="fu">&lt;&gt;</span> rs, wNext)</a></code></pre></div>
 <h2 id="calling-the-annotated-utility-brain">Calling the annotated utility brain</h2>
 <p><em>moveAllNonPlayers</em> in <em>playerMoving</em> is changed to get annotated results from <em>assessUtilities</em> and <em>selectTopUtility</em>.</p>
 <h6 id="utility_annotatesrcgameengine.hs-797-to-802">14_utility_annotate/src/GameEngine.hs (797 to 802)</h6>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" data-line-number="1">  moveAllNonPlayers w <span class="fu">=</span></a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">    <span class="kw">let</span> mv aOrig wOrig <span class="fu">=</span></a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">          <span class="kw">let</span></a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">            inFov <span class="fu">=</span> findPathToAllInFov wOrig aOrig </a>
-<a class="sourceLine" id="cb10-5" data-line-number="5">            ((utilities, wNext), annAssess) <span class="fu">=</span> runWriter <span class="fu">$</span> UB.assessUtilities inFov wOrig aOrig </a>
-<a class="sourceLine" id="cb10-6" data-line-number="6">            (topUtil, annTop) <span class="fu">=</span> runWriter <span class="fu">$</span> UB.selectTopUtility utilities</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb10-1" title="1">  moveAllNonPlayers w <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-2" title="2">    <span class="kw">let</span> mv aOrig wOrig <span class="fu">=</span></a>
+<a class="sourceLine" id="cb10-3" title="3">          <span class="kw">let</span></a>
+<a class="sourceLine" id="cb10-4" title="4">            inFov <span class="fu">=</span> findPathToAllInFov wOrig aOrig </a>
+<a class="sourceLine" id="cb10-5" title="5">            ((utilities, wNext), annAssess) <span class="fu">=</span> runWriter <span class="fu">$</span> UB.assessUtilities inFov wOrig aOrig </a>
+<a class="sourceLine" id="cb10-6" title="6">            (topUtil, annTop) <span class="fu">=</span> runWriter <span class="fu">$</span> UB.selectTopUtility utilities</a></code></pre></div>
 <p>Then the annotations are added the selected world using <em>addAnn</em> which is a helper that adds the <em>annotation</em> to the world’s *wdUtilBrainAnnotations)</p>
 <h6 id="utility_annotatesrcgameengine.hs-805-to-823">14_utility_annotate/src/GameEngine.hs (805 to 823)</h6>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" data-line-number="1">              annotation <span class="fu">=</span> (aOrig <span class="fu">^.</span> acEntity <span class="fu">^.</span> enType, DLst.toList annAssess, DLst.toList annTop)</a>
-<a class="sourceLine" id="cb11-2" data-line-number="2">              addAnn w' <span class="fu">=</span> w' <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">%~</span> (annotation <span class="fu">:</span>)</a>
-<a class="sourceLine" id="cb11-3" data-line-number="3">            <span class="kw">in</span></a>
-<a class="sourceLine" id="cb11-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb11-5" data-line-number="5">            <span class="kw">case</span> topUtil <span class="kw">of</span></a>
-<a class="sourceLine" id="cb11-6" data-line-number="6">              <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb11-7" data-line-number="7">                <span class="co">-- No utility = no move, skip</span></a>
-<a class="sourceLine" id="cb11-8" data-line-number="8">                updateActorById (addAnn wNext) (aOrig <span class="fu">^.</span> acId) (\a <span class="ot">-&gt;</span> a <span class="fu">&amp;</span> acSkipMove <span class="fu">.~</span> <span class="dt">True</span>)</a>
-<a class="sourceLine" id="cb11-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb11-10" data-line-number="10">              <span class="dt">Just</span> (_, actorIfMoved, action, _, _) <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb11-11" data-line-number="11">                <span class="kw">let</span> cost <span class="fu">=</span> floor <span class="fu">.</span> fromIntegral <span class="fu">$</span> aOrig <span class="fu">^.</span> acMoveEnergyCost <span class="kw">in</span></a>
-<a class="sourceLine" id="cb11-12" data-line-number="12">                </a>
-<a class="sourceLine" id="cb11-13" data-line-number="13">                <span class="kw">if</span> cost <span class="fu">&gt;</span> B.get (aOrig <span class="fu">^.</span> acEnergy)</a>
-<a class="sourceLine" id="cb11-14" data-line-number="14">                <span class="kw">then</span></a>
-<a class="sourceLine" id="cb11-15" data-line-number="15">                  <span class="co">-- Not enough energy to move, disallow. Set skipMove = True so this is not attempted again before</span></a>
-<a class="sourceLine" id="cb11-16" data-line-number="16">                  <span class="co">-- the next actor move (i.e. avoid looping)</span></a>
-<a class="sourceLine" id="cb11-17" data-line-number="17">                  wNext <span class="fu">&amp;</span> wdActors <span class="fu">%~</span> Map.insert (aOrig <span class="fu">^.</span> acId) (aOrig <span class="fu">&amp;</span> acSkipMove <span class="fu">.~</span> <span class="dt">True</span>)</a>
-<a class="sourceLine" id="cb11-18" data-line-number="18">                <span class="kw">else</span></a>
-<a class="sourceLine" id="cb11-19" data-line-number="19">                  actOnImpulse cost (addAnn wNext) actorIfMoved action</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb11-1" title="1">              annotation <span class="fu">=</span> (aOrig <span class="fu">^.</span> acEntity <span class="fu">^.</span> enType, DLst.toList annAssess, DLst.toList annTop)</a>
+<a class="sourceLine" id="cb11-2" title="2">              addAnn w' <span class="fu">=</span> w' <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">%~</span> (annotation <span class="fu">:</span>)</a>
+<a class="sourceLine" id="cb11-3" title="3">            <span class="kw">in</span></a>
+<a class="sourceLine" id="cb11-4" title="4"></a>
+<a class="sourceLine" id="cb11-5" title="5">            <span class="kw">case</span> topUtil <span class="kw">of</span></a>
+<a class="sourceLine" id="cb11-6" title="6">              <span class="dt">Nothing</span> <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb11-7" title="7">                <span class="co">-- No utility = no move, skip</span></a>
+<a class="sourceLine" id="cb11-8" title="8">                updateActorById (addAnn wNext) (aOrig <span class="fu">^.</span> acId) (\a <span class="ot">-&gt;</span> a <span class="fu">&amp;</span> acSkipMove <span class="fu">.~</span> <span class="dt">True</span>)</a>
+<a class="sourceLine" id="cb11-9" title="9"></a>
+<a class="sourceLine" id="cb11-10" title="10">              <span class="dt">Just</span> (_, actorIfMoved, action, _, _) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb11-11" title="11">                <span class="kw">let</span> cost <span class="fu">=</span> <span class="fu">floor</span> <span class="fu">.</span> <span class="fu">fromIntegral</span> <span class="fu">$</span> aOrig <span class="fu">^.</span> acMoveEnergyCost <span class="kw">in</span></a>
+<a class="sourceLine" id="cb11-12" title="12">                </a>
+<a class="sourceLine" id="cb11-13" title="13">                <span class="kw">if</span> cost <span class="fu">&gt;</span> B.get (aOrig <span class="fu">^.</span> acEnergy)</a>
+<a class="sourceLine" id="cb11-14" title="14">                <span class="kw">then</span></a>
+<a class="sourceLine" id="cb11-15" title="15">                  <span class="co">-- Not enough energy to move, disallow. Set skipMove = True so this is not attempted again before</span></a>
+<a class="sourceLine" id="cb11-16" title="16">                  <span class="co">-- the next actor move (i.e. avoid looping)</span></a>
+<a class="sourceLine" id="cb11-17" title="17">                  wNext <span class="fu">&amp;</span> wdActors <span class="fu">%~</span> Map.insert (aOrig <span class="fu">^.</span> acId) (aOrig <span class="fu">&amp;</span> acSkipMove <span class="fu">.~</span> <span class="dt">True</span>)</a>
+<a class="sourceLine" id="cb11-18" title="18">                <span class="kw">else</span></a>
+<a class="sourceLine" id="cb11-19" title="19">                  actOnImpulse cost (addAnn wNext) actorIfMoved action</a></code></pre></div>
 <h1 id="printing-the-results">Printing the results</h1>
 <p>Printing the annotations to the console has worked well enough for my testing. You also could send it to the UI and display in a nicer format if you wanted.</p>
 <p><em>runCmd</em> gets the current annotations, clears the history and prints them</p>
 <h6 id="utility_annotatesrcgameengine.hs-216-to-256">14_utility_annotate/src/GameEngine.hs (216 to 256)</h6>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" data-line-number="1">      <span class="kw">let</span> annotations <span class="fu">=</span> w2 <span class="fu">^.</span> wdUtilBrainAnnotations </a>
-<a class="sourceLine" id="cb12-2" data-line-number="2">      atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">.~</span> [])</a>
-<a class="sourceLine" id="cb12-3" data-line-number="3">      printAnnotations annotations</a>
-<a class="sourceLine" id="cb12-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb12-5" data-line-number="5">      <span class="co">-- Draw</span></a>
-<a class="sourceLine" id="cb12-6" data-line-number="6">      drawAndSend w2</a>
-<a class="sourceLine" id="cb12-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb12-8" data-line-number="8">    _ <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb12-9" data-line-number="9">      sendError conn <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
-<a class="sourceLine" id="cb12-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb12-11" data-line-number="11">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb12-12" data-line-number="12">    updatePlayer f <span class="fu">=</span> atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a>
-<a class="sourceLine" id="cb12-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb12-14" data-line-number="14">    printAnnotations as <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb12-15" data-line-number="15">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-16" data-line-number="16">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-17" data-line-number="17">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-18" data-line-number="18">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-19" data-line-number="19">      putText <span class="st">&quot;***** Utility Annotations **************&quot;</span></a>
-<a class="sourceLine" id="cb12-20" data-line-number="20">      traverse_ printAnnotation as</a>
-<a class="sourceLine" id="cb12-21" data-line-number="21">      putText <span class="st">&quot;****************************************&quot;</span></a>
-<a class="sourceLine" id="cb12-22" data-line-number="22">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb12-24" data-line-number="24">    printAnnotation (e, assess, top)  <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb12-25" data-line-number="25">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-26" data-line-number="26">      putText <span class="fu">$</span> <span class="st">&quot;-----------------------&quot;</span> <span class="fu">&lt;&gt;</span> show e</a>
-<a class="sourceLine" id="cb12-27" data-line-number="27">      putText <span class="st">&quot;  -- assess --&quot;</span></a>
-<a class="sourceLine" id="cb12-28" data-line-number="28">      putText <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> assess</a>
-<a class="sourceLine" id="cb12-29" data-line-number="29">      putText <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb12-30" data-line-number="30">      putText <span class="st">&quot;  -- top --&quot;</span></a>
-<a class="sourceLine" id="cb12-31" data-line-number="31">      putText <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> top</a>
-<a class="sourceLine" id="cb12-32" data-line-number="32">      putText <span class="st">&quot;-----------------------&quot;</span></a>
-<a class="sourceLine" id="cb12-33" data-line-number="33"></a>
-<a class="sourceLine" id="cb12-34" data-line-number="34"><span class="ot">    showEntries ::</span> <span class="dt">UtilAnnotationEntry</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb12-35" data-line-number="35">    showEntries e <span class="fu">=</span></a>
-<a class="sourceLine" id="cb12-36" data-line-number="36">      <span class="kw">case</span> e <span class="kw">of</span></a>
-<a class="sourceLine" id="cb12-37" data-line-number="37">        <span class="dt">UeAt</span> a <span class="ot">-&gt;</span> <span class="st">&quot;    At: &quot;</span> <span class="fu">&lt;&gt;</span> a</a>
-<a class="sourceLine" id="cb12-38" data-line-number="38">        <span class="dt">UeSelectTopNone</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    No utils: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
-<a class="sourceLine" id="cb12-39" data-line-number="39">        <span class="dt">UeSelectTopAbove</span> f  <span class="ot">-&gt;</span> <span class="st">&quot;    Top above: &quot;</span> <span class="fu">&lt;&gt;</span> showF f</a>
-<a class="sourceLine" id="cb12-40" data-line-number="40">        <span class="dt">UeSelectTopOne</span> val n i d <span class="ot">-&gt;</span> <span class="st">&quot;    Select top one: &quot;</span> <span class="fu">&lt;&gt;</span> n <span class="fu">&lt;&gt;</span> <span class="st">&quot;, impulse=&quot;</span> <span class="fu">&lt;&gt;</span> show i <span class="fu">&lt;&gt;</span> <span class="st">&quot;, score=&quot;</span> <span class="fu">&lt;&gt;</span> showF val <span class="fu">&lt;&gt;</span> <span class="st">&quot;,&quot;</span> <span class="fu">&lt;&gt;</span> d</a>
-<a class="sourceLine" id="cb12-41" data-line-number="41">        <span class="dt">UeNote</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    Note: &quot;</span> <span class="fu">&lt;&gt;</span> n</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb12-1" title="1">      <span class="kw">let</span> annotations <span class="fu">=</span> w2 <span class="fu">^.</span> wdUtilBrainAnnotations </a>
+<a class="sourceLine" id="cb12-2" title="2">      atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">.~</span> [])</a>
+<a class="sourceLine" id="cb12-3" title="3">      printAnnotations annotations</a>
+<a class="sourceLine" id="cb12-4" title="4"></a>
+<a class="sourceLine" id="cb12-5" title="5">      <span class="co">-- Draw</span></a>
+<a class="sourceLine" id="cb12-6" title="6">      drawAndSend w2</a>
+<a class="sourceLine" id="cb12-7" title="7"></a>
+<a class="sourceLine" id="cb12-8" title="8">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb12-9" title="9">      sendError conn <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
+<a class="sourceLine" id="cb12-10" title="10"></a>
+<a class="sourceLine" id="cb12-11" title="11">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb12-12" title="12">    updatePlayer f <span class="fu">=</span> atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a>
+<a class="sourceLine" id="cb12-13" title="13"></a>
+<a class="sourceLine" id="cb12-14" title="14">    printAnnotations as <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb12-15" title="15">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-16" title="16">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-17" title="17">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-18" title="18">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-19" title="19">      putText <span class="st">&quot;***** Utility Annotations **************&quot;</span></a>
+<a class="sourceLine" id="cb12-20" title="20">      traverse_ printAnnotation as</a>
+<a class="sourceLine" id="cb12-21" title="21">      putText <span class="st">&quot;****************************************&quot;</span></a>
+<a class="sourceLine" id="cb12-22" title="22">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-23" title="23"></a>
+<a class="sourceLine" id="cb12-24" title="24">    printAnnotation (e, assess, top)  <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb12-25" title="25">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-26" title="26">      putText <span class="fu">$</span> <span class="st">&quot;-----------------------&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> e</a>
+<a class="sourceLine" id="cb12-27" title="27">      putText <span class="st">&quot;  -- assess --&quot;</span></a>
+<a class="sourceLine" id="cb12-28" title="28">      putText <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> assess</a>
+<a class="sourceLine" id="cb12-29" title="29">      putText <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb12-30" title="30">      putText <span class="st">&quot;  -- top --&quot;</span></a>
+<a class="sourceLine" id="cb12-31" title="31">      putText <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> top</a>
+<a class="sourceLine" id="cb12-32" title="32">      putText <span class="st">&quot;-----------------------&quot;</span></a>
+<a class="sourceLine" id="cb12-33" title="33"></a>
+<a class="sourceLine" id="cb12-34" title="34"><span class="ot">    showEntries ::</span> <span class="dt">UtilAnnotationEntry</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb12-35" title="35">    showEntries e <span class="fu">=</span></a>
+<a class="sourceLine" id="cb12-36" title="36">      <span class="kw">case</span> e <span class="kw">of</span></a>
+<a class="sourceLine" id="cb12-37" title="37">        <span class="dt">UeAt</span> a <span class="ot">-&gt;</span> <span class="st">&quot;    At: &quot;</span> <span class="fu">&lt;&gt;</span> a</a>
+<a class="sourceLine" id="cb12-38" title="38">        <span class="dt">UeSelectTopNone</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    No utils: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
+<a class="sourceLine" id="cb12-39" title="39">        <span class="dt">UeSelectTopAbove</span> f  <span class="ot">-&gt;</span> <span class="st">&quot;    Top above: &quot;</span> <span class="fu">&lt;&gt;</span> showF f</a>
+<a class="sourceLine" id="cb12-40" title="40">        <span class="dt">UeSelectTopOne</span> val n i d <span class="ot">-&gt;</span> <span class="st">&quot;    Select top one: &quot;</span> <span class="fu">&lt;&gt;</span> n <span class="fu">&lt;&gt;</span> <span class="st">&quot;, impulse=&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> i <span class="fu">&lt;&gt;</span> <span class="st">&quot;, score=&quot;</span> <span class="fu">&lt;&gt;</span> showF val <span class="fu">&lt;&gt;</span> <span class="st">&quot;,&quot;</span> <span class="fu">&lt;&gt;</span> d</a>
+<a class="sourceLine" id="cb12-41" title="41">        <span class="dt">UeNote</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    Note: &quot;</span> <span class="fu">&lt;&gt;</span> n</a></code></pre></div>
 <p>Here is an example of what the output will look like</p>
 <pre class="text"><code>***** Utility Annotations **************                              
                                                                       

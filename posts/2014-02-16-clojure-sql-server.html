@@ -32,16 +32,16 @@
 <h2 id="jtds-jar">jTDS JAR</h2>
 <p>Get the jTDS-n.n.n.JAR from the <a href="http://sourceforge.net/projects/jtds/files/">zip file on SourceForge</a> and place it on your class path.</p>
 <p>To get your class path you can run</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" data-line-number="1">   <span class="ex">lein</span> classpath</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" title="1">   <span class="ex">lein</span> classpath</a></code></pre></div>
 <h2 id="project-dependencies">Project dependencies</h2>
 <p>Add the jTDS dependency to your project.clr</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode clojure"><code class="sourceCode clojure"><a class="sourceLine" id="cb2-1" data-line-number="1">   [org.clojure/java.jdbc <span class="st">&quot;0.3.5&quot;</span>]</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode clojure"><code class="sourceCode clojure"><a class="sourceLine" id="cb2-1" title="1">   [org.clojure/java.jdbc <span class="st">&quot;0.3.5&quot;</span>]</a></code></pre></div>
 <h2 id="authentication">Authentication</h2>
 <p>Getting the JDBC connection string just right was where I had issues. This is what I ended up with</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode clojure"><code class="sourceCode clojure"><a class="sourceLine" id="cb3-1" data-line-number="1">  (<span class="kw">let</span> [sql-db {<span class="at">:subprotocol</span> <span class="st">&quot;jtds:sqlserver&quot;</span>,  </a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">               <span class="at">:subname</span> (<span class="kw">str</span> <span class="st">&quot;//&quot;</span> sqlServer <span class="st">&quot;//&quot;</span> sqlDb <span class="st">&quot;;useNTLMv2=true;domain=&quot;</span> domain),  </a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">               <span class="at">:user</span> userName,  </a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">               <span class="at">:password</span> password}]</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode clojure"><code class="sourceCode clojure"><a class="sourceLine" id="cb3-1" title="1">  (<span class="kw">let</span> [sql-db {<span class="at">:subprotocol</span> <span class="st">&quot;jtds:sqlserver&quot;</span>,  </a>
+<a class="sourceLine" id="cb3-2" title="2">               <span class="at">:subname</span> (<span class="kw">str</span> <span class="st">&quot;//&quot;</span> sqlServer <span class="st">&quot;//&quot;</span> sqlDb <span class="st">&quot;;useNTLMv2=true;domain=&quot;</span> domain),  </a>
+<a class="sourceLine" id="cb3-3" title="3">               <span class="at">:user</span> userName,  </a>
+<a class="sourceLine" id="cb3-4" title="4">               <span class="at">:password</span> password}]</a></code></pre></div>
 <p>Where</p>
 <ul>
 <li>sqlServer is the SQL server machine name / IP</li>

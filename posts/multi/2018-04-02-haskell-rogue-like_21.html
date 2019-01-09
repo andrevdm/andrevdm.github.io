@@ -47,14 +47,14 @@
 <h1 id="code">Code</h1>
 <h2 id="startup">Startup</h2>
 <h6 id="consoleappmain.hs-16-to-23">21_console/app/Main.hs (16 to 23)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">main <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3">  map01 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4">  map02 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/level02.csv&quot;</span></a>
-<a class="sourceLine" id="cb1-5" data-line-number="5">  void <span class="fu">.</span> forkIO <span class="fu">$</span> GE.runGame (getLevel map01 map02)</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">  putText <span class="st">&quot;Press enter to start the GUI&quot;</span></a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">  void Txt.getLine</a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">  Con.runGui</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="ot">main ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-2" title="2">main <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-3" title="3">  map01 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/simple.csv&quot;</span></a>
+<a class="sourceLine" id="cb1-4" title="4">  map02 <span class="ot">&lt;-</span> Txt.readFile <span class="st">&quot;worlds/level02.csv&quot;</span></a>
+<a class="sourceLine" id="cb1-5" title="5">  void <span class="fu">.</span> forkIO <span class="fu">$</span> GE.runGame (getLevel map01 map02)</a>
+<a class="sourceLine" id="cb1-6" title="6">  putText <span class="st">&quot;Press enter to start the GUI&quot;</span></a>
+<a class="sourceLine" id="cb1-7" title="7">  void Txt.getLine</a>
+<a class="sourceLine" id="cb1-8" title="8">  Con.runGui</a></code></pre></div>
 <ul>
 <li><code>runGame</code> is run in its own thread</li>
 <li><code>runGui</code> is called after the user presses enter. This gives the server time to startup</li>
@@ -67,19 +67,19 @@
 </ul>
 <h2 id="rungui">runGui</h2>
 <h6 id="consolesrcguiconsolegui.hs-41-to-53">21_console/src/Gui/ConsoleGui.hs (41 to 53)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ot">runGui ::</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">runGui <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="dt">IO</span><span class="fu">.</span>hSetEcho stdin <span class="dt">False</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">  <span class="dt">IO</span><span class="fu">.</span>hSetBuffering stdin <span class="dt">IO</span><span class="fu">.</span><span class="dt">NoBuffering</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="dt">IO</span><span class="fu">.</span>hSetBuffering stdout <span class="dt">IO</span><span class="fu">.</span><span class="dt">NoBuffering</span></a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">  </a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">  Sock.withSocketsDo <span class="fu">$</span> WS.runClient <span class="st">&quot;localhost&quot;</span> <span class="dv">61492</span> <span class="st">&quot;/&quot;</span> app</a>
-<a class="sourceLine" id="cb2-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="ot">    app ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">    app conn <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-12" data-line-number="12">      (x, y) <span class="ot">&lt;-</span> getSize</a>
-<a class="sourceLine" id="cb2-13" data-line-number="13">      runConnection conn x y </a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="ot">runGui ::</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-2" title="2">runGui <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-3" title="3">  <span class="dt">IO</span><span class="fu">.</span>hSetEcho stdin <span class="dt">False</span></a>
+<a class="sourceLine" id="cb2-4" title="4">  <span class="dt">IO</span><span class="fu">.</span>hSetBuffering stdin <span class="dt">IO</span><span class="fu">.</span><span class="dt">NoBuffering</span></a>
+<a class="sourceLine" id="cb2-5" title="5">  <span class="dt">IO</span><span class="fu">.</span>hSetBuffering stdout <span class="dt">IO</span><span class="fu">.</span><span class="dt">NoBuffering</span></a>
+<a class="sourceLine" id="cb2-6" title="6">  </a>
+<a class="sourceLine" id="cb2-7" title="7">  Sock.withSocketsDo <span class="fu">$</span> WS.runClient <span class="st">&quot;localhost&quot;</span> <span class="dv">61492</span> <span class="st">&quot;/&quot;</span> app</a>
+<a class="sourceLine" id="cb2-8" title="8"></a>
+<a class="sourceLine" id="cb2-9" title="9">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="ot">    app ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-11" title="11">    app conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-12" title="12">      (x, y) <span class="ot">&lt;-</span> getSize</a>
+<a class="sourceLine" id="cb2-13" title="13">      runConnection conn x y </a></code></pre></div>
 <ul>
 <li>Disable echo so that reading a character wont write to the terminal.</li>
 <li>Disable buffering to make output be shown immediately.</li>
@@ -88,18 +88,18 @@
 </ul>
 <h2 id="runconnection">runConnection</h2>
 <h6 id="consolesrcguiconsolegui.hs-58-to-69">21_console/src/Gui/ConsoleGui.hs (58 to 69)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">runConnection ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">runConnection conn x y <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">  sendCommand conn <span class="fu">$</span> <span class="st">&quot;init|&quot;</span> <span class="fu">&lt;&gt;</span> show x <span class="fu">&lt;&gt;</span> <span class="st">&quot;|&quot;</span> <span class="fu">&lt;&gt;</span> show y <span class="fu">&lt;&gt;</span> <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">  void <span class="fu">$</span> forkIO (runKeys conn)</a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">  void loop</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">  close conn</a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9">    loop <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10">      cmd <span class="ot">&lt;-</span> receiveCommand conn</a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">      handleCommand conn cmd</a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">      loop</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">runConnection ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb3-2" title="2">runConnection conn x y <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-3" title="3">  sendCommand conn <span class="fu">$</span> <span class="st">&quot;init|&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> x <span class="fu">&lt;&gt;</span> <span class="st">&quot;|&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> y <span class="fu">&lt;&gt;</span> <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb3-4" title="4">  void <span class="fu">$</span> forkIO (runKeys conn)</a>
+<a class="sourceLine" id="cb3-5" title="5">  void loop</a>
+<a class="sourceLine" id="cb3-6" title="6">  close conn</a>
+<a class="sourceLine" id="cb3-7" title="7"></a>
+<a class="sourceLine" id="cb3-8" title="8">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-9" title="9">    loop <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-10" title="10">      cmd <span class="ot">&lt;-</span> receiveCommand conn</a>
+<a class="sourceLine" id="cb3-11" title="11">      handleCommand conn cmd</a>
+<a class="sourceLine" id="cb3-12" title="12">      loop</a></code></pre></div>
 <ul>
 <li>Send the <em>init</em> command</li>
 <li>Start <em>runKeys</em> to listen for key presses in its own thread</li>
@@ -108,57 +108,57 @@
 <h2 id="keys">Keys</h2>
 <p>Key presses are detected using code from <a href="https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input">this answer on stack overflow</a>, mapped to one of the rogue commands and sent to the backend.</p>
 <h6 id="consolesrcguiconsolegui.hs-73-to-99">21_console/src/Gui/ConsoleGui.hs (73 to 99)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">runKeys ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">runKeys conn <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">  key <span class="ot">&lt;-</span> getKey <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">       <span class="st">&quot;k&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:up&quot;</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">       <span class="st">&quot;\ESC[A&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:up&quot;</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6"></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">       <span class="st">&quot;j&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:down&quot;</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">       <span class="st">&quot;\ESC[B&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:down&quot;</span></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">       <span class="st">&quot;l&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:right&quot;</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">       <span class="st">&quot;\ESC[C&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:right&quot;</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">       <span class="st">&quot;h&quot;</span>      <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:left&quot;</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">       <span class="st">&quot;\ESC[D&quot;</span> <span class="ot">-&gt;</span> pure <span class="st">&quot;Move:left&quot;</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16">       _        <span class="ot">-&gt;</span> pure <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">  </a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">  sendCommand conn <span class="fu">$</span> <span class="st">&quot;key|&quot;</span> <span class="fu">&lt;&gt;</span> key</a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">  runKeys conn</a>
-<a class="sourceLine" id="cb4-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb4-21" data-line-number="21"><span class="co">-- | https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input</span></a>
-<a class="sourceLine" id="cb4-22" data-line-number="22"><span class="ot">getKey ::</span> <span class="dt">IO</span> [<span class="dt">Char</span>]</a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">getKey <span class="fu">=</span> reverse <span class="fu">&lt;$&gt;</span> getKey' <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-24" data-line-number="24">  <span class="kw">where</span> getKey' chars <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-25" data-line-number="25">          char <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>getChar</a>
-<a class="sourceLine" id="cb4-26" data-line-number="26">          more <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>hReady stdin</a>
-<a class="sourceLine" id="cb4-27" data-line-number="27">          (<span class="kw">if</span> more <span class="kw">then</span> getKey' <span class="kw">else</span> return) (char<span class="fu">:</span>chars)</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">runKeys ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb4-2" title="2">runKeys conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-3" title="3">  key <span class="ot">&lt;-</span> getKey <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
+<a class="sourceLine" id="cb4-4" title="4">       <span class="st">&quot;k&quot;</span>      <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:up&quot;</span></a>
+<a class="sourceLine" id="cb4-5" title="5">       <span class="st">&quot;\ESC[A&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:up&quot;</span></a>
+<a class="sourceLine" id="cb4-6" title="6"></a>
+<a class="sourceLine" id="cb4-7" title="7">       <span class="st">&quot;j&quot;</span>      <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:down&quot;</span></a>
+<a class="sourceLine" id="cb4-8" title="8">       <span class="st">&quot;\ESC[B&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:down&quot;</span></a>
+<a class="sourceLine" id="cb4-9" title="9"></a>
+<a class="sourceLine" id="cb4-10" title="10">       <span class="st">&quot;l&quot;</span>      <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:right&quot;</span></a>
+<a class="sourceLine" id="cb4-11" title="11">       <span class="st">&quot;\ESC[C&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:right&quot;</span></a>
+<a class="sourceLine" id="cb4-12" title="12"></a>
+<a class="sourceLine" id="cb4-13" title="13">       <span class="st">&quot;h&quot;</span>      <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:left&quot;</span></a>
+<a class="sourceLine" id="cb4-14" title="14">       <span class="st">&quot;\ESC[D&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;Move:left&quot;</span></a>
+<a class="sourceLine" id="cb4-15" title="15"></a>
+<a class="sourceLine" id="cb4-16" title="16">       _        <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-17" title="17">  </a>
+<a class="sourceLine" id="cb4-18" title="18">  sendCommand conn <span class="fu">$</span> <span class="st">&quot;key|&quot;</span> <span class="fu">&lt;&gt;</span> key</a>
+<a class="sourceLine" id="cb4-19" title="19">  runKeys conn</a>
+<a class="sourceLine" id="cb4-20" title="20"></a>
+<a class="sourceLine" id="cb4-21" title="21"><span class="co">-- | https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input</span></a>
+<a class="sourceLine" id="cb4-22" title="22"><span class="ot">getKey ::</span> <span class="dt">IO</span> [<span class="dt">Char</span>]</a>
+<a class="sourceLine" id="cb4-23" title="23">getKey <span class="fu">=</span> <span class="fu">reverse</span> <span class="fu">&lt;$&gt;</span> getKey' <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-24" title="24">  <span class="kw">where</span> getKey' chars <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-25" title="25">          char <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.getChar</span></a>
+<a class="sourceLine" id="cb4-26" title="26">          more <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="fu">.</span>hReady stdin</a>
+<a class="sourceLine" id="cb4-27" title="27">          (<span class="kw">if</span> more <span class="kw">then</span> getKey' <span class="kw">else</span> <span class="fu">return</span>) (char<span class="fu">:</span>chars)</a></code></pre></div>
 <h2 id="handlecommand">handleCommand</h2>
 <p>The JSON has a common header with a <em>cmd</em> property. <em>CommandWrapper</em> is used to read this and then call the appropriate handler (where implemented).</p>
 <h6 id="consolesrcguiconsolegui.hs-104-to-124">21_console/src/Gui/ConsoleGui.hs (104 to 124)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="ot">handleCommand ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">handleCommand conn cmd' <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">CommandWrapper</span> <span class="kw">of</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">    <span class="dt">Right</span> cmd <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">     <span class="kw">case</span> cmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">         <span class="dt">CommandWrapper</span> <span class="st">&quot;log&quot;</span> <span class="ot">-&gt;</span> pass</a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">         <span class="dt">CommandWrapper</span> <span class="st">&quot;error&quot;</span> <span class="ot">-&gt;</span> pass</a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">         <span class="dt">CommandWrapper</span> <span class="st">&quot;config&quot;</span> <span class="ot">-&gt;</span> handleConfig conn cmd'</a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">         <span class="dt">CommandWrapper</span> <span class="st">&quot;draw&quot;</span> <span class="ot">-&gt;</span> handleDraw conn cmd'</a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">         _ <span class="ot">-&gt;</span> throwString <span class="fu">.</span> Txt.unpack <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd'</a>
-<a class="sourceLine" id="cb5-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13"></a>
-<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="ot">handleConfig ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb5-15" data-line-number="15">handleConfig conn cmd' <span class="fu">=</span></a>
-<a class="sourceLine" id="cb5-16" data-line-number="16">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">GC.UiConfig</span> <span class="kw">of</span></a>
-<a class="sourceLine" id="cb5-17" data-line-number="17">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
-<a class="sourceLine" id="cb5-18" data-line-number="18">    <span class="dt">Right</span> _cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb5-19" data-line-number="19">      (w,h) <span class="ot">&lt;-</span> getSize</a>
-<a class="sourceLine" id="cb5-20" data-line-number="20">      sendCommand conn <span class="fu">$</span> <span class="st">&quot;redraw|&quot;</span> <span class="fu">&lt;&gt;</span> show w <span class="fu">&lt;&gt;</span> <span class="st">&quot;|&quot;</span> <span class="fu">&lt;&gt;</span> show h</a>
-<a class="sourceLine" id="cb5-21" data-line-number="21">      pass</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="ot">handleCommand ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb5-2" title="2">handleCommand conn cmd' <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-3" title="3">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">CommandWrapper</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-4" title="4">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
+<a class="sourceLine" id="cb5-5" title="5">    <span class="dt">Right</span> cmd <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb5-6" title="6">     <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-7" title="7">         <span class="dt">CommandWrapper</span> <span class="st">&quot;log&quot;</span> <span class="ot">-&gt;</span> pass</a>
+<a class="sourceLine" id="cb5-8" title="8">         <span class="dt">CommandWrapper</span> <span class="st">&quot;error&quot;</span> <span class="ot">-&gt;</span> pass</a>
+<a class="sourceLine" id="cb5-9" title="9">         <span class="dt">CommandWrapper</span> <span class="st">&quot;config&quot;</span> <span class="ot">-&gt;</span> handleConfig conn cmd'</a>
+<a class="sourceLine" id="cb5-10" title="10">         <span class="dt">CommandWrapper</span> <span class="st">&quot;draw&quot;</span> <span class="ot">-&gt;</span> handleDraw conn cmd'</a>
+<a class="sourceLine" id="cb5-11" title="11">         _ <span class="ot">-&gt;</span> throwString <span class="fu">.</span> Txt.unpack <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd'</a>
+<a class="sourceLine" id="cb5-12" title="12"></a>
+<a class="sourceLine" id="cb5-13" title="13"></a>
+<a class="sourceLine" id="cb5-14" title="14"><span class="ot">handleConfig ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb5-15" title="15">handleConfig conn cmd' <span class="fu">=</span></a>
+<a class="sourceLine" id="cb5-16" title="16">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">GC.UiConfig</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb5-17" title="17">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
+<a class="sourceLine" id="cb5-18" title="18">    <span class="dt">Right</span> _cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb5-19" title="19">      (w,h) <span class="ot">&lt;-</span> getSize</a>
+<a class="sourceLine" id="cb5-20" title="20">      sendCommand conn <span class="fu">$</span> <span class="st">&quot;redraw|&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> w <span class="fu">&lt;&gt;</span> <span class="st">&quot;|&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> h</a>
+<a class="sourceLine" id="cb5-21" title="21">      pass</a></code></pre></div>
 <h2 id="drawing">Drawing</h2>
 <p>The drawing logic is similar to the JavaScript drawing logic, except that there are no layers.</p>
 <ul>
@@ -167,61 +167,61 @@
 <li>Each tile is drawn with the appropriate ANSI attributes (colour)</li>
 </ul>
 <h6 id="consolesrcguiconsolegui.hs-129-to-157">21_console/src/Gui/ConsoleGui.hs (129 to 157)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">handleDraw ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">handleDraw _conn cmd' <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">GC.UiDrawCommand</span> <span class="kw">of</span></a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
-<a class="sourceLine" id="cb6-5" data-line-number="5">    <span class="dt">Right</span> cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">      (width, height) <span class="ot">&lt;-</span> getSize</a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">      </a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">      <span class="kw">let</span> l1 <span class="fu">=</span> (\(x, y, i) <span class="ot">-&gt;</span> ((x, y), i)) <span class="fu">&lt;&lt;$&gt;&gt;</span> GC.drMapData cmd</a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">      <span class="kw">let</span> layers <span class="fu">=</span> Map.unions <span class="fu">.</span> reverse <span class="fu">$</span> Map.fromList <span class="fu">&lt;$&gt;</span> l1</a>
-<a class="sourceLine" id="cb6-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb6-11" data-line-number="11">      A.setSGR [<span class="dt">A.Reset</span>]</a>
-<a class="sourceLine" id="cb6-12" data-line-number="12">      A.clearScreen</a>
-<a class="sourceLine" id="cb6-13" data-line-number="13">      A.hideCursor</a>
-<a class="sourceLine" id="cb6-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb6-15" data-line-number="15">      A.setCursorPosition <span class="dv">0</span> <span class="dv">0</span></a>
-<a class="sourceLine" id="cb6-16" data-line-number="16">      <span class="kw">let</span> (t, s) <span class="fu">=</span> tileFromId <span class="dv">4113</span></a>
-<a class="sourceLine" id="cb6-17" data-line-number="17">      <span class="kw">let</span> blankLine <span class="fu">=</span> Txt.replicate width t</a>
-<a class="sourceLine" id="cb6-18" data-line-number="18">      A.setSGR s</a>
-<a class="sourceLine" id="cb6-19" data-line-number="19">      traverse_ putText <span class="fu">$</span> replicate height blankLine</a>
-<a class="sourceLine" id="cb6-20" data-line-number="20">      traverse_ drawTile <span class="fu">$</span> Map.toList layers</a>
-<a class="sourceLine" id="cb6-21" data-line-number="21">      A.setSGR [<span class="dt">A.Reset</span>]</a>
-<a class="sourceLine" id="cb6-22" data-line-number="22"></a>
-<a class="sourceLine" id="cb6-23" data-line-number="23">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb6-24" data-line-number="24"><span class="ot">    drawTile ::</span> ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb6-25" data-line-number="25">    drawTile ((x, y), tid) <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb6-26" data-line-number="26">      A.setCursorPosition y x</a>
-<a class="sourceLine" id="cb6-27" data-line-number="27">      <span class="kw">let</span> (t, s) <span class="fu">=</span> tileFromId tid</a>
-<a class="sourceLine" id="cb6-28" data-line-number="28">      A.setSGR s</a>
-<a class="sourceLine" id="cb6-29" data-line-number="29">      putStr t</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">handleDraw ::</span> <span class="dt">WS.Connection</span> <span class="ot">-&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb6-2" title="2">handleDraw _conn cmd' <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" title="3">  <span class="kw">case</span> Ae.eitherDecode (BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 <span class="fu">$</span> cmd')<span class="ot"> ::</span> <span class="dt">Either</span> [<span class="dt">Char</span>] <span class="dt">GC.UiDrawCommand</span> <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-4" title="4">    <span class="dt">Left</span> e <span class="ot">-&gt;</span> throwString e</a>
+<a class="sourceLine" id="cb6-5" title="5">    <span class="dt">Right</span> cmd <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-6" title="6">      (width, height) <span class="ot">&lt;-</span> getSize</a>
+<a class="sourceLine" id="cb6-7" title="7">      </a>
+<a class="sourceLine" id="cb6-8" title="8">      <span class="kw">let</span> l1 <span class="fu">=</span> (\(x, y, i) <span class="ot">-&gt;</span> ((x, y), i)) <span class="fu">&lt;&lt;$&gt;&gt;</span> GC.drMapData cmd</a>
+<a class="sourceLine" id="cb6-9" title="9">      <span class="kw">let</span> layers <span class="fu">=</span> Map.unions <span class="fu">.</span> <span class="fu">reverse</span> <span class="fu">$</span> Map.fromList <span class="fu">&lt;$&gt;</span> l1</a>
+<a class="sourceLine" id="cb6-10" title="10"></a>
+<a class="sourceLine" id="cb6-11" title="11">      A.setSGR [<span class="dt">A.Reset</span>]</a>
+<a class="sourceLine" id="cb6-12" title="12">      A.clearScreen</a>
+<a class="sourceLine" id="cb6-13" title="13">      A.hideCursor</a>
+<a class="sourceLine" id="cb6-14" title="14"></a>
+<a class="sourceLine" id="cb6-15" title="15">      A.setCursorPosition <span class="dv">0</span> <span class="dv">0</span></a>
+<a class="sourceLine" id="cb6-16" title="16">      <span class="kw">let</span> (t, s) <span class="fu">=</span> tileFromId <span class="dv">4113</span></a>
+<a class="sourceLine" id="cb6-17" title="17">      <span class="kw">let</span> blankLine <span class="fu">=</span> Txt.replicate width t</a>
+<a class="sourceLine" id="cb6-18" title="18">      A.setSGR s</a>
+<a class="sourceLine" id="cb6-19" title="19">      traverse_ putText <span class="fu">$</span> <span class="fu">replicate</span> height blankLine</a>
+<a class="sourceLine" id="cb6-20" title="20">      traverse_ drawTile <span class="fu">$</span> Map.toList layers</a>
+<a class="sourceLine" id="cb6-21" title="21">      A.setSGR [<span class="dt">A.Reset</span>]</a>
+<a class="sourceLine" id="cb6-22" title="22"></a>
+<a class="sourceLine" id="cb6-23" title="23">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb6-24" title="24"><span class="ot">    drawTile ::</span> ((<span class="dt">Int</span>, <span class="dt">Int</span>), <span class="dt">Int</span>) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb6-25" title="25">    drawTile ((x, y), tid) <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb6-26" title="26">      A.setCursorPosition y x</a>
+<a class="sourceLine" id="cb6-27" title="27">      <span class="kw">let</span> (t, s) <span class="fu">=</span> tileFromId tid</a>
+<a class="sourceLine" id="cb6-28" title="28">      A.setSGR s</a>
+<a class="sourceLine" id="cb6-29" title="29">      <span class="fu">putStr</span> t</a></code></pre></div>
 <h2 id="getsize">getSize</h2>
 <p>I’ve limited the terminal size to 50x20 because this reduces the flickering and because the demo maps are so small.</p>
 <h6 id="consolesrcguiconsolegui.hs-162-to-166">21_console/src/Gui/ConsoleGui.hs (162 to 166)</h6>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="ot">getSize ::</span> <span class="dt">IO</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
-<a class="sourceLine" id="cb7-2" data-line-number="2">getSize <span class="fu">=</span></a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">  Sz.size <span class="fu">@</span> <span class="dt">Int</span> <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwString <span class="st">&quot;unable to get screen size&quot;</span></a>
-<a class="sourceLine" id="cb7-5" data-line-number="5">    <span class="dt">Just</span> (<span class="dt">Sz.Window</span> w h) <span class="ot">-&gt;</span> pure (min <span class="dv">50</span> w, min <span class="dv">20</span> h)</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1"><span class="ot">getSize ::</span> <span class="dt">IO</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a>
+<a class="sourceLine" id="cb7-2" title="2">getSize <span class="fu">=</span></a>
+<a class="sourceLine" id="cb7-3" title="3">  Sz.size <span class="fu">@</span> <span class="dt">Int</span> <span class="fu">&gt;&gt;=</span> \<span class="kw">case</span></a>
+<a class="sourceLine" id="cb7-4" title="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> throwString <span class="st">&quot;unable to get screen size&quot;</span></a>
+<a class="sourceLine" id="cb7-5" title="5">    <span class="dt">Just</span> (<span class="dt">Sz.Window</span> w h) <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="fu">min</span> <span class="dv">50</span> w, <span class="fu">min</span> <span class="dv">20</span> h)</a></code></pre></div>
 <h2 id="tiles">tiles</h2>
 <p>Tile Ids are mapped to a unicode character and ANSI attribute</p>
 <h6 id="consolesrcguiconsolegui.hs-170-to-184">21_console/src/Gui/ConsoleGui.hs (170 to 184)</h6>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="co">-- | https://github.com/globalcitizen/zomia/blob/master/USEFUL-UNICODE.md</span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="ot">tileFromId ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">Text</span>, [<span class="dt">A.SGR</span>])</a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">tileFromId <span class="dv">4113</span> <span class="fu">=</span> (<span class="st">&quot; &quot;</span>, []) <span class="co">-- &quot; &quot; -- E.Blank</span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">tileFromId <span class="dv">2615</span> <span class="fu">=</span> (<span class="st">&quot;⌺&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;'&quot; -- E.Door</span></a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">tileFromId <span class="dv">2115</span> <span class="fu">=</span> (<span class="st">&quot;⊠&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Red</span>]) <span class="co">-- &quot;+&quot; -- E.DoorClosed</span></a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">tileFromId  <span class="dv">914</span> <span class="fu">=</span> (<span class="st">&quot;█&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;#&quot; -- E.Wall</span></a>
-<a class="sourceLine" id="cb8-7" data-line-number="7">tileFromId  <span class="dv">803</span> <span class="fu">=</span> (<span class="st">&quot;Ӧ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Cyan</span>]) <span class="co">-- &quot;@&quot; -- E.Player</span></a>
-<a class="sourceLine" id="cb8-8" data-line-number="8">tileFromId <span class="dv">2503</span> <span class="fu">=</span> (<span class="st">&quot;⍾&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Magenta</span>]) <span class="co">-- &quot;B&quot; -- E.Bug</span></a>
-<a class="sourceLine" id="cb8-9" data-line-number="9">tileFromId <span class="dv">3804</span> <span class="fu">=</span> (<span class="st">&quot;ຯ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Magenta</span>]) <span class="co">-- &quot;S&quot; -- E.Snake</span></a>
-<a class="sourceLine" id="cb8-10" data-line-number="10">tileFromId <span class="dv">4311</span> <span class="fu">=</span> (<span class="st">&quot;░&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;░&quot; -- E.Dark</span></a>
-<a class="sourceLine" id="cb8-11" data-line-number="11">tileFromId <span class="dv">5644</span> <span class="fu">=</span> (<span class="st">&quot;ᝐ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;&gt;&quot; -- E.Stairs</span></a>
-<a class="sourceLine" id="cb8-12" data-line-number="12">tileFromId <span class="dv">1646</span> <span class="fu">=</span> (<span class="st">&quot;☁&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;d&quot; -- E.PotionDark</span></a>
-<a class="sourceLine" id="cb8-13" data-line-number="13">tileFromId  <span class="dv">846</span> <span class="fu">=</span> (<span class="st">&quot;☀&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Yellow</span>]) <span class="co">-- &quot;l&quot; -- E.PotionLight</span></a>
-<a class="sourceLine" id="cb8-14" data-line-number="14">tileFromId <span class="dv">5445</span> <span class="fu">=</span> (<span class="st">&quot;ዋ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;k&quot; -- E.Key</span></a>
-<a class="sourceLine" id="cb8-15" data-line-number="15">tileFromId _    <span class="fu">=</span> (<span class="st">&quot;?&quot;</span>, [])</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb8-1" title="1"><span class="co">-- | https://github.com/globalcitizen/zomia/blob/master/USEFUL-UNICODE.md</span></a>
+<a class="sourceLine" id="cb8-2" title="2"><span class="ot">tileFromId ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> (<span class="dt">Text</span>, [<span class="dt">A.SGR</span>])</a>
+<a class="sourceLine" id="cb8-3" title="3">tileFromId <span class="dv">4113</span> <span class="fu">=</span> (<span class="st">&quot; &quot;</span>, []) <span class="co">-- &quot; &quot; -- E.Blank</span></a>
+<a class="sourceLine" id="cb8-4" title="4">tileFromId <span class="dv">2615</span> <span class="fu">=</span> (<span class="st">&quot;⌺&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;'&quot; -- E.Door</span></a>
+<a class="sourceLine" id="cb8-5" title="5">tileFromId <span class="dv">2115</span> <span class="fu">=</span> (<span class="st">&quot;⊠&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Red</span>]) <span class="co">-- &quot;+&quot; -- E.DoorClosed</span></a>
+<a class="sourceLine" id="cb8-6" title="6">tileFromId  <span class="dv">914</span> <span class="fu">=</span> (<span class="st">&quot;█&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;#&quot; -- E.Wall</span></a>
+<a class="sourceLine" id="cb8-7" title="7">tileFromId  <span class="dv">803</span> <span class="fu">=</span> (<span class="st">&quot;Ӧ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Cyan</span>]) <span class="co">-- &quot;@&quot; -- E.Player</span></a>
+<a class="sourceLine" id="cb8-8" title="8">tileFromId <span class="dv">2503</span> <span class="fu">=</span> (<span class="st">&quot;⍾&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Magenta</span>]) <span class="co">-- &quot;B&quot; -- E.Bug</span></a>
+<a class="sourceLine" id="cb8-9" title="9">tileFromId <span class="dv">3804</span> <span class="fu">=</span> (<span class="st">&quot;ຯ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Magenta</span>]) <span class="co">-- &quot;S&quot; -- E.Snake</span></a>
+<a class="sourceLine" id="cb8-10" title="10">tileFromId <span class="dv">4311</span> <span class="fu">=</span> (<span class="st">&quot;░&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;░&quot; -- E.Dark</span></a>
+<a class="sourceLine" id="cb8-11" title="11">tileFromId <span class="dv">5644</span> <span class="fu">=</span> (<span class="st">&quot;ᝐ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;&gt;&quot; -- E.Stairs</span></a>
+<a class="sourceLine" id="cb8-12" title="12">tileFromId <span class="dv">1646</span> <span class="fu">=</span> (<span class="st">&quot;☁&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.White</span>]) <span class="co">-- &quot;d&quot; -- E.PotionDark</span></a>
+<a class="sourceLine" id="cb8-13" title="13">tileFromId  <span class="dv">846</span> <span class="fu">=</span> (<span class="st">&quot;☀&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Yellow</span>]) <span class="co">-- &quot;l&quot; -- E.PotionLight</span></a>
+<a class="sourceLine" id="cb8-14" title="14">tileFromId <span class="dv">5445</span> <span class="fu">=</span> (<span class="st">&quot;ዋ&quot;</span>, [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Dull</span> <span class="dt">A.Green</span>]) <span class="co">-- &quot;k&quot; -- E.Key</span></a>
+<a class="sourceLine" id="cb8-15" title="15">tileFromId _    <span class="fu">=</span> (<span class="st">&quot;?&quot;</span>, [])</a></code></pre></div>
 <h1 id="terminal-frontend">Terminal frontend</h1>
 <p>A more realistic terminal GUI would need to address all the issues mentioned above, using <a href="https://hackage.haskell.org/package/brick">Brick</a> would probably be where I’d start. However I think a small demo frontend like this one is interesting enough to include here.</p>
 <h1 id="chapters">Chapters</h1>

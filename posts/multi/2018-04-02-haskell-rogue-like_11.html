@@ -34,34 +34,34 @@
 <p><img src="../../images/rogue_11_sticky.gif" /></p>
 <p>The actor is given a new property <em>acFovHistory</em> which uses a <em>Data.Set</em> to store all world coordinates that were ever in the fov.</p>
 <h6 id="sticky_lightsrcgamecore.hs-33-to-33">11_sticky_light/src/GameCore.hs (33 to 33)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1">  ,<span class="ot"> _acFovHistory ::</span> <span class="fu">!</span>(<span class="dt">Set</span> <span class="dt">WorldPos</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1">  ,<span class="ot"> _acFovHistory ::</span> <span class="fu">!</span>(<span class="dt">Set</span> <span class="dt">WorldPos</span>)</a></code></pre></div>
 <p><em>updateActorFov</em> is changed to update the <em>acFovHistory</em> each time a new fov is calculated. It does this by passing the fov positions as a list to <em>Data.Set.union</em> to combine them with the existing set.</p>
 <h6 id="sticky_lightsrcgameengine.hs-423-to-428">11_sticky_light/src/GameEngine.hs (423 to 428)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ot">updateActorFov ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">updateActorFov w a <span class="fu">=</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3"> <span class="co">-- Calculate field of view</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"> <span class="kw">let</span> fov <span class="fu">=</span> calcFov (a <span class="fu">^.</span> acFovDistance) (isTransparent <span class="fu">$</span> w <span class="fu">^.</span> wdMap) (a <span class="fu">^.</span> acWorldPos) <span class="kw">in</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5"> a <span class="fu">&amp;</span> acFov <span class="fu">.~</span> <span class="dt">Just</span> fov</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">   <span class="fu">&amp;</span> acFovHistory <span class="fu">%~</span> Set.union (Set.fromList <span class="fu">$</span> flatFov (<span class="dt">Just</span> fov))</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="ot">updateActorFov ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span></a>
+<a class="sourceLine" id="cb2-2" title="2">updateActorFov w a <span class="fu">=</span></a>
+<a class="sourceLine" id="cb2-3" title="3"> <span class="co">-- Calculate field of view</span></a>
+<a class="sourceLine" id="cb2-4" title="4"> <span class="kw">let</span> fov <span class="fu">=</span> calcFov (a <span class="fu">^.</span> acFovDistance) (isTransparent <span class="fu">$</span> w <span class="fu">^.</span> wdMap) (a <span class="fu">^.</span> acWorldPos) <span class="kw">in</span></a>
+<a class="sourceLine" id="cb2-5" title="5"> a <span class="fu">&amp;</span> acFov <span class="fu">.~</span> <span class="dt">Just</span> fov</a>
+<a class="sourceLine" id="cb2-6" title="6">   <span class="fu">&amp;</span> acFovHistory <span class="fu">%~</span> Set.union (Set.fromList <span class="fu">$</span> flatFov (<span class="dt">Just</span> fov))</a></code></pre></div>
 <p>All that is then needed is for the history to be used in <em>darknessFovOverlay</em>. I.e. remove the positions in <em>acFovHistory</em> from the <em>blackBg</em> map</p>
 <h6 id="sticky_lightsrcgameengine.hs-575-to-591">11_sticky_light/src/GameEngine.hs (575 to 591)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="ot">darknessFovOverlay ::</span> <span class="dt">Player</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">darknessFovOverlay player actor <span class="fu">=</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="kw">let</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">    (screenWidth, screenHeight) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">    <span class="co">-- Create a full grid of darkness</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">    blackBg <span class="fu">=</span> Map.fromList [ (<span class="dt">PlayerPos</span> (x, y), E.getTile <span class="dt">E.Dark</span>)</a>
-<a class="sourceLine" id="cb3-8" data-line-number="8">                           <span class="fu">|</span> x <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenWidth <span class="fu">-</span> <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb3-9" data-line-number="9">                           , y <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenHeight <span class="fu">-</span> <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb3-10" data-line-number="10">                           ] </a>
-<a class="sourceLine" id="cb3-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">    lightAt <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> flatFov (actor <span class="fu">^.</span> acFov)</a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">    seen <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> Set.toList (actor <span class="fu">^.</span> acFovHistory)</a>
-<a class="sourceLine" id="cb3-14" data-line-number="14">  <span class="kw">in</span></a>
-<a class="sourceLine" id="cb3-15" data-line-number="15">  <span class="co">-- Remove the darkness overlay at any position that is to be lit</span></a>
-<a class="sourceLine" id="cb3-16" data-line-number="16">  <span class="co">--  I.e. any position in the field of view, or previously in the field of view</span></a>
-<a class="sourceLine" id="cb3-17" data-line-number="17">  foldr Map.delete blackBg <span class="fu">$</span> lightAt <span class="fu">&lt;&gt;</span> seen</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="ot">darknessFovOverlay ::</span> <span class="dt">Player</span> <span class="ot">-&gt;</span> <span class="dt">Actor</span> <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">PlayerPos</span> <span class="dt">Tile</span></a>
+<a class="sourceLine" id="cb3-2" title="2">darknessFovOverlay player actor <span class="fu">=</span></a>
+<a class="sourceLine" id="cb3-3" title="3">  <span class="kw">let</span></a>
+<a class="sourceLine" id="cb3-4" title="4">    (screenWidth, screenHeight) <span class="fu">=</span> player <span class="fu">^.</span> plScreenSize</a>
+<a class="sourceLine" id="cb3-5" title="5"></a>
+<a class="sourceLine" id="cb3-6" title="6">    <span class="co">-- Create a full grid of darkness</span></a>
+<a class="sourceLine" id="cb3-7" title="7">    blackBg <span class="fu">=</span> Map.fromList [ (<span class="dt">PlayerPos</span> (x, y), E.getTile <span class="dt">E.Dark</span>)</a>
+<a class="sourceLine" id="cb3-8" title="8">                           <span class="fu">|</span> x <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenWidth <span class="fu">-</span> <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb3-9" title="9">                           , y <span class="ot">&lt;-</span> [<span class="dv">0</span><span class="fu">..</span>(screenHeight <span class="fu">-</span> <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb3-10" title="10">                           ] </a>
+<a class="sourceLine" id="cb3-11" title="11"></a>
+<a class="sourceLine" id="cb3-12" title="12">    lightAt <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> flatFov (actor <span class="fu">^.</span> acFov)</a>
+<a class="sourceLine" id="cb3-13" title="13">    seen <span class="fu">=</span> worldCoordToPlayer (player <span class="fu">^.</span> plWorldTopLeft) <span class="fu">&lt;$&gt;</span> Set.toList (actor <span class="fu">^.</span> acFovHistory)</a>
+<a class="sourceLine" id="cb3-14" title="14">  <span class="kw">in</span></a>
+<a class="sourceLine" id="cb3-15" title="15">  <span class="co">-- Remove the darkness overlay at any position that is to be lit</span></a>
+<a class="sourceLine" id="cb3-16" title="16">  <span class="co">--  I.e. any position in the field of view, or previously in the field of view</span></a>
+<a class="sourceLine" id="cb3-17" title="17">  <span class="fu">foldr</span> Map.delete blackBg <span class="fu">$</span> lightAt <span class="fu">&lt;&gt;</span> seen</a></code></pre></div>
 <h1 id="chapters">Chapters</h1>
 <p><a href="../2018-04-02-haskell-rogue-like.html">start</a> <a href="2018-04-02-haskell-rogue-like_10.html">prev</a> <a href="2018-04-02-haskell-rogue-like_12.html">next</a></p>
 <h1 id="changes">Changes</h1>

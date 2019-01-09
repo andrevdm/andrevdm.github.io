@@ -42,34 +42,34 @@ vi-keys       numpad      </code></pre>
 <p>The standard arrow keys and VIM hjkl keys are supported. Then yubn and the keypad are used for diagonal movement.</p>
 <p>Which is easy enough to configure in the backend</p>
 <h6 id="movingsrcgameengine.hs-97-to-114">06_moving/src/GameEngine.hs (97 to 114)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1">  <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [ (<span class="st">&quot;up&quot;</span>      , <span class="st">&quot;Move:up&quot;</span>)</a>
-<a class="sourceLine" id="cb2-2" data-line-number="2">                                   , (<span class="st">&quot;k&quot;</span>       , <span class="st">&quot;Move:up&quot;</span>)</a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">                                   , (<span class="st">&quot;down&quot;</span>    , <span class="st">&quot;Move:down&quot;</span>)</a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">                                   , (<span class="st">&quot;j&quot;</span>       , <span class="st">&quot;Move:down&quot;</span>)</a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">                                   , (<span class="st">&quot;left&quot;</span>    , <span class="st">&quot;Move:left&quot;</span>)</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">                                   , (<span class="st">&quot;h&quot;</span>       , <span class="st">&quot;Move:left&quot;</span>)</a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">                                   , (<span class="st">&quot;right&quot;</span>   , <span class="st">&quot;Move:right&quot;</span>)</a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">                                   , (<span class="st">&quot;l&quot;</span>       , <span class="st">&quot;Move:right&quot;</span>)</a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">                                   , (<span class="st">&quot;u&quot;</span>       , <span class="st">&quot;Move:up-right&quot;</span>)</a>
-<a class="sourceLine" id="cb2-10" data-line-number="10">                                   , (<span class="st">&quot;pageup&quot;</span>  , <span class="st">&quot;Move:up-right&quot;</span>)</a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">                                   , (<span class="st">&quot;y&quot;</span>       , <span class="st">&quot;Move:up-left&quot;</span>)</a>
-<a class="sourceLine" id="cb2-12" data-line-number="12">                                   , (<span class="st">&quot;home&quot;</span>    , <span class="st">&quot;Move:up-left&quot;</span>)</a>
-<a class="sourceLine" id="cb2-13" data-line-number="13">                                   , (<span class="st">&quot;n&quot;</span>       , <span class="st">&quot;Move:down-right&quot;</span>)</a>
-<a class="sourceLine" id="cb2-14" data-line-number="14">                                   , (<span class="st">&quot;end&quot;</span>     , <span class="st">&quot;Move:down-left&quot;</span>)</a>
-<a class="sourceLine" id="cb2-15" data-line-number="15">                                   , (<span class="st">&quot;b&quot;</span>       , <span class="st">&quot;Move:down-left&quot;</span>)</a>
-<a class="sourceLine" id="cb2-16" data-line-number="16">                                   , (<span class="st">&quot;pagedown&quot;</span>, <span class="st">&quot;Move:down-right&quot;</span>)</a>
-<a class="sourceLine" id="cb2-17" data-line-number="17">                                   ]</a>
-<a class="sourceLine" id="cb2-18" data-line-number="18">         }</a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1">  <span class="dt">Config</span> { _cfgKeys <span class="fu">=</span> Map.fromList [ (<span class="st">&quot;up&quot;</span>      , <span class="st">&quot;Move:up&quot;</span>)</a>
+<a class="sourceLine" id="cb2-2" title="2">                                   , (<span class="st">&quot;k&quot;</span>       , <span class="st">&quot;Move:up&quot;</span>)</a>
+<a class="sourceLine" id="cb2-3" title="3">                                   , (<span class="st">&quot;down&quot;</span>    , <span class="st">&quot;Move:down&quot;</span>)</a>
+<a class="sourceLine" id="cb2-4" title="4">                                   , (<span class="st">&quot;j&quot;</span>       , <span class="st">&quot;Move:down&quot;</span>)</a>
+<a class="sourceLine" id="cb2-5" title="5">                                   , (<span class="st">&quot;left&quot;</span>    , <span class="st">&quot;Move:left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-6" title="6">                                   , (<span class="st">&quot;h&quot;</span>       , <span class="st">&quot;Move:left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-7" title="7">                                   , (<span class="st">&quot;right&quot;</span>   , <span class="st">&quot;Move:right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-8" title="8">                                   , (<span class="st">&quot;l&quot;</span>       , <span class="st">&quot;Move:right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-9" title="9">                                   , (<span class="st">&quot;u&quot;</span>       , <span class="st">&quot;Move:up-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-10" title="10">                                   , (<span class="st">&quot;pageup&quot;</span>  , <span class="st">&quot;Move:up-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-11" title="11">                                   , (<span class="st">&quot;y&quot;</span>       , <span class="st">&quot;Move:up-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-12" title="12">                                   , (<span class="st">&quot;home&quot;</span>    , <span class="st">&quot;Move:up-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-13" title="13">                                   , (<span class="st">&quot;n&quot;</span>       , <span class="st">&quot;Move:down-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-14" title="14">                                   , (<span class="st">&quot;end&quot;</span>     , <span class="st">&quot;Move:down-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-15" title="15">                                   , (<span class="st">&quot;b&quot;</span>       , <span class="st">&quot;Move:down-left&quot;</span>)</a>
+<a class="sourceLine" id="cb2-16" title="16">                                   , (<span class="st">&quot;pagedown&quot;</span>, <span class="st">&quot;Move:down-right&quot;</span>)</a>
+<a class="sourceLine" id="cb2-17" title="17">                                   ]</a>
+<a class="sourceLine" id="cb2-18" title="18">         }</a></code></pre></div>
 <h2 id="handling-the-key-press-command">Handling the key press command</h2>
 <p>The key handling code is changed to handle the key press</p>
 <h6 id="movingsrcgameengine.hs-154-to-160">06_moving/src/GameEngine.hs (154 to 160)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1">  <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">    <span class="co">-- Handle the key press</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">    atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> runActions w <span class="fu">$</span> handleKey cmdData)</a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">    <span class="co">-- Get the updated world</span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">    w2 <span class="ot">&lt;-</span> atomically <span class="fu">$</span> readTVar worldV</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">    <span class="co">-- Draw</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">    drawAndSend w2</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1">  <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-2" title="2">    <span class="co">-- Handle the key press</span></a>
+<a class="sourceLine" id="cb3-3" title="3">    atomically <span class="fu">$</span> modifyTVar' worldV (\w <span class="ot">-&gt;</span> runActions w <span class="fu">$</span> handleKey cmdData)</a>
+<a class="sourceLine" id="cb3-4" title="4">    <span class="co">-- Get the updated world</span></a>
+<a class="sourceLine" id="cb3-5" title="5">    w2 <span class="ot">&lt;-</span> atomically <span class="fu">$</span> readTVar worldV</a>
+<a class="sourceLine" id="cb3-6" title="6">    <span class="co">-- Draw</span></a>
+<a class="sourceLine" id="cb3-7" title="7">    drawAndSend w2</a></code></pre></div>
 <p>This is similar to the “redraw” handler</p>
 <ul>
 <li>Get and modify the current world (using <em>modifyTVar’) by calling </em>runActions*</li>
@@ -80,37 +80,37 @@ vi-keys       numpad      </code></pre>
 <h2 id="actions">Actions</h2>
 <p>The code above is calling a function named <em>runActions</em> with the result of <em>handleKey</em>. <em>handleKey</em> looks like this</p>
 <h6 id="movingsrcgameengine.hs-310-to-322">06_moving/src/GameEngine.hs (310 to 322)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">handleKey ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>]</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">handleKey (cmd<span class="fu">:</span>_) <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">    <span class="st">&quot;Move:up&quot;</span>         <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">0</span>,  <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="st">&quot;Move:down&quot;</span>       <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">0</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">    <span class="st">&quot;Move:left&quot;</span>       <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>,  <span class="dv">0</span>)]</a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">    <span class="st">&quot;Move:right&quot;</span>      <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>,  <span class="dv">0</span>)]</a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">    <span class="st">&quot;Move:up-right&quot;</span>   <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>,  <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">    <span class="st">&quot;Move:up-left&quot;</span>    <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>,  <span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">    <span class="st">&quot;Move:down-right&quot;</span> <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">    <span class="st">&quot;Move:down-left&quot;</span>  <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
-<a class="sourceLine" id="cb4-12" data-line-number="12">    _                 <span class="ot">-&gt;</span> []</a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">handleKey _ <span class="fu">=</span> []</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">handleKey ::</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>]</a>
+<a class="sourceLine" id="cb4-2" title="2">handleKey (cmd<span class="fu">:</span>_) <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-3" title="3">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-4" title="4">    <span class="st">&quot;Move:up&quot;</span>         <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">0</span>,  <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-5" title="5">    <span class="st">&quot;Move:down&quot;</span>       <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">0</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-6" title="6">    <span class="st">&quot;Move:left&quot;</span>       <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>,  <span class="dv">0</span>)]</a>
+<a class="sourceLine" id="cb4-7" title="7">    <span class="st">&quot;Move:right&quot;</span>      <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>,  <span class="dv">0</span>)]</a>
+<a class="sourceLine" id="cb4-8" title="8">    <span class="st">&quot;Move:up-right&quot;</span>   <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>,  <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-9" title="9">    <span class="st">&quot;Move:up-left&quot;</span>    <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>,  <span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-10" title="10">    <span class="st">&quot;Move:down-right&quot;</span> <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> ( <span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-11" title="11">    <span class="st">&quot;Move:down-left&quot;</span>  <span class="ot">-&gt;</span> [<span class="dt">ActMovePlayer</span> (<span class="fu">-</span><span class="dv">1</span>, <span class="fu">-</span><span class="dv">1</span>)]</a>
+<a class="sourceLine" id="cb4-12" title="12">    _                 <span class="ot">-&gt;</span> []</a>
+<a class="sourceLine" id="cb4-13" title="13">handleKey _ <span class="fu">=</span> []</a></code></pre></div>
 <h6 id="movingsrcgamecore.hs-63-to-63">06_moving/src/GameCore.hs (63 to 63)</h6>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw">newtype</span> <span class="dt">RogueAction</span> <span class="fu">=</span> <span class="dt">ActMovePlayer</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">newtype</span> <span class="dt">RogueAction</span> <span class="fu">=</span> <span class="dt">ActMovePlayer</span> (<span class="dt">Int</span>, <span class="dt">Int</span>)</a></code></pre></div>
 <p>And then <em>runActions</em> and <em>runAction</em> actually do the work of moving the player</p>
 <h6 id="movingsrcgameengine.hs-327-to-336">06_moving/src/GameEngine.hs (327 to 336)</h6>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="ot">runActions ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>] <span class="ot">-&gt;</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">runActions world actions <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">  foldl' runAction world actions</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="ot">runAction ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">RogueAction</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
-<a class="sourceLine" id="cb6-7" data-line-number="7">runAction world action <span class="fu">=</span></a>
-<a class="sourceLine" id="cb6-8" data-line-number="8">  <span class="kw">case</span> action <span class="kw">of</span></a>
-<a class="sourceLine" id="cb6-9" data-line-number="9">    <span class="dt">ActMovePlayer</span> (dx, dy) <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb6-10" data-line-number="10">      world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acWorldPos) <span class="fu">%~</span> (\(<span class="dt">WorldPos</span> (x, y)) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> (x <span class="fu">+</span> dx, y <span class="fu">+</span> dy))</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb6-1" title="1"><span class="ot">runActions ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> [<span class="dt">RogueAction</span>] <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb6-2" title="2">runActions world actions <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-3" title="3">  foldl' runAction world actions</a>
+<a class="sourceLine" id="cb6-4" title="4"></a>
+<a class="sourceLine" id="cb6-5" title="5"></a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="ot">runAction ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">RogueAction</span> <span class="ot">-&gt;</span> <span class="dt">World</span></a>
+<a class="sourceLine" id="cb6-7" title="7">runAction world action <span class="fu">=</span></a>
+<a class="sourceLine" id="cb6-8" title="8">  <span class="kw">case</span> action <span class="kw">of</span></a>
+<a class="sourceLine" id="cb6-9" title="9">    <span class="dt">ActMovePlayer</span> (dx, dy) <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb6-10" title="10">      world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acWorldPos) <span class="fu">%~</span> (\(<span class="dt">WorldPos</span> (x, y)) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> (x <span class="fu">+</span> dx, y <span class="fu">+</span> dy))</a></code></pre></div>
 <p>Notice that <em>handleKey</em> returns an array of <em>RogueAction</em>. There is a bit of indirection here, <em>handleKey</em> could simply implement the movement logic. The advantages of having actions like this is that as the game gets more complicated it keeps a clean separation between code asking for actions and the code that performs them. The array of actions means that an event (like a key press) can have more than one action.</p>
 <p>This line of code may be worth discussing quickly, as there are a few things going on</p>
 <h6 id="movingsrcgameengine.hs-337-to-337">06_moving/src/GameEngine.hs (337 to 337)</h6>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" data-line-number="1">  world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acWorldPos) <span class="fu">%~</span> (\(<span class="dt">WorldPos</span> (x, y)) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> (x <span class="fu">+</span> dx, y <span class="fu">+</span> dy))</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb7-1" title="1">  world <span class="fu">&amp;</span> (wdPlayer <span class="fu">.</span> plActor <span class="fu">.</span> acWorldPos) <span class="fu">%~</span> (\(<span class="dt">WorldPos</span> (x, y)) <span class="ot">-&gt;</span> <span class="dt">WorldPos</span> (x <span class="fu">+</span> dx, y <span class="fu">+</span> dy))</a></code></pre></div>
 <ol type="1">
 <li><code>world &amp; (wdPlayer . plActor . acWorldPos)</code> is a lens to get to the player’s world position</li>
 <li><code>%~</code> is going to update that position by sending it to a function</li>

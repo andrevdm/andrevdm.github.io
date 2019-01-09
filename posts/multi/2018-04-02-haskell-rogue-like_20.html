@@ -43,229 +43,229 @@
 <h2 id="layer-0">Layer 0</h2>
 <p>All the code in GameHost is layer zero as is <em>runGame</em> and <em>manageConnection</em> from GameEngine. <em>manageConnection</em> starts the AppT pipeline (initialise and <em>startGame</em>)</p>
 <h6 id="consolesrcgameengine.hs-41-to-69">21_console/src/GameEngine.hs (41 to 69)</h6>
-<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="co">-- L0 Hosting</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="ot">runGame ::</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5">runGame getLevel <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">  Host.runHost <span class="fu">$</span> manageConnection getLevel</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb1-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="ot">manageConnection ::</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb1-10" data-line-number="10">manageConnection getLevel conn <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
-<a class="sourceLine" id="cb1-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb1-13" data-line-number="13">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb1-14" data-line-number="14">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb1-15" data-line-number="15">      std <span class="ot">&lt;-</span> Rnd.getStdGen</a>
-<a class="sourceLine" id="cb1-16" data-line-number="16">      </a>
-<a class="sourceLine" id="cb1-17" data-line-number="17">      <span class="kw">case</span> initialiseConnection conn cmdData std getLevel <span class="kw">of</span> <span class="co">-- initialiseConnection is L3</span></a>
-<a class="sourceLine" id="cb1-18" data-line-number="18">        <span class="dt">Right</span> world <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb1-19" data-line-number="19">          app <span class="ot">&lt;-</span> atomically <span class="fu">$</span> <span class="dt">AppState</span> <span class="fu">&lt;$&gt;</span> newTVar conn <span class="fu">&lt;*&gt;</span> newTVar world</a>
-<a class="sourceLine" id="cb1-20" data-line-number="20"></a>
-<a class="sourceLine" id="cb1-21" data-line-number="21">          <span class="co">-- Start the AppT pipeline</span></a>
-<a class="sourceLine" id="cb1-22" data-line-number="22">          runReaderT (unAppT <span class="fu">$</span> initialiseConfig <span class="fu">&gt;&gt;</span> startGame) app</a>
-<a class="sourceLine" id="cb1-23" data-line-number="23"></a>
-<a class="sourceLine" id="cb1-24" data-line-number="24">        <span class="dt">Left</span> e <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb1-25" data-line-number="25">          runReaderT (sendHostError e) conn</a>
-<a class="sourceLine" id="cb1-26" data-line-number="26">        </a>
-<a class="sourceLine" id="cb1-27" data-line-number="27">    _ <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb1-28" data-line-number="28">      pass</a>
-<a class="sourceLine" id="cb1-29" data-line-number="29"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb1-1" title="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="co">-- L0 Hosting</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="ot">runGame ::</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-5" title="5">runGame getLevel <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb1-6" title="6">  Host.runHost <span class="fu">$</span> manageConnection getLevel</a>
+<a class="sourceLine" id="cb1-7" title="7"></a>
+<a class="sourceLine" id="cb1-8" title="8"></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="ot">manageConnection ::</span> (<span class="dt">Levels</span> <span class="ot">-&gt;</span> <span class="dt">Level</span>) <span class="ot">-&gt;</span> <span class="dt">Host.Connection</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb1-10" title="10">manageConnection getLevel conn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-11" title="11">  initCmd <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText </a>
+<a class="sourceLine" id="cb1-12" title="12"></a>
+<a class="sourceLine" id="cb1-13" title="13">  <span class="kw">case</span> parseCommand initCmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb1-14" title="14">    <span class="dt">Just</span> (<span class="st">&quot;init&quot;</span>, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-15" title="15">      std <span class="ot">&lt;-</span> Rnd.getStdGen</a>
+<a class="sourceLine" id="cb1-16" title="16">      </a>
+<a class="sourceLine" id="cb1-17" title="17">      <span class="kw">case</span> initialiseConnection conn cmdData std getLevel <span class="kw">of</span> <span class="co">-- initialiseConnection is L3</span></a>
+<a class="sourceLine" id="cb1-18" title="18">        <span class="dt">Right</span> world <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb1-19" title="19">          app <span class="ot">&lt;-</span> atomically <span class="fu">$</span> <span class="dt">AppState</span> <span class="fu">&lt;$&gt;</span> newTVar conn <span class="fu">&lt;*&gt;</span> newTVar world</a>
+<a class="sourceLine" id="cb1-20" title="20"></a>
+<a class="sourceLine" id="cb1-21" title="21">          <span class="co">-- Start the AppT pipeline</span></a>
+<a class="sourceLine" id="cb1-22" title="22">          runReaderT (unAppT <span class="fu">$</span> initialiseConfig <span class="fu">&gt;&gt;</span> startGame) app</a>
+<a class="sourceLine" id="cb1-23" title="23"></a>
+<a class="sourceLine" id="cb1-24" title="24">        <span class="dt">Left</span> e <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb1-25" title="25">          runReaderT (sendHostError e) conn</a>
+<a class="sourceLine" id="cb1-26" title="26">        </a>
+<a class="sourceLine" id="cb1-27" title="27">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb1-28" title="28">      pass</a>
+<a class="sourceLine" id="cb1-29" title="29"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
 <h2 id="layer-1">Layer 1</h2>
 <p>Layer 1 defines <em>AppState</em> and <em>AppT</em>. It has the <em>initialiseConfig</em> and <em>startGame</em> functions. <em>startGame</em> gets commands from the web sockets and starts layer two’s <em>handleCommand</em></p>
 <h6 id="consolesrcgameengine.hs-74-to-115">21_console/src/GameEngine.hs (74 to 115)</h6>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="co">-- L1 App (orchestration)</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="kw">data</span> <span class="dt">AppState</span> <span class="fu">=</span> <span class="dt">AppState</span> {<span class="ot"> appConnection ::</span> <span class="fu">!</span>(<span class="dt">TVar</span> <span class="dt">Host.Connection</span>)</a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">                         ,<span class="ot"> appWorld ::</span> <span class="fu">!</span>(<span class="dt">TVar</span> <span class="dt">World</span>)</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">                         } </a>
-<a class="sourceLine" id="cb2-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="kw">newtype</span> <span class="dt">AppT</span> m a <span class="fu">=</span> <span class="dt">AppT</span> {<span class="ot"> unAppT ::</span> <span class="dt">ReaderT</span> <span class="dt">AppState</span> m a </a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">                        } <span class="kw">deriving</span> (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadReader</span> <span class="dt">AppState</span>, <span class="dt">MonadTrans</span>)</a>
-<a class="sourceLine" id="cb2-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="ot">askApp ::</span> (<span class="dt">AppState</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> a) <span class="ot">-&gt;</span> <span class="dt">AppT</span> <span class="dt">IO</span> a</a>
-<a class="sourceLine" id="cb2-12" data-line-number="12">askApp getter <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13">  app <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb2-14" data-line-number="14">  lift <span class="fu">.</span> atomically <span class="fu">.</span> readTVar <span class="fu">$</span> getter app</a>
-<a class="sourceLine" id="cb2-15" data-line-number="15"></a>
-<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="ot">modifyApp ::</span> (<span class="dt">AppState</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb2-17" data-line-number="17">modifyApp getter modify' <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-18" data-line-number="18">  app <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb2-19" data-line-number="19">  lift <span class="fu">.</span> atomically <span class="fu">$</span> modifyTVar' (getter app) modify'</a>
-<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">----</span></a>
-<a class="sourceLine" id="cb2-21" data-line-number="21"></a>
-<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="ot">initialiseConfig ::</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb2-23" data-line-number="23">initialiseConfig <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-24" data-line-number="24">  conn <span class="ot">&lt;-</span> askApp appConnection</a>
-<a class="sourceLine" id="cb2-25" data-line-number="25">  world <span class="ot">&lt;-</span> askApp appWorld</a>
-<a class="sourceLine" id="cb2-26" data-line-number="26">  app <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb2-27" data-line-number="27">  lift <span class="fu">$</span> runReaderT (sendConfig <span class="fu">$</span> world <span class="fu">^.</span> wdConfig) (conn, appWorld app)</a>
-<a class="sourceLine" id="cb2-28" data-line-number="28">  </a>
-<a class="sourceLine" id="cb2-29" data-line-number="29"></a>
-<a class="sourceLine" id="cb2-30" data-line-number="30"><span class="ot">startGame ::</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
-<a class="sourceLine" id="cb2-31" data-line-number="31">startGame <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-32" data-line-number="32">  app <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb2-33" data-line-number="33">  conn <span class="ot">&lt;-</span> askApp appConnection</a>
-<a class="sourceLine" id="cb2-34" data-line-number="34"></a>
-<a class="sourceLine" id="cb2-35" data-line-number="35">  lift <span class="fu">.</span> forever <span class="fu">$</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb2-36" data-line-number="36">    t <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText</a>
-<a class="sourceLine" id="cb2-37" data-line-number="37">    r <span class="ot">&lt;-</span> runReaderT (handleCommand t) (conn, appWorld app)</a>
-<a class="sourceLine" id="cb2-38" data-line-number="38"></a>
-<a class="sourceLine" id="cb2-39" data-line-number="39">    <span class="kw">case</span> r <span class="kw">of</span></a>
-<a class="sourceLine" id="cb2-40" data-line-number="40">      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> pass</a>
-<a class="sourceLine" id="cb2-41" data-line-number="41">      <span class="dt">Just</span> e <span class="ot">-&gt;</span> putText e</a>
-<a class="sourceLine" id="cb2-42" data-line-number="42"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb2-1" title="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="co">-- L1 App (orchestration)</span></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="kw">data</span> <span class="dt">AppState</span> <span class="fu">=</span> <span class="dt">AppState</span> {<span class="ot"> appConnection ::</span> <span class="fu">!</span>(<span class="dt">TVar</span> <span class="dt">Host.Connection</span>)</a>
+<a class="sourceLine" id="cb2-5" title="5">                         ,<span class="ot"> appWorld ::</span> <span class="fu">!</span>(<span class="dt">TVar</span> <span class="dt">World</span>)</a>
+<a class="sourceLine" id="cb2-6" title="6">                         } </a>
+<a class="sourceLine" id="cb2-7" title="7"></a>
+<a class="sourceLine" id="cb2-8" title="8"><span class="kw">newtype</span> <span class="dt">AppT</span> m a <span class="fu">=</span> <span class="dt">AppT</span> {<span class="ot"> unAppT ::</span> <span class="dt">ReaderT</span> <span class="dt">AppState</span> m a </a>
+<a class="sourceLine" id="cb2-9" title="9">                        } <span class="kw">deriving</span> (<span class="dt">Functor</span>, <span class="dt">Applicative</span>, <span class="dt">Monad</span>, <span class="dt">MonadReader</span> <span class="dt">AppState</span>, <span class="dt">MonadTrans</span>)</a>
+<a class="sourceLine" id="cb2-10" title="10"></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="ot">askApp ::</span> (<span class="dt">AppState</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> a) <span class="ot">-&gt;</span> <span class="dt">AppT</span> <span class="dt">IO</span> a</a>
+<a class="sourceLine" id="cb2-12" title="12">askApp getter <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-13" title="13">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-14" title="14">  lift <span class="fu">.</span> atomically <span class="fu">.</span> readTVar <span class="fu">$</span> getter app</a>
+<a class="sourceLine" id="cb2-15" title="15"></a>
+<a class="sourceLine" id="cb2-16" title="16"><span class="ot">modifyApp ::</span> (<span class="dt">AppState</span> <span class="ot">-&gt;</span> <span class="dt">TVar</span> a) <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> a) <span class="ot">-&gt;</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-17" title="17">modifyApp getter modify' <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-18" title="18">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-19" title="19">  lift <span class="fu">.</span> atomically <span class="fu">$</span> modifyTVar' (getter app) modify'</a>
+<a class="sourceLine" id="cb2-20" title="20"><span class="co">----</span></a>
+<a class="sourceLine" id="cb2-21" title="21"></a>
+<a class="sourceLine" id="cb2-22" title="22"><span class="ot">initialiseConfig ::</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-23" title="23">initialiseConfig <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-24" title="24">  conn <span class="ot">&lt;-</span> askApp appConnection</a>
+<a class="sourceLine" id="cb2-25" title="25">  world <span class="ot">&lt;-</span> askApp appWorld</a>
+<a class="sourceLine" id="cb2-26" title="26">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-27" title="27">  lift <span class="fu">$</span> runReaderT (sendConfig <span class="fu">$</span> world <span class="fu">^.</span> wdConfig) (conn, appWorld app)</a>
+<a class="sourceLine" id="cb2-28" title="28">  </a>
+<a class="sourceLine" id="cb2-29" title="29"></a>
+<a class="sourceLine" id="cb2-30" title="30"><span class="ot">startGame ::</span> <span class="dt">AppT</span> <span class="dt">IO</span> ()</a>
+<a class="sourceLine" id="cb2-31" title="31">startGame <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-32" title="32">  app <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb2-33" title="33">  conn <span class="ot">&lt;-</span> askApp appConnection</a>
+<a class="sourceLine" id="cb2-34" title="34"></a>
+<a class="sourceLine" id="cb2-35" title="35">  lift <span class="fu">.</span> forever <span class="fu">$</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb2-36" title="36">    t <span class="ot">&lt;-</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb2-37" title="37">    r <span class="ot">&lt;-</span> runReaderT (handleCommand t) (conn, appWorld app)</a>
+<a class="sourceLine" id="cb2-38" title="38"></a>
+<a class="sourceLine" id="cb2-39" title="39">    <span class="kw">case</span> r <span class="kw">of</span></a>
+<a class="sourceLine" id="cb2-40" title="40">      <span class="dt">Nothing</span> <span class="ot">-&gt;</span> pass</a>
+<a class="sourceLine" id="cb2-41" title="41">      <span class="dt">Just</span> e <span class="ot">-&gt;</span> putText e</a>
+<a class="sourceLine" id="cb2-42" title="42"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a></code></pre></div>
 <h2 id="layer-2">Layer 2</h2>
 <p>Layer 2 acts as a bridge to external services. The only external service here is the web socket connection. The <em>MonadHost</em> class abstracts actions on this connection. There are two instances of the type class. One for the normal case where we have the connection and a <em>World</em> and one for when we only have a connection. I could have chosen to use a <em>Maybe World</em> and only have one instance but I think this was is clearer.</p>
 <p>Since there are two instances and they share most of their code, the type class has a default implementation for most of the functions.</p>
 <h6 id="consolesrcgameengine.hs-120-to-178">21_console/src/GameEngine.hs (120 to 178)</h6>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co">-- L2 (bridge / external services)</span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="kw">class</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadHost</span> m <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="ot">  receiveHostText ::</span> m <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="ot">  sendHostData ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="ot">  sendHostLog ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="ot">  sendHostError ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="ot">  sendHostUiConfig ::</span> <span class="dt">UiConfigData</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="ot">  compressData ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m <span class="dt">BSL.ByteString</span></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11"></a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">  <span class="co">--default implementation</span></a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">  sendHostLog err <span class="fu">=</span> sendHostData <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;log&quot;</span> err</a>
-<a class="sourceLine" id="cb3-14" data-line-number="14">  sendHostError err <span class="fu">=</span> sendHostData <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;error&quot;</span> err</a>
-<a class="sourceLine" id="cb3-15" data-line-number="15">  sendHostUiConfig config <span class="fu">=</span> sendHostData <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> config</a>
-<a class="sourceLine" id="cb3-16" data-line-number="16">  compressData <span class="fu">=</span> pure <span class="fu">.</span> Bz.compress <span class="fu">.</span> BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 </a>
-<a class="sourceLine" id="cb3-17" data-line-number="17"></a>
-<a class="sourceLine" id="cb3-18" data-line-number="18"><span class="kw">instance</span> <span class="dt">MonadHost</span> (<span class="dt">ReaderT</span> (<span class="dt">Host.Connection</span>, <span class="dt">TVar</span> <span class="dt">World</span>) <span class="dt">IO</span>) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-19" data-line-number="19">  receiveHostText <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-20" data-line-number="20">    (conn, _) <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-21" data-line-number="21">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conReceiveText</a>
-<a class="sourceLine" id="cb3-22" data-line-number="22"></a>
-<a class="sourceLine" id="cb3-23" data-line-number="23">  sendHostData t <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-24" data-line-number="24">    (conn, _) <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-25" data-line-number="25">    lz <span class="ot">&lt;-</span> compressData t</a>
-<a class="sourceLine" id="cb3-26" data-line-number="26">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a>
-<a class="sourceLine" id="cb3-27" data-line-number="27"></a>
-<a class="sourceLine" id="cb3-28" data-line-number="28"><span class="kw">instance</span> <span class="dt">MonadHost</span> (<span class="dt">ReaderT</span> <span class="dt">Host.Connection</span> <span class="dt">IO</span>) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-29" data-line-number="29">  receiveHostText <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-30" data-line-number="30">    conn <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-31" data-line-number="31">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conReceiveText</a>
-<a class="sourceLine" id="cb3-32" data-line-number="32"></a>
-<a class="sourceLine" id="cb3-33" data-line-number="33">  sendHostData t <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-34" data-line-number="34">    conn <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-35" data-line-number="35">    lz <span class="ot">&lt;-</span> compressData t</a>
-<a class="sourceLine" id="cb3-36" data-line-number="36">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a>
-<a class="sourceLine" id="cb3-37" data-line-number="37"></a>
-<a class="sourceLine" id="cb3-38" data-line-number="38"></a>
-<a class="sourceLine" id="cb3-39" data-line-number="39"><span class="kw">class</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadWorld</span> m <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-40" data-line-number="40"><span class="ot">  askWorld ::</span> m <span class="dt">World</span></a>
-<a class="sourceLine" id="cb3-41" data-line-number="41"><span class="ot">  putWorld ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-42" data-line-number="42"><span class="ot">  modifyWorld ::</span> (<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span>) <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-43" data-line-number="43"><span class="ot">  debugPrint ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb3-44" data-line-number="44"></a>
-<a class="sourceLine" id="cb3-45" data-line-number="45"><span class="kw">instance</span> <span class="dt">MonadWorld</span> (<span class="dt">ReaderT</span> (<span class="dt">Host.Connection</span>, <span class="dt">TVar</span> <span class="dt">World</span>) <span class="dt">IO</span>) <span class="kw">where</span></a>
-<a class="sourceLine" id="cb3-46" data-line-number="46">  askWorld <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-47" data-line-number="47">    (_, wt) <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-48" data-line-number="48">    w <span class="ot">&lt;-</span> lift <span class="fu">.</span> atomically <span class="fu">$</span> readTVar wt</a>
-<a class="sourceLine" id="cb3-49" data-line-number="49">    pure w</a>
-<a class="sourceLine" id="cb3-50" data-line-number="50">    </a>
-<a class="sourceLine" id="cb3-51" data-line-number="51">  putWorld w <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-52" data-line-number="52">    (_, wt) <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-53" data-line-number="53">    lift <span class="fu">.</span> atomically <span class="fu">$</span> writeTVar wt w</a>
-<a class="sourceLine" id="cb3-54" data-line-number="54"></a>
-<a class="sourceLine" id="cb3-55" data-line-number="55">  modifyWorld fn <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb3-56" data-line-number="56">    (_, wt) <span class="ot">&lt;-</span> ask</a>
-<a class="sourceLine" id="cb3-57" data-line-number="57">    lift <span class="fu">.</span> atomically <span class="fu">$</span> modifyTVar' wt fn</a>
-<a class="sourceLine" id="cb3-58" data-line-number="58">  </a>
-<a class="sourceLine" id="cb3-59" data-line-number="59">  debugPrint <span class="fu">=</span> putText</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb3-1" title="1"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="co">-- L2 (bridge / external services)</span></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="co">----------------------------------------------------------------------------------------------------------------</span></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="kw">class</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadHost</span> m <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="ot">  receiveHostText ::</span> m <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="ot">  sendHostData ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-7" title="7"><span class="ot">  sendHostLog ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-8" title="8"><span class="ot">  sendHostError ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-9" title="9"><span class="ot">  sendHostUiConfig ::</span> <span class="dt">UiConfigData</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-10" title="10"><span class="ot">  compressData ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m <span class="dt">BSL.ByteString</span></a>
+<a class="sourceLine" id="cb3-11" title="11"></a>
+<a class="sourceLine" id="cb3-12" title="12">  <span class="co">--default implementation</span></a>
+<a class="sourceLine" id="cb3-13" title="13">  sendHostLog err <span class="fu">=</span> sendHostData <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;log&quot;</span> err</a>
+<a class="sourceLine" id="cb3-14" title="14">  sendHostError err <span class="fu">=</span> sendHostData <span class="fu">$</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiMessage</span> <span class="st">&quot;error&quot;</span> err</a>
+<a class="sourceLine" id="cb3-15" title="15">  sendHostUiConfig config <span class="fu">=</span> sendHostData <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> config</a>
+<a class="sourceLine" id="cb3-16" title="16">  compressData <span class="fu">=</span> <span class="fu">pure</span> <span class="fu">.</span> Bz.compress <span class="fu">.</span> BSL.fromStrict <span class="fu">.</span> TxtE.encodeUtf8 </a>
+<a class="sourceLine" id="cb3-17" title="17"></a>
+<a class="sourceLine" id="cb3-18" title="18"><span class="kw">instance</span> <span class="dt">MonadHost</span> (<span class="dt">ReaderT</span> (<span class="dt">Host.Connection</span>, <span class="dt">TVar</span> <span class="dt">World</span>) <span class="dt">IO</span>) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-19" title="19">  receiveHostText <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-20" title="20">    (conn, _) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-21" title="21">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb3-22" title="22"></a>
+<a class="sourceLine" id="cb3-23" title="23">  sendHostData t <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-24" title="24">    (conn, _) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-25" title="25">    lz <span class="ot">&lt;-</span> compressData t</a>
+<a class="sourceLine" id="cb3-26" title="26">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a>
+<a class="sourceLine" id="cb3-27" title="27"></a>
+<a class="sourceLine" id="cb3-28" title="28"><span class="kw">instance</span> <span class="dt">MonadHost</span> (<span class="dt">ReaderT</span> <span class="dt">Host.Connection</span> <span class="dt">IO</span>) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-29" title="29">  receiveHostText <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-30" title="30">    conn <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-31" title="31">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conReceiveText</a>
+<a class="sourceLine" id="cb3-32" title="32"></a>
+<a class="sourceLine" id="cb3-33" title="33">  sendHostData t <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-34" title="34">    conn <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-35" title="35">    lz <span class="ot">&lt;-</span> compressData t</a>
+<a class="sourceLine" id="cb3-36" title="36">    lift <span class="fu">$</span> conn <span class="fu">^.</span> conSendData <span class="fu">$</span> lz</a>
+<a class="sourceLine" id="cb3-37" title="37"></a>
+<a class="sourceLine" id="cb3-38" title="38"></a>
+<a class="sourceLine" id="cb3-39" title="39"><span class="kw">class</span> (<span class="dt">Monad</span> m) <span class="ot">=&gt;</span> <span class="dt">MonadWorld</span> m <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-40" title="40"><span class="ot">  askWorld ::</span> m <span class="dt">World</span></a>
+<a class="sourceLine" id="cb3-41" title="41"><span class="ot">  putWorld ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-42" title="42"><span class="ot">  modifyWorld ::</span> (<span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">World</span>) <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-43" title="43"><span class="ot">  debugPrint ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb3-44" title="44"></a>
+<a class="sourceLine" id="cb3-45" title="45"><span class="kw">instance</span> <span class="dt">MonadWorld</span> (<span class="dt">ReaderT</span> (<span class="dt">Host.Connection</span>, <span class="dt">TVar</span> <span class="dt">World</span>) <span class="dt">IO</span>) <span class="kw">where</span></a>
+<a class="sourceLine" id="cb3-46" title="46">  askWorld <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-47" title="47">    (_, wt) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-48" title="48">    w <span class="ot">&lt;-</span> lift <span class="fu">.</span> atomically <span class="fu">$</span> readTVar wt</a>
+<a class="sourceLine" id="cb3-49" title="49">    <span class="fu">pure</span> w</a>
+<a class="sourceLine" id="cb3-50" title="50">    </a>
+<a class="sourceLine" id="cb3-51" title="51">  putWorld w <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-52" title="52">    (_, wt) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-53" title="53">    lift <span class="fu">.</span> atomically <span class="fu">$</span> writeTVar wt w</a>
+<a class="sourceLine" id="cb3-54" title="54"></a>
+<a class="sourceLine" id="cb3-55" title="55">  modifyWorld fn <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb3-56" title="56">    (_, wt) <span class="ot">&lt;-</span> ask</a>
+<a class="sourceLine" id="cb3-57" title="57">    lift <span class="fu">.</span> atomically <span class="fu">$</span> modifyTVar' wt fn</a>
+<a class="sourceLine" id="cb3-58" title="58">  </a>
+<a class="sourceLine" id="cb3-59" title="59">  debugPrint <span class="fu">=</span> putText</a></code></pre></div>
 <p>Layer 2 has <em>handleCommand</em>, <em>runCmd</em> and <em>sendConfig</em>. The functions that need to deal with the external service and call functions from level 3.</p>
 <h6 id="consolesrcgameengine.hs-183-to-266">21_console/src/GameEngine.hs (183 to 266)</h6>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="ot">handleCommand ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m (<span class="dt">Maybe</span> <span class="dt">Text</span>)</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">handleCommand t <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="kw">case</span> parseCommand t <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> pure <span class="fu">.</span> <span class="dt">Just</span> <span class="fu">$</span> <span class="st">&quot;error parsing: &quot;</span> <span class="fu">&lt;&gt;</span> t</a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="dt">Just</span> (cmd, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">      runCmd cmd cmdData</a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">      pure <span class="dt">Nothing</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="ot">runCmd ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">runCmd cmd cmdData <span class="fu">=</span> </a>
-<a class="sourceLine" id="cb4-12" data-line-number="12">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendHostError <span class="st">&quot;missing / invalid screen size&quot;</span></a>
-<a class="sourceLine" id="cb4-16" data-line-number="16">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">          world <span class="ot">&lt;-</span> askWorld</a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">          sendHostData <span class="fu">$</span> Ae.encodeText (drawAndSend world)</a>
-<a class="sourceLine" id="cb4-20" data-line-number="20">          sendHostLog <span class="st">&quot;draw&quot;</span></a>
-<a class="sourceLine" id="cb4-21" data-line-number="21">      </a>
-<a class="sourceLine" id="cb4-22" data-line-number="22">    <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">      <span class="co">-- Handle the key press</span></a>
-<a class="sourceLine" id="cb4-24" data-line-number="24">      modifyWorld (\w <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb4-25" data-line-number="25">                     <span class="co">-- Do the actions as if they will succeed</span></a>
-<a class="sourceLine" id="cb4-26" data-line-number="26">                     <span class="kw">let</span> pendingWorld <span class="fu">=</span> runActions w <span class="fu">$</span> handleKey w cmdData <span class="kw">in</span></a>
-<a class="sourceLine" id="cb4-27" data-line-number="27">                     <span class="co">-- Apply, if the move is allowed</span></a>
-<a class="sourceLine" id="cb4-28" data-line-number="28">                     <span class="co">-- Cost is hard-coded to 100 for now, this will be fixed later</span></a>
-<a class="sourceLine" id="cb4-29" data-line-number="29">                     playerMoving <span class="dv">100</span> pendingWorld w</a>
-<a class="sourceLine" id="cb4-30" data-line-number="30">                  )</a>
-<a class="sourceLine" id="cb4-31" data-line-number="31"></a>
-<a class="sourceLine" id="cb4-32" data-line-number="32">      <span class="co">-- Get the updated world</span></a>
-<a class="sourceLine" id="cb4-33" data-line-number="33">      w2 <span class="ot">&lt;-</span> askWorld</a>
-<a class="sourceLine" id="cb4-34" data-line-number="34"></a>
-<a class="sourceLine" id="cb4-35" data-line-number="35">      <span class="co">-- Handle the annotations</span></a>
-<a class="sourceLine" id="cb4-36" data-line-number="36">      <span class="co">-- This is not terribly pretty as its doing a select for update, but its good enough for debugging</span></a>
-<a class="sourceLine" id="cb4-37" data-line-number="37">      <span class="co">-- the annotation code can be removed once everything is working</span></a>
-<a class="sourceLine" id="cb4-38" data-line-number="38">      <span class="kw">let</span> annotations <span class="fu">=</span> w2 <span class="fu">^.</span> wdUtilBrainAnnotations </a>
-<a class="sourceLine" id="cb4-39" data-line-number="39">      modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">.~</span> [])</a>
-<a class="sourceLine" id="cb4-40" data-line-number="40">      <span class="co">--printAnnotations annotations</span></a>
-<a class="sourceLine" id="cb4-41" data-line-number="41"></a>
-<a class="sourceLine" id="cb4-42" data-line-number="42">      <span class="co">-- Draw</span></a>
-<a class="sourceLine" id="cb4-43" data-line-number="43">      w3 <span class="ot">&lt;-</span> askWorld</a>
-<a class="sourceLine" id="cb4-44" data-line-number="44">      sendHostData <span class="fu">$</span> Ae.encodeText (drawAndSend w3)</a>
-<a class="sourceLine" id="cb4-45" data-line-number="45"></a>
-<a class="sourceLine" id="cb4-46" data-line-number="46">    _ <span class="ot">-&gt;</span></a>
-<a class="sourceLine" id="cb4-47" data-line-number="47">      sendHostError <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
-<a class="sourceLine" id="cb4-48" data-line-number="48"></a>
-<a class="sourceLine" id="cb4-49" data-line-number="49">  <span class="kw">where</span></a>
-<a class="sourceLine" id="cb4-50" data-line-number="50">    updatePlayer f <span class="fu">=</span> modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a>
-<a class="sourceLine" id="cb4-51" data-line-number="51"></a>
-<a class="sourceLine" id="cb4-52" data-line-number="52">    printAnnotations as <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-53" data-line-number="53">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-54" data-line-number="54">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-55" data-line-number="55">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-56" data-line-number="56">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-57" data-line-number="57">      debugPrint <span class="st">&quot;***** Utility Annotations **************&quot;</span></a>
-<a class="sourceLine" id="cb4-58" data-line-number="58">      traverse_ printAnnotation as</a>
-<a class="sourceLine" id="cb4-59" data-line-number="59">      debugPrint <span class="st">&quot;****************************************&quot;</span></a>
-<a class="sourceLine" id="cb4-60" data-line-number="60">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-61" data-line-number="61"></a>
-<a class="sourceLine" id="cb4-62" data-line-number="62">    printAnnotation (e, assess, top)  <span class="fu">=</span> <span class="kw">do</span></a>
-<a class="sourceLine" id="cb4-63" data-line-number="63">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-64" data-line-number="64">      debugPrint <span class="fu">$</span> <span class="st">&quot;-----------------------&quot;</span> <span class="fu">&lt;&gt;</span> show e</a>
-<a class="sourceLine" id="cb4-65" data-line-number="65">      debugPrint <span class="st">&quot;  -- assess --&quot;</span></a>
-<a class="sourceLine" id="cb4-66" data-line-number="66">      debugPrint <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> assess</a>
-<a class="sourceLine" id="cb4-67" data-line-number="67">      debugPrint <span class="st">&quot;&quot;</span></a>
-<a class="sourceLine" id="cb4-68" data-line-number="68">      debugPrint <span class="st">&quot;  -- top --&quot;</span></a>
-<a class="sourceLine" id="cb4-69" data-line-number="69">      debugPrint <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> top</a>
-<a class="sourceLine" id="cb4-70" data-line-number="70">      debugPrint <span class="st">&quot;-----------------------&quot;</span></a>
-<a class="sourceLine" id="cb4-71" data-line-number="71"></a>
-<a class="sourceLine" id="cb4-72" data-line-number="72"><span class="ot">    showEntries ::</span> <span class="dt">UtilAnnotationEntry</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
-<a class="sourceLine" id="cb4-73" data-line-number="73">    showEntries e <span class="fu">=</span></a>
-<a class="sourceLine" id="cb4-74" data-line-number="74">      <span class="kw">case</span> e <span class="kw">of</span></a>
-<a class="sourceLine" id="cb4-75" data-line-number="75">        <span class="dt">UeAt</span> a <span class="ot">-&gt;</span> <span class="st">&quot;    At: &quot;</span> <span class="fu">&lt;&gt;</span> a</a>
-<a class="sourceLine" id="cb4-76" data-line-number="76">        <span class="dt">UeSelectTopNone</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    No utils: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
-<a class="sourceLine" id="cb4-77" data-line-number="77">        <span class="dt">UeSelectTopAbove</span> f  <span class="ot">-&gt;</span> <span class="st">&quot;    Top above: &quot;</span> <span class="fu">&lt;&gt;</span> showF f</a>
-<a class="sourceLine" id="cb4-78" data-line-number="78">        <span class="dt">UeSelectTopOne</span> val n i d <span class="ot">-&gt;</span> <span class="st">&quot;    Select top one: &quot;</span> <span class="fu">&lt;&gt;</span> n <span class="fu">&lt;&gt;</span> <span class="st">&quot;, impulse=&quot;</span> <span class="fu">&lt;&gt;</span> show i <span class="fu">&lt;&gt;</span> <span class="st">&quot;, score=&quot;</span> <span class="fu">&lt;&gt;</span> showF val <span class="fu">&lt;&gt;</span> <span class="st">&quot;,&quot;</span> <span class="fu">&lt;&gt;</span> d</a>
-<a class="sourceLine" id="cb4-79" data-line-number="79">        <span class="dt">UeNote</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    Note: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
-<a class="sourceLine" id="cb4-80" data-line-number="80"></a>
-<a class="sourceLine" id="cb4-81" data-line-number="81">  </a>
-<a class="sourceLine" id="cb4-82" data-line-number="82"><span class="ot">sendConfig ::</span> (<span class="dt">MonadHost</span> m) <span class="ot">=&gt;</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> m ()</a>
-<a class="sourceLine" id="cb4-83" data-line-number="83">sendConfig config <span class="fu">=</span></a>
-<a class="sourceLine" id="cb4-84" data-line-number="84">  sendHostData <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> (buildConfig config)</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><a class="sourceLine" id="cb4-1" title="1"><span class="ot">handleCommand ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> m (<span class="dt">Maybe</span> <span class="dt">Text</span>)</a>
+<a class="sourceLine" id="cb4-2" title="2">handleCommand t <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-3" title="3">  <span class="kw">case</span> parseCommand t <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-4" title="4">    <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="fu">.</span> <span class="dt">Just</span> <span class="fu">$</span> <span class="st">&quot;error parsing: &quot;</span> <span class="fu">&lt;&gt;</span> t</a>
+<a class="sourceLine" id="cb4-5" title="5">    <span class="dt">Just</span> (cmd, cmdData) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-6" title="6">      runCmd cmd cmdData</a>
+<a class="sourceLine" id="cb4-7" title="7">      <span class="fu">pure</span> <span class="dt">Nothing</span></a>
+<a class="sourceLine" id="cb4-8" title="8"></a>
+<a class="sourceLine" id="cb4-9" title="9"></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="ot">runCmd ::</span> (<span class="dt">MonadHost</span> m, <span class="dt">MonadWorld</span> m) <span class="ot">=&gt;</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> [<span class="dt">Text</span>] <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb4-11" title="11">runCmd cmd cmdData <span class="fu">=</span> </a>
+<a class="sourceLine" id="cb4-12" title="12">  <span class="kw">case</span> cmd <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-13" title="13">    <span class="st">&quot;redraw&quot;</span> <span class="ot">-&gt;</span> </a>
+<a class="sourceLine" id="cb4-14" title="14">      <span class="kw">case</span> parseScreenSize cmdData <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-15" title="15">        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> sendHostError <span class="st">&quot;missing / invalid screen size&quot;</span></a>
+<a class="sourceLine" id="cb4-16" title="16">        <span class="dt">Just</span> (sx, sy) <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-17" title="17">          updatePlayer (plScreenSize <span class="fu">.~</span> (sx, sy))</a>
+<a class="sourceLine" id="cb4-18" title="18">          world <span class="ot">&lt;-</span> askWorld</a>
+<a class="sourceLine" id="cb4-19" title="19">          sendHostData <span class="fu">$</span> Ae.encodeText (drawAndSend world)</a>
+<a class="sourceLine" id="cb4-20" title="20">          sendHostLog <span class="st">&quot;draw&quot;</span></a>
+<a class="sourceLine" id="cb4-21" title="21">      </a>
+<a class="sourceLine" id="cb4-22" title="22">    <span class="st">&quot;key&quot;</span> <span class="ot">-&gt;</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-23" title="23">      <span class="co">-- Handle the key press</span></a>
+<a class="sourceLine" id="cb4-24" title="24">      modifyWorld (\w <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb4-25" title="25">                     <span class="co">-- Do the actions as if they will succeed</span></a>
+<a class="sourceLine" id="cb4-26" title="26">                     <span class="kw">let</span> pendingWorld <span class="fu">=</span> runActions w <span class="fu">$</span> handleKey w cmdData <span class="kw">in</span></a>
+<a class="sourceLine" id="cb4-27" title="27">                     <span class="co">-- Apply, if the move is allowed</span></a>
+<a class="sourceLine" id="cb4-28" title="28">                     <span class="co">-- Cost is hard-coded to 100 for now, this will be fixed later</span></a>
+<a class="sourceLine" id="cb4-29" title="29">                     playerMoving <span class="dv">100</span> pendingWorld w</a>
+<a class="sourceLine" id="cb4-30" title="30">                  )</a>
+<a class="sourceLine" id="cb4-31" title="31"></a>
+<a class="sourceLine" id="cb4-32" title="32">      <span class="co">-- Get the updated world</span></a>
+<a class="sourceLine" id="cb4-33" title="33">      w2 <span class="ot">&lt;-</span> askWorld</a>
+<a class="sourceLine" id="cb4-34" title="34"></a>
+<a class="sourceLine" id="cb4-35" title="35">      <span class="co">-- Handle the annotations</span></a>
+<a class="sourceLine" id="cb4-36" title="36">      <span class="co">-- This is not terribly pretty as its doing a select for update, but its good enough for debugging</span></a>
+<a class="sourceLine" id="cb4-37" title="37">      <span class="co">-- the annotation code can be removed once everything is working</span></a>
+<a class="sourceLine" id="cb4-38" title="38">      <span class="kw">let</span> annotations <span class="fu">=</span> w2 <span class="fu">^.</span> wdUtilBrainAnnotations </a>
+<a class="sourceLine" id="cb4-39" title="39">      modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdUtilBrainAnnotations <span class="fu">.~</span> [])</a>
+<a class="sourceLine" id="cb4-40" title="40">      <span class="co">--printAnnotations annotations</span></a>
+<a class="sourceLine" id="cb4-41" title="41"></a>
+<a class="sourceLine" id="cb4-42" title="42">      <span class="co">-- Draw</span></a>
+<a class="sourceLine" id="cb4-43" title="43">      w3 <span class="ot">&lt;-</span> askWorld</a>
+<a class="sourceLine" id="cb4-44" title="44">      sendHostData <span class="fu">$</span> Ae.encodeText (drawAndSend w3)</a>
+<a class="sourceLine" id="cb4-45" title="45"></a>
+<a class="sourceLine" id="cb4-46" title="46">    _ <span class="ot">-&gt;</span></a>
+<a class="sourceLine" id="cb4-47" title="47">      sendHostError <span class="fu">$</span> <span class="st">&quot;Unknown command: &quot;</span> <span class="fu">&lt;&gt;</span> cmd</a>
+<a class="sourceLine" id="cb4-48" title="48"></a>
+<a class="sourceLine" id="cb4-49" title="49">  <span class="kw">where</span></a>
+<a class="sourceLine" id="cb4-50" title="50">    updatePlayer f <span class="fu">=</span> modifyWorld (\w <span class="ot">-&gt;</span> w <span class="fu">&amp;</span> wdPlayer <span class="fu">%~</span> f)</a>
+<a class="sourceLine" id="cb4-51" title="51"></a>
+<a class="sourceLine" id="cb4-52" title="52">    printAnnotations as <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-53" title="53">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-54" title="54">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-55" title="55">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-56" title="56">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-57" title="57">      debugPrint <span class="st">&quot;***** Utility Annotations **************&quot;</span></a>
+<a class="sourceLine" id="cb4-58" title="58">      traverse_ printAnnotation as</a>
+<a class="sourceLine" id="cb4-59" title="59">      debugPrint <span class="st">&quot;****************************************&quot;</span></a>
+<a class="sourceLine" id="cb4-60" title="60">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-61" title="61"></a>
+<a class="sourceLine" id="cb4-62" title="62">    printAnnotation (e, assess, top)  <span class="fu">=</span> <span class="kw">do</span></a>
+<a class="sourceLine" id="cb4-63" title="63">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-64" title="64">      debugPrint <span class="fu">$</span> <span class="st">&quot;-----------------------&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> e</a>
+<a class="sourceLine" id="cb4-65" title="65">      debugPrint <span class="st">&quot;  -- assess --&quot;</span></a>
+<a class="sourceLine" id="cb4-66" title="66">      debugPrint <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> assess</a>
+<a class="sourceLine" id="cb4-67" title="67">      debugPrint <span class="st">&quot;&quot;</span></a>
+<a class="sourceLine" id="cb4-68" title="68">      debugPrint <span class="st">&quot;  -- top --&quot;</span></a>
+<a class="sourceLine" id="cb4-69" title="69">      debugPrint <span class="fu">.</span> Txt.intercalate <span class="st">&quot;\n&quot;</span> <span class="fu">$</span> showEntries <span class="fu">&lt;$&gt;</span> top</a>
+<a class="sourceLine" id="cb4-70" title="70">      debugPrint <span class="st">&quot;-----------------------&quot;</span></a>
+<a class="sourceLine" id="cb4-71" title="71"></a>
+<a class="sourceLine" id="cb4-72" title="72"><span class="ot">    showEntries ::</span> <span class="dt">UtilAnnotationEntry</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></a>
+<a class="sourceLine" id="cb4-73" title="73">    showEntries e <span class="fu">=</span></a>
+<a class="sourceLine" id="cb4-74" title="74">      <span class="kw">case</span> e <span class="kw">of</span></a>
+<a class="sourceLine" id="cb4-75" title="75">        <span class="dt">UeAt</span> a <span class="ot">-&gt;</span> <span class="st">&quot;    At: &quot;</span> <span class="fu">&lt;&gt;</span> a</a>
+<a class="sourceLine" id="cb4-76" title="76">        <span class="dt">UeSelectTopNone</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    No utils: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
+<a class="sourceLine" id="cb4-77" title="77">        <span class="dt">UeSelectTopAbove</span> f  <span class="ot">-&gt;</span> <span class="st">&quot;    Top above: &quot;</span> <span class="fu">&lt;&gt;</span> showF f</a>
+<a class="sourceLine" id="cb4-78" title="78">        <span class="dt">UeSelectTopOne</span> val n i d <span class="ot">-&gt;</span> <span class="st">&quot;    Select top one: &quot;</span> <span class="fu">&lt;&gt;</span> n <span class="fu">&lt;&gt;</span> <span class="st">&quot;, impulse=&quot;</span> <span class="fu">&lt;&gt;</span> <span class="fu">show</span> i <span class="fu">&lt;&gt;</span> <span class="st">&quot;, score=&quot;</span> <span class="fu">&lt;&gt;</span> showF val <span class="fu">&lt;&gt;</span> <span class="st">&quot;,&quot;</span> <span class="fu">&lt;&gt;</span> d</a>
+<a class="sourceLine" id="cb4-79" title="79">        <span class="dt">UeNote</span> n <span class="ot">-&gt;</span> <span class="st">&quot;    Note: &quot;</span> <span class="fu">&lt;&gt;</span> n</a>
+<a class="sourceLine" id="cb4-80" title="80"></a>
+<a class="sourceLine" id="cb4-81" title="81">  </a>
+<a class="sourceLine" id="cb4-82" title="82"><span class="ot">sendConfig ::</span> (<span class="dt">MonadHost</span> m) <span class="ot">=&gt;</span> <span class="dt">Config</span> <span class="ot">-&gt;</span> m ()</a>
+<a class="sourceLine" id="cb4-83" title="83">sendConfig config <span class="fu">=</span></a>
+<a class="sourceLine" id="cb4-84" title="84">  sendHostData <span class="fu">.</span> Ae.encodeText <span class="fu">$</span> <span class="dt">UiConfig</span> <span class="st">&quot;config&quot;</span> (buildConfig config)</a></code></pre></div>
 <h2 id="level-3">Level 3</h2>
 <p>Level 3 has everything else.</p>
 <h1 id="structure-done">Structure done</h1>
