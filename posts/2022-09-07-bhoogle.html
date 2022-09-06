@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">bhoogle - Building a simple hoogle GUI with brick  (Updated for brick 1.1)</a></h1>
+
+            <div class="info">
+    Posted on September  7, 2022
+    
+</div>
+
+<h1 id="overview">Overview</h1>
+<p>bhoogle is a simple hoogle terminal GUI written using <a href="https://hackage.haskell.org/package/brick">brick</a>. This post is the annotated source code that should give you an idea of how to use brick and how easy brick makes building terminal UIs.</p>
+<p>This post is a simple upgrade from the [original 2018 version)[http://www.andrevdm.com/posts/2018-01-15-bhoogle.html] to brick version 1.1 If you are upgrading an existing project then looking at the upgrade diff may be useful</p>
+<ul>
+<li><a href="https://github.com/andrevdm/bhoogle/commit/bf125b4253ff48d801291b0e7fa5368b089e85e4">Diff for Brick 1.1 for blog version</a></li>
+<li><a href="https://github.com/andrevdm/bhoogle/commit/2c4159d264d2fa112b0a7814ae36df97ad0c74c2">Diff for Brick 1.1 for full app</a></li>
+</ul>
+<h2 id="bhoogle">bhoogle</h2>
+<p><img src="../images/bhoogle.png" /></p>
+<p>bhoogle is possibly useful as a local hoogle UI as well as a demo app. You can get the full code from <a href="https://github.com/andrevdm/bhoogle">github</a>.</p>
+<h3 id="setup">Setup</h3>
+<p>You will need an existing local hoogle database. If you do not already have one or are unsure, then do this</p>
+<ol type="1">
+<li>Install hoogle (e.g. <code>cabal install hoogle</code>)</li>
+<li>Generate the default database (<code>hoogle generate</code>)</li>
+</ol>
+<h3 id="build">Build</h3>
+<p>You can then <a href="https://github.com/andrevdm/bhoogle">clone the code</a></p>
+<h3 id="usage">Usage</h3>
+<ol type="1">
+<li>Enter a type search in the “type” edit box</li>
+<li>Press <strong>enter</strong> to search: focus goes directly to the results list</li>
+<li>Or press <strong>tab</strong> to search and focus will go to the “text” edit box</li>
+<li>You can then filter the results by typing in the “text” edit box, any result containing the sub-string typed will be shown</li>
+<li>Navigate the results by using <strong>arrow</strong> or vi (<strong>hjkl</strong>) keys</li>
+<li>Pressing <strong>‘s’</strong> in the results list will toggle the sort order</li>
+<li><strong>Escape</strong> to exit</li>
+<li>Search-ahead is enable for any type search longer than three characters</li>
+</ol>
+<h1 id="brick">Brick</h1>
+<p>There are a few conventions to get used to when building a brick UI, but I don’t think it should take you too long to get the hang of things.</p>
+<p>The <a href="https://github.com/jtdaugherty/brick/blob/master/docs/guide.rst">brick user guide</a> and documentation are fantastic. Brick comes with multiple example apps that show controls and features being used. There are also third party tutorials e.g. <a href="https://github.com/jtdaugherty/brick/blob/master/docs/samtay-tutorial.md">Samuel Tay’s brick tutorial</a></p>
+<h1 id="bhoogle-0.1.1.1-source">bhoogle 0.1.1.1 source</h1>
+<p>If you have looked at the user guide or Samuel Tay’s tutorial you’ll already have some idea of the fundamental concepts. Below is the annotated source for bhoogle. As always feel free to email or contact me on <a href="https://twitter.com/andrevdm">twitter</a> if anything is unclear and I’ll do my best to assist.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1"></a><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="ot">{-# LANGUAGE TemplateHaskell #-}</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a></span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="kw">module</span> <span class="dt">Main</span> <span class="kw">where</span></span>
+<span id="cb1-6"><a href="#cb1-6"></a></span>
+<span id="cb1-7"><a href="#cb1-7"></a><span class="kw">import</span>           <span class="dt">Protolude</span></span>
+<span id="cb1-8"><a href="#cb1-8"></a><span class="kw">import</span>           <span class="dt">Control.Lens</span> ((^.), (.~), (%~))</span>
+<span id="cb1-9"><a href="#cb1-9"></a><span class="kw">import</span>           <span class="dt">Control.Lens.TH</span> (makeLenses)</span>
+<span id="cb1-10"><a href="#cb1-10"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.List</span> <span class="kw">as</span> <span class="dt">Lst</span></span>
+<span id="cb1-11"><a href="#cb1-11"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Time</span> <span class="kw">as</span> <span class="dt">Tm</span></span>
+<span id="cb1-12"><a href="#cb1-12"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Text</span> <span class="kw">as</span> <span class="dt">Txt</span></span>
+<span id="cb1-13"><a href="#cb1-13"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Vector</span> <span class="kw">as</span> <span class="dt">Vec</span></span>
+<span id="cb1-14"><a href="#cb1-14"></a><span class="kw">import</span>           <span class="dt">Brick</span> ((&lt;+&gt;), (&lt;=&gt;))</span>
+<span id="cb1-15"><a href="#cb1-15"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick</span> <span class="kw">as</span> <span class="dt">B</span></span>
+<span id="cb1-16"><a href="#cb1-16"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.BChan</span> <span class="kw">as</span> <span class="dt">BCh</span></span>
+<span id="cb1-17"><a href="#cb1-17"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.Focus</span> <span class="kw">as</span> <span class="dt">BF</span></span>
+<span id="cb1-18"><a href="#cb1-18"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.AttrMap</span> <span class="kw">as</span> <span class="dt">BA</span></span>
+<span id="cb1-19"><a href="#cb1-19"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.Widgets.List</span> <span class="kw">as</span> <span class="dt">BL</span></span>
+<span id="cb1-20"><a href="#cb1-20"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.Widgets.Edit</span> <span class="kw">as</span> <span class="dt">BE</span></span>
+<span id="cb1-21"><a href="#cb1-21"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.Widgets.Border</span> <span class="kw">as</span> <span class="dt">BB</span></span>
+<span id="cb1-22"><a href="#cb1-22"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Brick.Widgets.Border.Style</span> <span class="kw">as</span> <span class="dt">BBS</span></span>
+<span id="cb1-23"><a href="#cb1-23"></a><span class="kw">import</span>           <span class="dt">Control.Concurrent</span> (threadDelay, forkIO)</span>
+<span id="cb1-24"><a href="#cb1-24"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Graphics.Vty</span> <span class="kw">as</span> <span class="dt">V</span></span>
+<span id="cb1-25"><a href="#cb1-25"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Graphics.Vty.Input.Events</span> <span class="kw">as</span> <span class="dt">K</span></span>
+<span id="cb1-26"><a href="#cb1-26"></a></span>
+<span id="cb1-27"><a href="#cb1-27"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Hoogle</span> <span class="kw">as</span> <span class="dt">H</span></span></code></pre></div>
+<p>Import all the modules we’ll need. I’m using <a href="https://github.com/sdiehl/protolude">protolude</a> as my custom prelude, changing to one of the others e.g. <a href="https://hackage.haskell.org/package/classy-prelude">classy</a> should be pretty simple if you prefer that.</p>
+<p>I’m also using lens. The brick examples use lens so its worth getting used to. However I’m only using three of the simpler lenses, so if you don’t like lens or template haskell it should be easy enough to remove them.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1"></a><span class="co">-- | Events that can be sent</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="co">-- | Here there is just one event for updating the time</span></span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="kw">newtype</span> <span class="dt">Event</span> <span class="ot">=</span> <span class="dt">EventUpdateTime</span> <span class="dt">Tm.LocalTime</span></span>
+<span id="cb2-4"><a href="#cb2-4"></a></span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="co">-- | Names use to identify each of the controls</span></span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="kw">data</span> <span class="dt">Name</span> <span class="ot">=</span> <span class="dt">TypeSearch</span></span>
+<span id="cb2-7"><a href="#cb2-7"></a>          <span class="op">|</span> <span class="dt">TextSearch</span></span>
+<span id="cb2-8"><a href="#cb2-8"></a>          <span class="op">|</span> <span class="dt">ListResults</span></span>
+<span id="cb2-9"><a href="#cb2-9"></a>          <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Ord</span>)</span></code></pre></div>
+<p>Next we need to define the type of custom events that our brick application can handle and a sum type defining the “name” for each control we want to use.</p>
+<p>In this example there is only a single event <strong>EventUpdateTime</strong>. It is sent once a second with the current time. This gets displayed by brick in the top right corner</p>
+<p>There are three controls</p>
+<ol type="1">
+<li>The edit box for the type to search for</li>
+<li>The edit box for the substring search</li>
+<li>The results listbox</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1"></a><span class="co">-- | Sort order</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="kw">data</span> <span class="dt">SortBy</span> <span class="ot">=</span> <span class="dt">SortNone</span></span>
+<span id="cb3-3"><a href="#cb3-3"></a>            <span class="op">|</span> <span class="dt">SortAsc</span></span>
+<span id="cb3-4"><a href="#cb3-4"></a>            <span class="op">|</span> <span class="dt">SortDec</span></span>
+<span id="cb3-5"><a href="#cb3-5"></a>            <span class="kw">deriving</span> (<span class="dt">Eq</span>)</span>
+<span id="cb3-6"><a href="#cb3-6"></a></span>
+<span id="cb3-7"><a href="#cb3-7"></a></span>
+<span id="cb3-8"><a href="#cb3-8"></a><span class="co">-- | State of the brick app. Contains the controls and any other required state</span></span>
+<span id="cb3-9"><a href="#cb3-9"></a><span class="kw">data</span> <span class="dt">BrickState</span> <span class="ot">=</span> <span class="dt">BrickState</span> {<span class="ot"> _stEditType ::</span> <span class="op">!</span>(<span class="dt">BE.Editor</span> <span class="dt">Text</span> <span class="dt">Name</span>) <span class="co">-- ^ Editor for the type to search for</span></span>
+<span id="cb3-10"><a href="#cb3-10"></a>     ,<span class="ot"> _stEditText ::</span> <span class="op">!</span>(<span class="dt">BE.Editor</span> <span class="dt">Text</span> <span class="dt">Name</span>)      <span class="co">-- ^ Editor for a text search in the results</span></span>
+<span id="cb3-11"><a href="#cb3-11"></a>     ,<span class="ot"> _stResultsList ::</span> <span class="op">!</span>(<span class="dt">BL.List</span> <span class="dt">Name</span> <span class="dt">H.Target</span>) <span class="co">-- ^ List for the search results</span></span>
+<span id="cb3-12"><a href="#cb3-12"></a>     ,<span class="ot"> _stFocus ::</span> <span class="op">!</span>(<span class="dt">BF.FocusRing</span> <span class="dt">Name</span>)           <span class="co">-- ^ Focus ring - a circular list of focusable controls</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a>     ,<span class="ot"> _stTime ::</span> <span class="op">!</span><span class="dt">Tm.LocalTime</span>                   <span class="co">-- ^ The current time</span></span>
+<span id="cb3-14"><a href="#cb3-14"></a>     ,<span class="ot"> _stResults ::</span> [<span class="dt">H.Target</span>]                   <span class="co">-- ^ The last set of search results from hoohle</span></span>
+<span id="cb3-15"><a href="#cb3-15"></a>     ,<span class="ot"> _stSortResults ::</span> <span class="dt">SortBy</span>                   <span class="co">-- ^ Current sort order for the results</span></span>
+<span id="cb3-16"><a href="#cb3-16"></a>     }</span>
+<span id="cb3-17"><a href="#cb3-17"></a></span>
+<span id="cb3-18"><a href="#cb3-18"></a>makeLenses '<span class="dt">'BrickState</span></span></code></pre></div>
+<p><strong>BrickState</strong> contains the current state of the brick application. Any event e.g. the custom update time event, or any key press event can result in the state being updated. There is a separate draw function that renders the state.</p>
+<p>I.e. one part of the code deals with events, roughly <code>state -&gt; event -&gt; state</code> and another handles the drawing <code>state -&gt; GUI</code></p>
+<p>Here the state contains</p>
+<ol type="1">
+<li>The three controls mentioned above (two edit + one listbox)</li>
+<li>A focus ring. (A <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Focus.html">focus ring</a> is a circular list of control names that helps your code keep track of which control has the current focus).</li>
+<li>The last updated current time</li>
+<li>The last search result</li>
+<li>The current sort order, so that it can be toggled between ascending and descending</li>
+</ol>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1"></a><span class="co">-- | Defines how the brick application will work / handle events</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="ot">app ::</span> <span class="dt">B.App</span> <span class="dt">BrickState</span> <span class="dt">Event</span> <span class="dt">Name</span></span>
+<span id="cb4-3"><a href="#cb4-3"></a>app <span class="ot">=</span> <span class="dt">B.App</span> { B.appDraw <span class="ot">=</span> drawUI</span>
+<span id="cb4-4"><a href="#cb4-4"></a>            , B.appChooseCursor <span class="ot">=</span> B.showFirstCursor</span>
+<span id="cb4-5"><a href="#cb4-5"></a>            , B.appHandleEvent <span class="ot">=</span> handleEvent</span>
+<span id="cb4-6"><a href="#cb4-6"></a>            , B.appStartEvent <span class="ot">=</span> pass</span>
+<span id="cb4-7"><a href="#cb4-7"></a>            , B.appAttrMap <span class="ot">=</span> <span class="fu">const</span> theMap</span>
+<span id="cb4-8"><a href="#cb4-8"></a>            }</span></code></pre></div>
+<p>The <strong>App</strong> type defines how the brick app operates, but defining how events are handled (<code>appHandleEvent</code>) and how the GUI is drawn (<code>appDraw</code>)</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb5-2"><a href="#cb5-2"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a>  chan <span class="ot">&lt;-</span> BCh.newBChan <span class="dv">5</span> <span class="co">-- ^ create a bounded channel for events</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a></span>
+<span id="cb5-5"><a href="#cb5-5"></a>  <span class="co">-- Send a tick event every 1 seconds with the current time</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>  <span class="co">-- Brick will send this to our event handler which can then update the stTime field</span></span>
+<span id="cb5-7"><a href="#cb5-7"></a>  void <span class="op">.</span> forkIO <span class="op">$</span> forever <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>    t <span class="ot">&lt;-</span> getTime </span>
+<span id="cb5-9"><a href="#cb5-9"></a>    BCh.writeBChan chan <span class="op">$</span> <span class="dt">EventUpdateTime</span> t</span>
+<span id="cb5-10"><a href="#cb5-10"></a>    threadDelay <span class="op">$</span> <span class="dv">1</span> <span class="op">*</span> <span class="dv">1000000</span></span>
+<span id="cb5-11"><a href="#cb5-11"></a></span>
+<span id="cb5-12"><a href="#cb5-12"></a>  <span class="co">-- Initial current time value</span></span>
+<span id="cb5-13"><a href="#cb5-13"></a>  t <span class="ot">&lt;-</span> getTime</span>
+<span id="cb5-14"><a href="#cb5-14"></a></span>
+<span id="cb5-15"><a href="#cb5-15"></a>  <span class="co">-- Construct the initial state values</span></span>
+<span id="cb5-16"><a href="#cb5-16"></a>  <span class="kw">let</span> st <span class="ot">=</span> <span class="dt">BrickState</span> { _stEditType <span class="ot">=</span> BE.editor <span class="dt">TypeSearch</span> (<span class="dt">Just</span> <span class="dv">1</span>) <span class="st">&quot;&quot;</span></span>
+<span id="cb5-17"><a href="#cb5-17"></a>                      , _stEditText <span class="ot">=</span> BE.editor <span class="dt">TextSearch</span> (<span class="dt">Just</span> <span class="dv">1</span>) <span class="st">&quot;&quot;</span></span>
+<span id="cb5-18"><a href="#cb5-18"></a>                      , _stResultsList <span class="ot">=</span> BL.list <span class="dt">ListResults</span> Vec.empty <span class="dv">1</span></span>
+<span id="cb5-19"><a href="#cb5-19"></a>                      , _stTime <span class="ot">=</span> t</span>
+<span id="cb5-20"><a href="#cb5-20"></a>                      , _stFocus <span class="ot">=</span> BF.focusRing [<span class="dt">TypeSearch</span>, <span class="dt">TextSearch</span>, <span class="dt">ListResults</span>]</span>
+<span id="cb5-21"><a href="#cb5-21"></a>                      , _stResults <span class="ot">=</span> []</span>
+<span id="cb5-22"><a href="#cb5-22"></a>                      , _stSortResults <span class="ot">=</span> <span class="dt">SortNone</span></span>
+<span id="cb5-23"><a href="#cb5-23"></a>                      }</span>
+<span id="cb5-24"><a href="#cb5-24"></a>          </span>
+<span id="cb5-25"><a href="#cb5-25"></a>  <span class="co">-- And run brick</span></span>
+<span id="cb5-26"><a href="#cb5-26"></a>  <span class="kw">let</span> vtyBuilder <span class="ot">=</span> V.mkVty V.defaultConfig</span>
+<span id="cb5-27"><a href="#cb5-27"></a>  initialVty <span class="ot">&lt;-</span> vtyBuilder</span>
+<span id="cb5-28"><a href="#cb5-28"></a></span>
+<span id="cb5-29"><a href="#cb5-29"></a>  void <span class="op">$</span> B.customMain initialVty vtyBuilder (<span class="dt">Just</span> chan) app st</span>
+<span id="cb5-30"><a href="#cb5-30"></a></span>
+<span id="cb5-31"><a href="#cb5-31"></a>  <span class="kw">where</span></span>
+<span id="cb5-32"><a href="#cb5-32"></a>    <span class="co">-- | Get the local time</span></span>
+<span id="cb5-33"><a href="#cb5-33"></a>    getTime <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-34"><a href="#cb5-34"></a>      t <span class="ot">&lt;-</span> Tm.getCurrentTime</span>
+<span id="cb5-35"><a href="#cb5-35"></a>      tz <span class="ot">&lt;-</span> Tm.getCurrentTimeZone</span>
+<span id="cb5-36"><a href="#cb5-36"></a>      <span class="fu">pure</span> <span class="op">$</span> Tm.utcToLocalTime tz t</span></code></pre></div>
+<p>In <strong>main</strong> some setup is preformed and then brick is started by calling <code>customMain</code>.</p>
+<p>For bhoogle the steps are</p>
+<ol type="1">
+<li>Construct the channel for brick events (passed to <code>customMain</code>)</li>
+<li>Create a new thread to send the current time every second</li>
+<li>Construct an initial state, with empty controls and search results</li>
+<li><code>B.customMain</code> to run brick</li>
+</ol>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1"></a><span class="co">-- | Main even handler for brick events</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="ot">handleEvent ::</span> <span class="dt">B.BrickEvent</span> <span class="dt">Name</span> <span class="dt">Event</span> <span class="ot">-&gt;</span> <span class="dt">B.EventM</span> <span class="dt">Name</span> <span class="dt">BrickState</span> ()</span>
+<span id="cb6-3"><a href="#cb6-3"></a>handleEvent ev <span class="ot">=</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>  <span class="kw">case</span> ev <span class="kw">of</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a>    (<span class="dt">B.AppEvent</span> (<span class="dt">EventUpdateTime</span> time)) <span class="ot">-&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a>      <span class="co">-- Update the time in the state</span></span>
+<span id="cb6-7"><a href="#cb6-7"></a>      modify <span class="op">$</span> \st <span class="ot">-&gt;</span> st <span class="op">&amp;</span> stTime <span class="op">.~</span> time</span></code></pre></div>
+<p><strong>handleEvent</strong> gets all the brick events, updates the state and decides how to continue.</p>
+<p>Here the code matches the custom (<strong>B.AppEvent</strong>) event looking for our update time event (<strong>EventUpdateTime</strong>) and then updates the state with the current time. Note that the UI is not changed in any way here, we are just altering the current state.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1"></a>    <span class="co">-- Handle keyboard events</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a>    <span class="co">--   k is the key</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a>    <span class="co">--   ms are the modifier keys</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a>    (<span class="dt">B.VtyEvent</span> ve<span class="op">@</span>(<span class="dt">V.EvKey</span> k ms)) <span class="ot">-&gt;</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a>      <span class="kw">case</span> (k, ms) <span class="kw">of</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a>        <span class="co">-- Escape quits the app, no matter what control has focus</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a>        (<span class="dt">K.KEsc</span>, []) <span class="ot">-&gt;</span> B.halt</span>
+<span id="cb7-8"><a href="#cb7-8"></a></span>
+<span id="cb7-9"><a href="#cb7-9"></a></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="dt">Then</span> the code matches <span class="fu">any</span> keyboard event (<span class="op">**</span><span class="dt">B.VtyEvent</span><span class="op">**</span>) here matching on the escape key (<span class="op">**</span><span class="dt">K.KEsc</span><span class="op">**</span>)<span class="op">.</span> <span class="dt">So</span> when the user clicks the escape key this handler will call <span class="ot">```B.halt```</span> which will terminate the app<span class="op">.</span> <span class="dt">As</span> this is done at the top level, this means that no matter which control has the focus, escape will exit<span class="op">.</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a></span>
+<span id="cb7-12"><a href="#cb7-12"></a></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="ot">```haskell</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="ot">        _ -&gt; do</span></span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="ot">          st' &lt;- get</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a></span>
+<span id="cb7-17"><a href="#cb7-17"></a><span class="ot">          -- How to interpret the key press depends on which control is focused</span></span>
+<span id="cb7-18"><a href="#cb7-18"></a><span class="ot">          case BF.focusGetCurrent $ st' ^. stFocus of</span></span></code></pre></div>
+<p>For the rest of the key press logic, what bhoogle does depends on which control has the focus. <code>BF.focusGetCurrent</code> is used to get that from the state’s focus ring.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1"></a>            <span class="dt">Just</span> <span class="dt">TypeSearch</span> <span class="ot">-&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2"></a>              <span class="kw">case</span> k <span class="kw">of</span></span>
+<span id="cb8-3"><a href="#cb8-3"></a>                <span class="dt">K.KChar</span> <span class="ch">'\t'</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb8-4"><a href="#cb8-4"></a>                  <span class="co">-- Search, clear sort order, focus next</span></span>
+<span id="cb8-5"><a href="#cb8-5"></a>                  found <span class="ot">&lt;-</span> liftIO <span class="op">$</span> doSearch st'</span>
+<span id="cb8-6"><a href="#cb8-6"></a>                  modify <span class="op">$</span> \st <span class="ot">-&gt;</span> filterResults <span class="op">$</span> st <span class="op">&amp;</span> stFocus <span class="op">%~</span> BF.focusNext</span>
+<span id="cb8-7"><a href="#cb8-7"></a>                                                  <span class="op">&amp;</span> stResults <span class="op">.~</span> found</span>
+<span id="cb8-8"><a href="#cb8-8"></a>                                                  <span class="op">&amp;</span> stSortResults <span class="op">.~</span> <span class="dt">SortNone</span></span>
+<span id="cb8-9"><a href="#cb8-9"></a></span>
+<span id="cb8-10"><a href="#cb8-10"></a>                <span class="dt">K.KBackTab</span> <span class="ot">-&gt;</span><span class="kw">do</span></span>
+<span id="cb8-11"><a href="#cb8-11"></a>                  <span class="co">-- Search, clear sort order, focus prev</span></span>
+<span id="cb8-12"><a href="#cb8-12"></a>                  found <span class="ot">&lt;-</span> liftIO <span class="op">$</span> doSearch st'</span>
+<span id="cb8-13"><a href="#cb8-13"></a>                  modify <span class="op">$</span> \st <span class="ot">-&gt;</span> filterResults <span class="op">$</span> st <span class="op">&amp;</span> stFocus <span class="op">%~</span> BF.focusPrev</span>
+<span id="cb8-14"><a href="#cb8-14"></a>                                                   <span class="op">&amp;</span> stResults <span class="op">.~</span> found</span>
+<span id="cb8-15"><a href="#cb8-15"></a>                                                   <span class="op">&amp;</span> stSortResults <span class="op">.~</span> <span class="dt">SortNone</span></span></code></pre></div>
+<p>If the user is typing in the “type” edit box and tabs out (either tab or shift-tab) then</p>
+<ol type="1">
+<li>Perform the search (see <strong>doSearch</strong> below)</li>
+<li>Update the current set of results</li>
+<li>Reset the sort order, default to the order that hoogle uses</li>
+<li>Move the focus to the next/previous control</li>
+</ol>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1"></a>                <span class="dt">K.KEnter</span> <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb9-2"><a href="#cb9-2"></a>                  <span class="co">-- Search, clear sort order, focus on results</span></span>
+<span id="cb9-3"><a href="#cb9-3"></a>                  <span class="co">--  This makes it faster if you want to search and navigate results without tabing through the text search box</span></span>
+<span id="cb9-4"><a href="#cb9-4"></a>                  found <span class="ot">&lt;-</span> liftIO <span class="op">$</span> doSearch st'</span>
+<span id="cb9-5"><a href="#cb9-5"></a>                  modify <span class="op">$</span> \st <span class="ot">-&gt;</span> filterResults <span class="op">$</span> st <span class="op">&amp;</span> stResults <span class="op">.~</span> found</span>
+<span id="cb9-6"><a href="#cb9-6"></a>                                                  <span class="op">&amp;</span> stSortResults <span class="op">.~</span> <span class="dt">SortNone</span></span>
+<span id="cb9-7"><a href="#cb9-7"></a>                                                  <span class="op">&amp;</span> stFocus <span class="op">%~</span> BF.focusSetCurrent <span class="dt">ListResults</span></span></code></pre></div>
+<p>If the user presses <strong>enter</strong> while in the type search edit box, then</p>
+<ol type="1">
+<li>Perform the search (see <strong>doSearch</strong> below)</li>
+<li>Update the current set of results</li>
+<li>Reset the sort order, default to the order that hoogle uses</li>
+<li>Move the focus directly to the results lisbox so they can navigate and see the current item’s details &amp; help text</li>
+</ol>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1"></a>                _ <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb10-2"><a href="#cb10-2"></a>                  <span class="co">-- Let the editor handle all other events</span></span>
+<span id="cb10-3"><a href="#cb10-3"></a>                  B.zoom stEditType <span class="op">$</span> BE.handleEditorEvent ev</span>
+<span id="cb10-4"><a href="#cb10-4"></a>                  st <span class="ot">&lt;-</span> get</span>
+<span id="cb10-5"><a href="#cb10-5"></a>                  st2 <span class="ot">&lt;-</span> liftIO <span class="op">$</span> searchAhead doSearch st</span>
+<span id="cb10-6"><a href="#cb10-6"></a>                  put st2</span>
+<span id="cb10-7"><a href="#cb10-7"></a></span>
+<span id="cb10-8"><a href="#cb10-8"></a><span class="dt">For</span> <span class="fu">all</span> other key events for the <span class="kw">type</span> search, <span class="kw">let</span> the editor control handle the key press<span class="op">.</span> <span class="dt">This</span> gives us editing, navigation etc for free<span class="op">.</span></span>
+<span id="cb10-9"><a href="#cb10-9"></a></span>
+<span id="cb10-10"><a href="#cb10-10"></a></span>
+<span id="cb10-11"><a href="#cb10-11"></a><span class="ot">```haskell</span></span>
+<span id="cb10-12"><a href="#cb10-12"></a><span class="ot">            Just TextSearch -&gt;</span></span>
+<span id="cb10-13"><a href="#cb10-13"></a><span class="ot">              case k of</span></span>
+<span id="cb10-14"><a href="#cb10-14"></a><span class="ot">                K.KChar '\t' -&gt; modify $ \st -&gt; st &amp; stFocus %~ BF.focusNext -- Focus next</span></span>
+<span id="cb10-15"><a href="#cb10-15"></a><span class="ot">                K.KBackTab -&gt; modify $ \st -&gt; st &amp; stFocus %~ BF.focusPrev   -- Focus previous</span></span>
+<span id="cb10-16"><a href="#cb10-16"></a><span class="ot">                _ -&gt; do</span></span>
+<span id="cb10-17"><a href="#cb10-17"></a><span class="ot">                  -- Let the editor handle all other events</span></span>
+<span id="cb10-18"><a href="#cb10-18"></a><span class="ot">                  B.zoom stEditText $ BE.handleEditorEvent ev</span></span>
+<span id="cb10-19"><a href="#cb10-19"></a><span class="ot">                  modify filterResults</span></span>
+<span id="cb10-20"><a href="#cb10-20"></a></span>
+<span id="cb10-21"><a href="#cb10-21"></a><span class="ot">For the text edit box</span></span>
+<span id="cb10-22"><a href="#cb10-22"></a></span>
+<span id="cb10-23"><a href="#cb10-23"></a><span class="ot"> 1. Change focus on tab / shift-tab</span></span>
+<span id="cb10-24"><a href="#cb10-24"></a><span class="ot"> 1. For all other keys</span></span>
+<span id="cb10-25"><a href="#cb10-25"></a><span class="ot">    1. Let the editor handle the key press</span></span>
+<span id="cb10-26"><a href="#cb10-26"></a><span class="ot">    1. Filter the hoogle results</span></span>
+<span id="cb10-27"><a href="#cb10-27"></a></span>
+<span id="cb10-28"><a href="#cb10-28"></a></span>
+<span id="cb10-29"><a href="#cb10-29"></a><span class="ot">```</span>haskell</span>
+<span id="cb10-30"><a href="#cb10-30"></a>            <span class="dt">Just</span> <span class="dt">ListResults</span> <span class="ot">-&gt;</span></span>
+<span id="cb10-31"><a href="#cb10-31"></a>              <span class="kw">case</span> k <span class="kw">of</span></span>
+<span id="cb10-32"><a href="#cb10-32"></a>                <span class="dt">K.KChar</span> <span class="ch">'\t'</span> <span class="ot">-&gt;</span> modify <span class="op">$</span> \st <span class="ot">-&gt;</span> st <span class="op">&amp;</span> stFocus <span class="op">%~</span> BF.focusNext <span class="co">-- Focus next</span></span>
+<span id="cb10-33"><a href="#cb10-33"></a>                <span class="dt">K.KBackTab</span> <span class="ot">-&gt;</span> modify <span class="op">$</span> \st <span class="ot">-&gt;</span> st <span class="op">&amp;</span> stFocus <span class="op">%~</span> BF.focusPrev   <span class="co">-- Focus previous</span></span>
+<span id="cb10-34"><a href="#cb10-34"></a>                <span class="dt">K.KChar</span> <span class="ch">'s'</span> <span class="ot">-&gt;</span></span>
+<span id="cb10-35"><a href="#cb10-35"></a>                  <span class="co">-- Toggle the search order between ascending and descending, use asc if sort order was 'none'</span></span>
+<span id="cb10-36"><a href="#cb10-36"></a>                  <span class="kw">let</span> sortDir <span class="ot">=</span> <span class="kw">if</span> (st' <span class="op">^.</span> stSortResults) <span class="op">==</span> <span class="dt">SortAsc</span> <span class="kw">then</span> <span class="dt">SortDec</span> <span class="kw">else</span> <span class="dt">SortAsc</span> <span class="kw">in</span></span>
+<span id="cb10-37"><a href="#cb10-37"></a>                  <span class="kw">let</span> sorter <span class="ot">=</span> <span class="kw">if</span> sortDir <span class="op">==</span> <span class="dt">SortDec</span> <span class="kw">then</span> Lst.sortBy (<span class="fu">flip</span> compareType) <span class="kw">else</span> Lst.sortBy compareType <span class="kw">in</span></span>
+<span id="cb10-38"><a href="#cb10-38"></a>                  modify <span class="op">$</span> \st <span class="ot">-&gt;</span> filterResults <span class="op">$</span> st <span class="op">&amp;</span> stResults <span class="op">%~</span> sorter</span>
+<span id="cb10-39"><a href="#cb10-39"></a>                                                  <span class="op">&amp;</span> stSortResults <span class="op">.~</span> sortDir</span>
+<span id="cb10-40"><a href="#cb10-40"></a></span>
+<span id="cb10-41"><a href="#cb10-41"></a>                _ <span class="ot">-&gt;</span> <span class="kw">do</span></span>
+<span id="cb10-42"><a href="#cb10-42"></a>                  <span class="co">-- Let the list handle all other events</span></span>
+<span id="cb10-43"><a href="#cb10-43"></a>                  <span class="co">-- Using handleListEventVi which adds vi-style keybindings for navigation</span></span>
+<span id="cb10-44"><a href="#cb10-44"></a>                  <span class="co">--  and the standard handleListEvent as a fallback for all other events</span></span>
+<span id="cb10-45"><a href="#cb10-45"></a>                  B.zoom stResultsList <span class="op">$</span> BL.handleListEventVi BL.handleListEvent ve</span>
+<span id="cb10-46"><a href="#cb10-46"></a></span>
+<span id="cb10-47"><a href="#cb10-47"></a>            _ <span class="ot">-&gt;</span> pass</span>
+<span id="cb10-48"><a href="#cb10-48"></a></span>
+<span id="cb10-49"><a href="#cb10-49"></a>    _ <span class="ot">-&gt;</span> pass</span>
+<span id="cb10-50"><a href="#cb10-50"></a></span>
+<span id="cb10-51"><a href="#cb10-51"></a> <span class="op">-</span> <span class="dt">Handle</span> tab <span class="op">/</span> shift<span class="op">-</span>tab</span>
+<span id="cb10-52"><a href="#cb10-52"></a> <span class="op">-</span> <span class="dt">Pressing</span> the <span class="op">**</span><span class="ch">'s'</span><span class="op">**</span> key will <span class="fu">sort</span> the results<span class="op">.</span> <span class="dt">Pressing</span> it again toggles the direction, so keep track <span class="kw">of</span> which order was used <span class="fu">last</span><span class="op">.</span></span>
+<span id="cb10-53"><a href="#cb10-53"></a> <span class="op">-</span> <span class="dt">For</span> <span class="fu">all</span> other keys use <span class="ot">```BL.handleListEventVi BL.handleListEvent```</span> which gives us vi style navigation <span class="fu">and</span> uses the standard <span class="op">**</span>handleListEvent<span class="op">**</span> as the fallback, so that <span class="fu">all</span> the normal navigation (arrows) also work<span class="op">.</span></span>
+<span id="cb10-54"><a href="#cb10-54"></a></span>
+<span id="cb10-55"><a href="#cb10-55"></a></span>
+<span id="cb10-56"><a href="#cb10-56"></a><span class="ot">```haskell</span></span>
+<span id="cb10-57"><a href="#cb10-57"></a><span class="ot">  where</span></span>
+<span id="cb10-58"><a href="#cb10-58"></a><span class="ot">    doSearch :: BrickState -&gt; IO [H.Target]</span></span>
+<span id="cb10-59"><a href="#cb10-59"></a><span class="ot">    doSearch st' = </span></span>
+<span id="cb10-60"><a href="#cb10-60"></a><span class="ot">      liftIO $ searchHoogle (Txt.strip . Txt.concat $ BE.getEditContents (st' ^. stEditType))</span></span></code></pre></div>
+<p>And finally for <strong>handleEvent</strong> the <strong>doSearch</strong> function which calls the <strong>searchHoogle</strong> function (below) to search on the text from the type editbox.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1"></a><span class="co">-- | Search ahead for type strings longer than 3 chars.</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="ot">searchAhead ::</span> (<span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">H.Target</span>]) <span class="ot">-&gt;</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">BrickState</span></span>
+<span id="cb11-3"><a href="#cb11-3"></a>searchAhead search st <span class="ot">=</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a>  <span class="kw">let</span> searchText <span class="ot">=</span> Txt.strip <span class="op">.</span> Txt.concat <span class="op">.</span> BE.getEditContents <span class="op">$</span> st <span class="op">^.</span> stEditType <span class="kw">in</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a></span>
+<span id="cb11-6"><a href="#cb11-6"></a>  <span class="kw">if</span> Txt.length searchText <span class="op">&gt;</span> <span class="dv">3</span></span>
+<span id="cb11-7"><a href="#cb11-7"></a>  <span class="kw">then</span> <span class="kw">do</span></span>
+<span id="cb11-8"><a href="#cb11-8"></a>    <span class="co">-- Search</span></span>
+<span id="cb11-9"><a href="#cb11-9"></a>    found <span class="ot">&lt;-</span> search st</span>
+<span id="cb11-10"><a href="#cb11-10"></a>    <span class="fu">pure</span> <span class="op">.</span> filterResults <span class="op">$</span> st <span class="op">&amp;</span> stResults <span class="op">.~</span> found</span>
+<span id="cb11-11"><a href="#cb11-11"></a>                              <span class="op">&amp;</span> stSortResults <span class="op">.~</span> <span class="dt">SortNone</span></span>
+<span id="cb11-12"><a href="#cb11-12"></a>  <span class="kw">else</span></span>
+<span id="cb11-13"><a href="#cb11-13"></a>    <span class="co">-- Just clear</span></span>
+<span id="cb11-14"><a href="#cb11-14"></a>    <span class="fu">pure</span> <span class="op">$</span> st <span class="op">&amp;</span> stResults <span class="op">.~</span> []</span>
+<span id="cb11-15"><a href="#cb11-15"></a>              <span class="op">&amp;</span> stResultsList <span class="op">%~</span> BL.listClear</span></code></pre></div>
+<p><strong>searchAhead</strong> is a helper function that searches hoogle as the user types. As long as there are more than three characters being searched for. Without this limit hoogle seems a bit slow on my machine because of the large number of results.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1"></a><span class="co">-- | Filter the results from hoogle using the search text</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="ot">filterResults ::</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> <span class="dt">BrickState</span></span>
+<span id="cb12-3"><a href="#cb12-3"></a>filterResults st <span class="ot">=</span></span>
+<span id="cb12-4"><a href="#cb12-4"></a>  <span class="kw">let</span> allResults <span class="ot">=</span> st <span class="op">^.</span> stResults <span class="kw">in</span></span>
+<span id="cb12-5"><a href="#cb12-5"></a>  <span class="kw">let</span> filterText <span class="ot">=</span> Txt.toLower <span class="op">.</span> Txt.strip <span class="op">.</span> Txt.concat <span class="op">.</span> BE.getEditContents <span class="op">$</span> st <span class="op">^.</span> stEditText <span class="kw">in</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a></span>
+<span id="cb12-7"><a href="#cb12-7"></a>  <span class="kw">let</span> results <span class="ot">=</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a>        <span class="kw">if</span> Txt.null filterText</span>
+<span id="cb12-9"><a href="#cb12-9"></a>        <span class="kw">then</span> allResults</span>
+<span id="cb12-10"><a href="#cb12-10"></a>        <span class="kw">else</span> <span class="fu">filter</span> (\t <span class="ot">-&gt;</span> Txt.isInfixOf filterText <span class="op">.</span> Txt.toLower <span class="op">$</span> formatResult t) allResults</span>
+<span id="cb12-11"><a href="#cb12-11"></a>  <span class="kw">in</span></span>
+<span id="cb12-12"><a href="#cb12-12"></a>  st <span class="op">&amp;</span> stResultsList <span class="op">.~</span> BL.list <span class="dt">ListResults</span> (Vec.fromList results) <span class="dv">1</span></span></code></pre></div>
+<p>Filter the hoogle results by doing a sub-string search if the user has entered one</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1"></a><span class="co">-- | Draw the UI</span></span>
+<span id="cb13-2"><a href="#cb13-2"></a><span class="ot">drawUI ::</span> <span class="dt">BrickState</span> <span class="ot">-&gt;</span> [<span class="dt">B.Widget</span> <span class="dt">Name</span>]</span>
+<span id="cb13-3"><a href="#cb13-3"></a>drawUI st <span class="ot">=</span></span>
+<span id="cb13-4"><a href="#cb13-4"></a>  [B.padAll <span class="dv">1</span> contentBlock] </span>
+<span id="cb13-5"><a href="#cb13-5"></a></span>
+<span id="cb13-6"><a href="#cb13-6"></a>  <span class="kw">where</span></span>
+<span id="cb13-7"><a href="#cb13-7"></a>    contentBlock <span class="ot">=</span></span>
+<span id="cb13-8"><a href="#cb13-8"></a>      (B.withBorderStyle BBS.unicode <span class="op">$</span> BB.border searchBlock)</span>
+<span id="cb13-9"><a href="#cb13-9"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-10"><a href="#cb13-10"></a>      B.padTop (<span class="dt">B.Pad</span> <span class="dv">1</span>) resultsBlock</span>
+<span id="cb13-11"><a href="#cb13-11"></a>      </span>
+<span id="cb13-12"><a href="#cb13-12"></a>    resultsBlock <span class="ot">=</span></span>
+<span id="cb13-13"><a href="#cb13-13"></a>      <span class="kw">let</span> total <span class="ot">=</span> <span class="fu">show</span> <span class="op">.</span> <span class="fu">length</span> <span class="op">$</span> st <span class="op">^.</span> stResults <span class="kw">in</span></span>
+<span id="cb13-14"><a href="#cb13-14"></a>      <span class="kw">let</span> showing <span class="ot">=</span> <span class="fu">show</span> <span class="op">.</span> <span class="fu">length</span> <span class="op">$</span> st <span class="op">^.</span> stResultsList <span class="op">^.</span> BL.listElementsL <span class="kw">in</span></span>
+<span id="cb13-15"><a href="#cb13-15"></a>      (B.withAttr (B.attrName <span class="st">&quot;infoTitle&quot;</span>) <span class="op">$</span> B.txt <span class="st">&quot;Results: &quot;</span>) <span class="op">&lt;+&gt;</span> B.txt (showing <span class="op">&lt;&gt;</span> <span class="st">&quot;/&quot;</span> <span class="op">&lt;&gt;</span> total)</span>
+<span id="cb13-16"><a href="#cb13-16"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-17"><a href="#cb13-17"></a>      (B.padTop (<span class="dt">B.Pad</span> <span class="dv">1</span>) <span class="op">$</span></span>
+<span id="cb13-18"><a href="#cb13-18"></a>       resultsContent <span class="op">&lt;+&gt;</span> resultsDetail</span>
+<span id="cb13-19"><a href="#cb13-19"></a>      )</span>
+<span id="cb13-20"><a href="#cb13-20"></a></span>
+<span id="cb13-21"><a href="#cb13-21"></a>    resultsContent <span class="ot">=</span></span>
+<span id="cb13-22"><a href="#cb13-22"></a>      BL.renderList (\_ e <span class="ot">-&gt;</span> B.txt <span class="op">$</span> formatResult e) <span class="dt">False</span> (st <span class="op">^.</span> stResultsList)</span>
+<span id="cb13-23"><a href="#cb13-23"></a></span>
+<span id="cb13-24"><a href="#cb13-24"></a>    resultsDetail <span class="ot">=</span></span>
+<span id="cb13-25"><a href="#cb13-25"></a>      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">1</span>) <span class="op">$</span></span>
+<span id="cb13-26"><a href="#cb13-26"></a>      B.hLimit <span class="dv">60</span> <span class="op">$</span></span>
+<span id="cb13-27"><a href="#cb13-27"></a>      vtitle <span class="st">&quot;package:&quot;</span></span>
+<span id="cb13-28"><a href="#cb13-28"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-29"><a href="#cb13-29"></a>      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">2</span>) (B.txt <span class="op">$</span> getSelectedDetail (\t <span class="ot">-&gt;</span> <span class="fu">maybe</span> <span class="st">&quot;&quot;</span> (Txt.pack <span class="op">.</span> <span class="fu">fst</span>) (H.targetPackage t)))</span>
+<span id="cb13-30"><a href="#cb13-30"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-31"><a href="#cb13-31"></a>      vtitle <span class="st">&quot;module:&quot;</span></span>
+<span id="cb13-32"><a href="#cb13-32"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-33"><a href="#cb13-33"></a>      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">2</span>) (B.txt <span class="op">$</span> getSelectedDetail (\t <span class="ot">-&gt;</span> <span class="fu">maybe</span> <span class="st">&quot;&quot;</span> (Txt.pack <span class="op">.</span> <span class="fu">fst</span>) (H.targetModule t)))</span>
+<span id="cb13-34"><a href="#cb13-34"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-35"><a href="#cb13-35"></a>      vtitle <span class="st">&quot;docs:&quot;</span></span>
+<span id="cb13-36"><a href="#cb13-36"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-37"><a href="#cb13-37"></a>      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">2</span>) (B.txt <span class="op">$</span> getSelectedDetail (Txt.pack <span class="op">.</span> clean <span class="op">.</span> H.targetDocs))</span>
+<span id="cb13-38"><a href="#cb13-38"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-39"><a href="#cb13-39"></a>      B.fill <span class="ch">' '</span></span>
+<span id="cb13-40"><a href="#cb13-40"></a>  </span>
+<span id="cb13-41"><a href="#cb13-41"></a>    searchBlock <span class="ot">=</span></span>
+<span id="cb13-42"><a href="#cb13-42"></a>      ((htitle <span class="st">&quot;Type: &quot;</span> <span class="op">&lt;+&gt;</span> editor <span class="dt">TypeSearch</span> (st <span class="op">^.</span> stEditType)) <span class="op">&lt;+&gt;</span> time (st <span class="op">^.</span> stTime))</span>
+<span id="cb13-43"><a href="#cb13-43"></a>      <span class="op">&lt;=&gt;</span></span>
+<span id="cb13-44"><a href="#cb13-44"></a>      (htitle <span class="st">&quot;Text: &quot;</span> <span class="op">&lt;+&gt;</span> editor <span class="dt">TextSearch</span> (st <span class="op">^.</span> stEditText))</span>
+<span id="cb13-45"><a href="#cb13-45"></a></span>
+<span id="cb13-46"><a href="#cb13-46"></a>    htitle t <span class="ot">=</span></span>
+<span id="cb13-47"><a href="#cb13-47"></a>      B.hLimit <span class="dv">20</span> <span class="op">$</span></span>
+<span id="cb13-48"><a href="#cb13-48"></a>      B.withAttr (B.attrName <span class="st">&quot;infoTitle&quot;</span>) <span class="op">$</span></span>
+<span id="cb13-49"><a href="#cb13-49"></a>      B.txt t</span>
+<span id="cb13-50"><a href="#cb13-50"></a>      </span>
+<span id="cb13-51"><a href="#cb13-51"></a>    vtitle t <span class="ot">=</span></span>
+<span id="cb13-52"><a href="#cb13-52"></a>      B.withAttr (B.attrName <span class="st">&quot;infoTitle&quot;</span>) <span class="op">$</span></span>
+<span id="cb13-53"><a href="#cb13-53"></a>      B.txt t</span>
+<span id="cb13-54"><a href="#cb13-54"></a></span>
+<span id="cb13-55"><a href="#cb13-55"></a>    editor n e <span class="ot">=</span></span>
+<span id="cb13-56"><a href="#cb13-56"></a>      B.vLimit <span class="dv">1</span> <span class="op">$</span></span>
+<span id="cb13-57"><a href="#cb13-57"></a>      BE.renderEditor (B.txt <span class="op">.</span> Txt.unlines) (BF.focusGetCurrent (st <span class="op">^.</span> stFocus) <span class="op">==</span> <span class="dt">Just</span> n) e</span>
+<span id="cb13-58"><a href="#cb13-58"></a></span>
+<span id="cb13-59"><a href="#cb13-59"></a>    time t <span class="ot">=</span></span>
+<span id="cb13-60"><a href="#cb13-60"></a>      B.padLeft (<span class="dt">B.Pad</span> <span class="dv">1</span>) <span class="op">$</span></span>
+<span id="cb13-61"><a href="#cb13-61"></a>      B.hLimit <span class="dv">20</span> <span class="op">$</span></span>
+<span id="cb13-62"><a href="#cb13-62"></a>      B.withAttr (B.attrName <span class="st">&quot;time&quot;</span>) <span class="op">$</span></span>
+<span id="cb13-63"><a href="#cb13-63"></a>      B.str (Tm.formatTime Tm.defaultTimeLocale <span class="st">&quot;%H-%M-%S&quot;</span> t)</span>
+<span id="cb13-64"><a href="#cb13-64"></a></span>
+<span id="cb13-65"><a href="#cb13-65"></a>    getSelectedDetail fn <span class="ot">=</span></span>
+<span id="cb13-66"><a href="#cb13-66"></a>      <span class="kw">case</span> BL.listSelectedElement <span class="op">$</span> st <span class="op">^.</span> stResultsList <span class="kw">of</span></span>
+<span id="cb13-67"><a href="#cb13-67"></a>        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb13-68"><a href="#cb13-68"></a>        <span class="dt">Just</span> (_, e) <span class="ot">-&gt;</span> fn e</span></code></pre></div>
+<p><strong>drawUI</strong> renders the state and creates the GUI. At first this may take some getting used to, but you will soon be able to see the GUI structure from the code.</p>
+<ul>
+<li><p><code>&lt;=&gt;</code> means horizontal break, i.e. next “line”</p></li>
+<li><p><code>&lt;+&gt;</code> means “next to”</p></li>
+<li><p>I often end up formatting code slightly differently to how I would in the other functions to better communicate the structure</p></li>
+<li><p>Create small GUI fragments/“controls” and combine them with <code>&lt;+&gt;</code> and <code>&lt;=&gt;</code></p>
+<p>For example <strong>htitle</strong> creates a “title” by</p>
+<ul>
+<li>Limiting the max width to 20</li>
+<li>Setting the attribute to <strong>infoTitle</strong></li>
+<li>Displaying the text using <code>B.txt</code> (<code>B.txt</code> displays a Text, <code>B.str</code> displays a string/[char])</li>
+</ul></li>
+<li><p><code>B.fill ' '</code> is used to get brick to fill to the maximum width (here 60) rather that having the right detail pain growing/shrinking as the data changes.</p></li>
+</ul>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1"></a><span class="ot">theMap ::</span> <span class="dt">BA.AttrMap</span></span>
+<span id="cb14-2"><a href="#cb14-2"></a>theMap <span class="ot">=</span> BA.attrMap V.defAttr [ (BE.editAttr        , V.black <span class="ot">`B.on`</span> V.cyan)</span>
+<span id="cb14-3"><a href="#cb14-3"></a>                              , (BE.editFocusedAttr , V.black <span class="ot">`B.on`</span> V.yellow)</span>
+<span id="cb14-4"><a href="#cb14-4"></a>                              , (BL.listAttr        , V.white <span class="ot">`B.on`</span> V.blue)</span>
+<span id="cb14-5"><a href="#cb14-5"></a>                              , (BL.listSelectedAttr, V.blue <span class="ot">`B.on`</span> V.white)</span>
+<span id="cb14-6"><a href="#cb14-6"></a>                              , (B.attrName <span class="st">&quot;infoTitle&quot;</span>, B.fg V.cyan)</span>
+<span id="cb14-7"><a href="#cb14-7"></a>                              , (B.attrName <span class="st">&quot;time&quot;</span>     , B.fg V.yellow)</span>
+<span id="cb14-8"><a href="#cb14-8"></a>                              ]</span></code></pre></div>
+<p>The attribute map is where attributes for the controls and custom attributes are defined. This makes it easy to change how the GUI looks. There is even support <a href="https://hackage.haskell.org/package/brick-0.33/docs/Brick-Themes.html">for themes</a>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1"></a><span class="co">----------------------------------------------------------------------------------------------</span></span>
+<span id="cb15-2"><a href="#cb15-2"></a><span class="co">-- | Compare two hoogle results for sorting</span></span>
+<span id="cb15-3"><a href="#cb15-3"></a><span class="ot">compareType ::</span> <span class="dt">H.Target</span> <span class="ot">-&gt;</span> <span class="dt">H.Target</span> <span class="ot">-&gt;</span> <span class="dt">Ordering</span></span>
+<span id="cb15-4"><a href="#cb15-4"></a>compareType a b <span class="ot">=</span></span>
+<span id="cb15-5"><a href="#cb15-5"></a>  <span class="fu">compare</span> (formatResult a) (formatResult b)</span>
+<span id="cb15-6"><a href="#cb15-6"></a></span>
+<span id="cb15-7"><a href="#cb15-7"></a>  </span>
+<span id="cb15-8"><a href="#cb15-8"></a><span class="co">-- | Search hoogle using the default hoogle database</span></span>
+<span id="cb15-9"><a href="#cb15-9"></a><span class="ot">searchHoogle ::</span> <span class="dt">Text</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> [<span class="dt">H.Target</span>]</span>
+<span id="cb15-10"><a href="#cb15-10"></a>searchHoogle f <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb15-11"><a href="#cb15-11"></a>  d <span class="ot">&lt;-</span> H.defaultDatabaseLocation </span>
+<span id="cb15-12"><a href="#cb15-12"></a>  H.withDatabase d (\x <span class="ot">-&gt;</span> <span class="fu">pure</span> <span class="op">$</span> H.searchDatabase x (Txt.unpack f))</span>
+<span id="cb15-13"><a href="#cb15-13"></a>  </span>
+<span id="cb15-14"><a href="#cb15-14"></a></span>
+<span id="cb15-15"><a href="#cb15-15"></a><span class="co">-- | Format the hoogle results so they roughly match what the terminal app would show</span></span>
+<span id="cb15-16"><a href="#cb15-16"></a><span class="ot">formatResult ::</span> <span class="dt">H.Target</span> <span class="ot">-&gt;</span> <span class="dt">Text</span></span>
+<span id="cb15-17"><a href="#cb15-17"></a>formatResult t <span class="ot">=</span></span>
+<span id="cb15-18"><a href="#cb15-18"></a>  <span class="kw">let</span> typ <span class="ot">=</span> clean <span class="op">$</span> H.targetItem t <span class="kw">in</span></span>
+<span id="cb15-19"><a href="#cb15-19"></a>  <span class="kw">let</span> m <span class="ot">=</span> (clean <span class="op">.</span> <span class="fu">fst</span>) <span class="op">&lt;$&gt;</span> H.targetModule t <span class="kw">in</span></span>
+<span id="cb15-20"><a href="#cb15-20"></a>  Txt.pack <span class="op">$</span> fromMaybe <span class="st">&quot;&quot;</span> m <span class="op">&lt;&gt;</span> <span class="st">&quot; :: &quot;</span> <span class="op">&lt;&gt;</span> typ</span>
+<span id="cb15-21"><a href="#cb15-21"></a>  </span>
+<span id="cb15-22"><a href="#cb15-22"></a></span>
+<span id="cb15-23"><a href="#cb15-23"></a><span class="ot">clean ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]</span>
+<span id="cb15-24"><a href="#cb15-24"></a>clean <span class="ot">=</span> unescapeHTML <span class="op">.</span> stripTags</span>
+<span id="cb15-25"><a href="#cb15-25"></a></span>
+<span id="cb15-26"><a href="#cb15-26"></a></span>
+<span id="cb15-27"><a href="#cb15-27"></a><span class="co">-- | From hoogle source: https://hackage.haskell.org/package/hoogle-5.0.16/docs/src/General-Util.html</span></span>
+<span id="cb15-28"><a href="#cb15-28"></a><span class="ot">unescapeHTML ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]</span>
+<span id="cb15-29"><a href="#cb15-29"></a>unescapeHTML (<span class="ch">'&amp;'</span><span class="op">:</span>xs)</span>
+<span id="cb15-30"><a href="#cb15-30"></a>    <span class="op">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;lt;&quot;</span> xs <span class="ot">=</span> <span class="ch">'&lt;'</span> <span class="op">:</span> unescapeHTML x</span>
+<span id="cb15-31"><a href="#cb15-31"></a>    <span class="op">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;gt;&quot;</span> xs <span class="ot">=</span> <span class="ch">'&gt;'</span> <span class="op">:</span> unescapeHTML x</span>
+<span id="cb15-32"><a href="#cb15-32"></a>    <span class="op">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;amp;&quot;</span> xs <span class="ot">=</span> <span class="ch">'&amp;'</span> <span class="op">:</span> unescapeHTML x</span>
+<span id="cb15-33"><a href="#cb15-33"></a>    <span class="op">|</span> <span class="dt">Just</span> x <span class="ot">&lt;-</span> Lst.stripPrefix <span class="st">&quot;quot;&quot;</span> xs <span class="ot">=</span> <span class="ch">'\&quot;'</span> <span class="op">:</span> unescapeHTML x</span>
+<span id="cb15-34"><a href="#cb15-34"></a>unescapeHTML (x<span class="op">:</span>xs) <span class="ot">=</span> x <span class="op">:</span> unescapeHTML xs</span>
+<span id="cb15-35"><a href="#cb15-35"></a>unescapeHTML [] <span class="ot">=</span> []</span>
+<span id="cb15-36"><a href="#cb15-36"></a>  </span>
+<span id="cb15-37"><a href="#cb15-37"></a></span>
+<span id="cb15-38"><a href="#cb15-38"></a><span class="co">-- | From hakyll source: https://hackage.haskell.org/package/hakyll-4.1.2.1/docs/src/Hakyll-Web-Html.html#stripTags</span></span>
+<span id="cb15-39"><a href="#cb15-39"></a><span class="ot">stripTags ::</span> [<span class="dt">Char</span>] <span class="ot">-&gt;</span> [<span class="dt">Char</span>]</span>
+<span id="cb15-40"><a href="#cb15-40"></a>stripTags []         <span class="ot">=</span> []</span>
+<span id="cb15-41"><a href="#cb15-41"></a>stripTags (<span class="ch">'&lt;'</span> <span class="op">:</span> xs) <span class="ot">=</span> stripTags <span class="op">$</span> <span class="fu">drop</span> <span class="dv">1</span> <span class="op">$</span> <span class="fu">dropWhile</span> (<span class="op">/=</span> <span class="ch">'&gt;'</span>) xs</span>
+<span id="cb15-42"><a href="#cb15-42"></a>stripTags (x <span class="op">:</span> xs)   <span class="ot">=</span> x <span class="op">:</span> stripTags xs</span></code></pre></div>
+<p>The remainder of the code is non-brick code for searching and formatting hoogle results</p>
+<ul>
+<li><strong>compareType</strong> compares two results by formatting them first and then comparing the resulting text</li>
+<li><strong>searchHoogle</strong> searches hoogle using the default database</li>
+<li><strong>formatResults</strong> formats the hoogle results</li>
+<li><strong>unescapeHTML</strong> and <strong>stripTags</strong> are used to get plain text from the HTML. Note that this code comes from the <a href="https://hackage.haskell.org/package/hakyll-4.1.2.1/docs/src/Hakyll-Web-Html.html#stripTags">hakyll</a> and <a href="https://hackage.haskell.org/package/hoogle-5.0.16/docs/src/General-Util.html">hoogle</a> source code</li>
+</ul>
+<h1 id="section"></h1>
+<p>Hopefully this example helps you get started with brick and demonstrates how easy brick makes creating terminal UIs</p>
+<h1 id="links">Links</h1>
+<ul>
+<li><a href="https://github.com/andrevdm/bhoogle/tree/blog">Code on github</a></li>
+<li><a href="https://github.com/jtdaugherty/brick/blob/master/docs/guide.rst">Brick user guide</a></li>
+<li><a href="https://hackage.haskell.org/package/bhoogle">Latest version on hackage</a> - NB code does not match the annotated source above</li>
+<li><a href="https://github.com/andrevdm/bhoogle">Latest version on github</a> - NB code does not match the annotated source above</li>
+</ul>
+
+
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+          
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
