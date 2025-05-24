@@ -1,0 +1,1067 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Andre's Blog</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/syntax.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../contact.html">Contact</a>
+                <!-- <a href="/about.html">About</a> -->
+            </div>
+        </div>
+
+        <div id="content">
+            <h1><a href="#top">Apecs</a></h1>
+
+            <div class="info">
+    Posted on June 25, 2020
+    
+</div>
+
+<p><a name="top"></a></p>
+<h1 id="overview">Overview</h1>
+<p>Apecs is a haskell entity component system. For an overview of what and ECS is see</p>
+<ol type="1">
+<li></li>
+<li></li>
+<li></li>
+</ol>
+<p>In short, there are</p>
+<ol type="1">
+<li><strong>Entities</strong>: Represent a thing in your world/app. However an entity is just an id. E.g. the <code>player</code> entity</li>
+<li><strong>Components</strong>: You can think of these as entity attributes. These are ideally pure data and small. E.g. a <code>position</code> component for anything that can have a position</li>
+<li><strong>Systems</strong>: Peforms the actions. E.g. <code>movement</code> or <code>drawing</code> systems</li>
+</ol>
+<p>Below are six examples of very basic apecs usage. Each examples builds on the last. The diffs between each version are given in full <a href="#diffs"">below</a> so you can easily see what was added.</p>
+<h1 id="example-1---getting-started">Example 1 - Getting started</h1>
+<p>The first example draws to the terminal using the ansi-terminal package and allows you to move the character <code>@</code> around the screen using the HJKL keys.</p>
+<p><img src="../images/apecs_eg_01.gif" /></p>
+<h2 id="language">LANGUAGE</h2>
+<p>Apecs requires several language extensions esp when using template haskell to generate the world (see below).</p>
+<h6 id="srclib01.hs-2-to-10">src/Lib01.hs (2 to 10)</h6>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE NoImplicitPrelude #-}</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE FlexibleInstances #-}</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE MultiParamTypeClasses #-}</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE ScopedTypeVariables #-}</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE TemplateHaskell #-}</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE TypeFamilies #-}</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE LambdaCase #-}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE TypeApplications #-}</span></span></code></pre></div>
+<h2 id="imports">Imports</h2>
+<p>I’m using protolude as a prelude replacement. Other than than you’ll need apecs obviously, linear for vectors and anti-term for terminal drawing.</p>
+<h6 id="srclib01.hs-21-to-25">src/Lib01.hs (21 to 25)</h6>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span>           <span class="dt">Protolude</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span>           <span class="dt">Apecs</span> <span class="kw">as</span> <span class="dt">Ap</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span>           <span class="dt">Linear</span> ( <span class="dt">V2</span>(..) )</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">System.Console.ANSI</span> <span class="kw">as</span> <span class="dt">A</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">System.IO</span> <span class="kw">as</span> <span class="dt">IO</span></span></code></pre></div>
+<h1 id="components">Components</h1>
+<ol type="1">
+<li><strong>Position</strong>: For entities that can have a position in the grid</li>
+<li><strong>Tile</strong>: For visible entities - the tile to draw</li>
+<li><strong>Pet</strong>: A “pet”</li>
+<li><strong>Player</strong>: The player</li>
+</ol>
+<h6 id="srclib01.hs-30-to-41">src/Lib01.hs (30 to 41)</h6>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Position</span> <span class="ot">=</span> <span class="dt">Position</span> (<span class="dt">V2</span> <span class="dt">Int</span>) <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Component</span> <span class="dt">Position</span> <span class="kw">where</span> <span class="kw">type</span> <span class="dt">Storage</span> <span class="dt">Position</span> <span class="ot">=</span> <span class="dt">Ap.Map</span> <span class="dt">Position</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Tile</span> <span class="ot">=</span> <span class="dt">Tile</span> <span class="dt">Char</span> [<span class="dt">A.SGR</span>] <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Component</span> <span class="dt">Tile</span> <span class="kw">where</span> <span class="kw">type</span> <span class="dt">Storage</span> <span class="dt">Tile</span> <span class="ot">=</span> <span class="dt">Ap.Map</span> <span class="dt">Tile</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Pet</span> <span class="ot">=</span> <span class="dt">Pet</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Component</span> <span class="dt">Pet</span> <span class="kw">where</span> <span class="kw">type</span> <span class="dt">Storage</span> <span class="dt">Pet</span> <span class="ot">=</span> <span class="dt">Ap.Map</span> <span class="dt">Pet</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Player</span> <span class="ot">=</span> <span class="dt">Player</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Component</span> <span class="dt">Player</span> <span class="kw">where</span> <span class="kw">type</span> <span class="dt">Storage</span> <span class="dt">Player</span> <span class="ot">=</span> <span class="dt">Unique</span> <span class="dt">Player</span></span></code></pre></div>
+<p>For each component there needs to be a <code>Storage</code> instance that tells apecs how to manage the component. Most components will use <code>Map</code> e.g.</p>
+<p><code>instance Component Position where type Storage Position = Ap.Map Position</code></p>
+<p>Since there is only a single player, we can tell apecs to make it <code>Uniqie</code></p>
+<p><code>instance Component Player where type Storage Player = Unique Player</code></p>
+<h1 id="world">World</h1>
+<p>The <code>makeWorld</code> template haskell call generates all the helper types for us</p>
+<h6 id="srclib01.hs-46-to-46">src/Lib01.hs (46 to 46)</h6>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Ap.makeWorld <span class="st">&quot;World&quot;</span> ['<span class="dt">'Position</span>, '<span class="dt">'Pet</span>, '<span class="dt">'Player</span>, '<span class="dt">'Tile</span>]</span></code></pre></div>
+<h1 id="creating-entities">Creating entities</h1>
+<p>In <code>initialise</code> the entities are created. Here two pets and the player are created</p>
+<h6 id="srclib01.hs-63-to-67">src/Lib01.hs (63 to 67)</h6>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">initialise ::</span> <span class="dt">System</span> <span class="dt">World</span> ()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>initialise <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  void <span class="op">$</span> Ap.newEntity (<span class="dt">Position</span> (<span class="dt">V2</span> <span class="dv">20</span> <span class="dv">17</span>), <span class="dt">Pet</span>, <span class="dt">Tile</span> <span class="ch">'c'</span> [])</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  void <span class="op">$</span> Ap.newEntity (<span class="dt">Position</span> (<span class="dt">V2</span> <span class="dv">5</span> <span class="dv">3</span>), <span class="dt">Pet</span>, <span class="dt">Tile</span> <span class="ch">'d'</span> [])</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  void <span class="op">$</span> Ap.newEntity (<span class="dt">Position</span> <span class="dv">7</span>, <span class="dt">Player</span>, <span class="dt">Tile</span> <span class="ch">'@'</span> [<span class="dt">A.SetColor</span> <span class="dt">A.Foreground</span> <span class="dt">A.Vivid</span> <span class="dt">A.Green</span>])</span></code></pre></div>
+<h1 id="start">Start</h1>
+<p>———————————– here</p>
+<h6 id="srclib01.hs-51-to-58">src/Lib01.hs (51 to 58)</h6>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">start ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>start <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">IO</span><span class="op">.</span>hSetEcho stdin <span class="dt">False</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">IO</span><span class="op">.</span>hSetBuffering stdin <span class="dt">IO</span><span class="op">.</span><span class="dt">NoBuffering</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">IO</span><span class="op">.</span>hSetBuffering stdout <span class="dt">IO</span><span class="op">.</span><span class="dt">NoBuffering</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> initWorld</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  Ap.runSystem initialise w</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  runGame w</span></code></pre></div>
+<h1 id="run-game">Run Game</h1>
+<h6 id="srclib01.hs-72-to-108">src/Lib01.hs (72 to 108)</h6>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ot">runGame ::</span> <span class="dt">World</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>runGame world <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  A.hideCursor</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  go</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  A.setSGR [<span class="dt">A.Reset</span>]</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  A.clearScreen</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  A.showCursor</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ot">    go ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    go <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>      A.setSGR [<span class="dt">A.Reset</span>]</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>      A.clearScreen</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>      A.setCursorPosition <span class="dv">0</span> <span class="dv">0</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>      Ap.runSystem systemDraw world</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>      (stop, move) <span class="ot">&lt;-</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        liftIO getKey <span class="op">&gt;&gt;=</span> \<span class="kw">case</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;q&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="dt">True</span>, <span class="dt">Nothing</span>)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;k&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="dt">False</span>, <span class="dt">Just</span> (<span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>)) <span class="co">-- &quot;Move:up&quot;</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;j&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="dt">False</span>, <span class="dt">Just</span> (<span class="dv">1</span>, <span class="dv">0</span>)) <span class="co">-- &quot;Move:down&quot;</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;l&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="dt">False</span>, <span class="dt">Just</span> (<span class="dv">0</span>, <span class="dv">1</span>)) <span class="co">-- &quot;Move:right&quot;</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;h&quot;</span> <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="dt">False</span>, <span class="dt">Just</span> (<span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>)) <span class="co">-- &quot;Move:left&quot;</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>          _   <span class="ot">-&gt;</span> <span class="fu">pure</span> (<span class="dt">False</span>, <span class="dt">Just</span> (<span class="dv">0</span>, <span class="dv">0</span>))</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>      <span class="kw">if</span> <span class="fu">not</span> stop</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>        <span class="kw">then</span> <span class="kw">do</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>          <span class="kw">case</span> move <span class="kw">of</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>            <span class="dt">Nothing</span> <span class="ot">-&gt;</span> pass</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>            <span class="dt">Just</span> (dx, dy) <span class="ot">-&gt;</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>              <span class="co">-- Move the player</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>              Ap.runSystem (systemMovePlayer dx dy) world</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>          go</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>          pass</span></code></pre></div>
+<h1 id="systems">Systems</h1>
+<h6 id="srclib01.hs-113-to-128">src/Lib01.hs (113 to 128)</h6>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">systemDraw ::</span> <span class="dt">System</span> <span class="dt">World</span> ()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>systemDraw <span class="ot">=</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  cmapM_ <span class="op">$</span> \(<span class="dt">Position</span> p, t<span class="op">@</span><span class="dt">Tile</span> {}) <span class="ot">-&gt;</span> liftIO <span class="op">$</span> drawEntity p t</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ot">systemMovePlayer ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">System</span> <span class="dt">World</span> ()</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>systemMovePlayer dx dy <span class="ot">=</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  cmap <span class="op">$</span> \(<span class="dt">Position</span> p, <span class="dt">Player</span>) <span class="ot">-&gt;</span> <span class="dt">Position</span> (p <span class="op">+</span> <span class="dt">V2</span> dx dy)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="ot">drawEntity ::</span> <span class="dt">V2</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Tile</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>drawEntity (<span class="dt">V2</span> x y) (<span class="dt">Tile</span> t a) <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  A.setCursorPosition x y</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  A.setSGR [<span class="dt">A.Reset</span>]</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  A.setSGR a</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStr</span> [t]</span></code></pre></div>
+<h1 id="get-key">Get Key</h1>
+<h6 id="srclib01.hs-133-to-139">src/Lib01.hs (133 to 139)</h6>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- | https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ot">getKey ::</span> <span class="dt">IO</span> [<span class="dt">Char</span>]</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>getKey <span class="ot">=</span> <span class="fu">reverse</span> <span class="op">&lt;$&gt;</span> getKey' <span class="st">&quot;&quot;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span> getKey' chars <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>          char <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="op">.</span><span class="fu">getChar</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>          more <span class="ot">&lt;-</span> <span class="dt">IO</span><span class="op">.</span>hReady stdin</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>          (<span class="kw">if</span> more <span class="kw">then</span> getKey' <span class="kw">else</span> <span class="fu">return</span>) (char<span class="op">:</span>chars)</span></code></pre></div>
+<p><a name="diffs"></a></p>
+<h1 id="diffs">Diffs</h1>
+<ul>
+<li>01 vs 02 <a href="#patch02">patch02</a></li>
+<li>02 vs 03 <a href="#patch03">patch03</a></li>
+<li>03 vs 04 <a href="#patch04">patch04</a></li>
+<li>04 vs 05 <a href="#patch05">patch05</a></li>
+<li>05 vs 06 <a href="#patch06">patch06</a></li>
+</ul>
+<h1 id="changes-from-01-to-02"><a name="patch02"></a> Changes from 01 to 02</h1>
+<p>(<a href="#top">go to to top</a>)</p>
+<div class="wrapper">
+<h2 class=".diffh2">
+Lib01.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre delete">--- src/Lib01.hs</pre>
+<pre class="diffpre insert">+++ src/Lib02.hs</pre>
+<pre class="diffpre info">@@ -1,5 +1,6 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE NoImplicitPrelude #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE FlexibleInstances #-}</pre>
+<pre class="diffpre insert">+{-# LANGUAGE FlexibleContexts #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE MultiParamTypeClasses #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE OverloadedStrings #-}</pre>
+<pre class="diffpre context"> {-# LANGUAGE ScopedTypeVariables #-}</pre>
+<pre class="diffpre info">@@ -9,9 +10,9 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE TypeApplications #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> {-</pre>
+<pre class="diffpre delete">-   Simple apecs example</pre>
+<pre class="diffpre insert">+   Same as 01 but the Pet components move towards the player on each move</pre>
+<pre class="diffpre context"> -}</pre>
+<pre class="diffpre delete">-module Lib01</pre>
+<pre class="diffpre insert">+module Lib02</pre>
+<pre class="diffpre context">     ( someFunc</pre>
+<pre class="diffpre context">     ) where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -21,7 +22,7 @@</pre>
+<pre class="diffpre context"> import qualified System.Console.ANSI as A</pre>
+<pre class="diffpre context"> import qualified System.IO as IO</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-newtype Position = Position (V2 Int) deriving Show</pre>
+<pre class="diffpre insert">+newtype Position = Position (V2 Double) deriving Show</pre>
+<pre class="diffpre context"> instance Component Position where type Storage Position = Ap.Map Position</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Tile = Tile Char [A.SGR] deriving Show</pre>
+<pre class="diffpre info">@@ -44,19 +45,19 @@</pre>
+<pre class="diffpre context">   IO.hSetBuffering stdin IO.NoBuffering</pre>
+<pre class="diffpre context">   IO.hSetBuffering stdout IO.NoBuffering</pre>
+<pre class="diffpre context">   w &lt;- initWorld</pre>
+<pre class="diffpre delete">-  Ap.runSystem initialise w</pre>
+<pre class="diffpre delete">-  runGame w</pre>
+<pre class="diffpre insert">+  playerE &lt;- Ap.runSystem initialise w</pre>
+<pre class="diffpre insert">+  runGame playerE w</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-initialise :: System World ()</pre>
+<pre class="diffpre insert">+initialise :: System World Ap.Entity</pre>
+<pre class="diffpre context"> initialise = do</pre>
+<pre class="diffpre context">   void $ Ap.newEntity (Position (V2 20 17), Pet, Tile 'c' [])</pre>
+<pre class="diffpre context">   void $ Ap.newEntity (Position (V2 5 3), Pet, Tile 'd' [])</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position 7, Player, Tile '@' [A.SetColor A.Foreground A.Vivid A.Green])</pre>
+<pre class="diffpre insert">+  Ap.newEntity (Position 7, Player, Tile '@' [A.SetColor A.Foreground A.Vivid A.Green])</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-runGame :: World -&gt; IO ()</pre>
+<pre class="diffpre delete">-runGame world = do</pre>
+<pre class="diffpre insert">+runGame :: Entity -&gt; World -&gt; IO ()</pre>
+<pre class="diffpre insert">+runGame playerE world = do</pre>
+<pre class="diffpre context">   A.hideCursor</pre>
+<pre class="diffpre context">   go</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -74,7 +75,7 @@</pre>
+<pre class="diffpre context">       Ap.runSystem systemDraw world</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">       (stop, move) &lt;-</pre>
+<pre class="diffpre delete">-        liftIO getKey &gt;&gt;= \case</pre>
+<pre class="diffpre insert">+        (liftIO getKey) &gt;&gt;= \case</pre>
+<pre class="diffpre context">           "q" -&gt; pure (True, Nothing)</pre>
+<pre class="diffpre context">           "k" -&gt; pure (False, Just (-1, 0)) -- "Move:up"</pre>
+<pre class="diffpre context">           "j" -&gt; pure (False, Just (1, 0)) -- "Move:down"</pre>
+<pre class="diffpre info">@@ -86,9 +87,13 @@</pre>
+<pre class="diffpre context">         then do</pre>
+<pre class="diffpre context">           case move of</pre>
+<pre class="diffpre context">             Nothing -&gt; pass</pre>
+<pre class="diffpre delete">-            Just (dx, dy) -&gt;</pre>
+<pre class="diffpre insert">+            Just (dx, dy) -&gt; do</pre>
+<pre class="diffpre context">               -- Move the player</pre>
+<pre class="diffpre context">               Ap.runSystem (systemMovePlayer dx dy) world</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+              -- Move the pets</pre>
+<pre class="diffpre insert">+              Ap.runSystem (systemMovePets playerE) world</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">           go</pre>
+<pre class="diffpre context">         else</pre>
+<pre class="diffpre context">           pass</pre>
+<pre class="diffpre info">@@ -99,14 +104,33 @@</pre>
+<pre class="diffpre context">   cmapM_ $ \(Position p, t@Tile {}) -&gt; liftIO $ drawEntity p t</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-systemMovePlayer :: Int -&gt; Int -&gt; System World ()</pre>
+<pre class="diffpre insert">+systemMovePlayer :: Double -&gt; Double -&gt; System World ()</pre>
+<pre class="diffpre context"> systemMovePlayer dx dy =</pre>
+<pre class="diffpre context">   cmap $ \(Position p, Player) -&gt; Position (p + V2 dx dy)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-drawEntity :: V2 Int -&gt; Tile -&gt; IO ()</pre>
+<pre class="diffpre insert">+systemMovePets :: Entity -&gt; System World ()</pre>
+<pre class="diffpre insert">+systemMovePets playerE = do</pre>
+<pre class="diffpre insert">+  -- Get the updated player position)</pre>
+<pre class="diffpre insert">+  (Player, Position (V2 px py)) &lt;- Ap.get playerE</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  -- Move each of the Pets</pre>
+<pre class="diffpre insert">+  cmap $ \(Position (V2 x y), Pet) -&gt; do</pre>
+<pre class="diffpre insert">+    let</pre>
+<pre class="diffpre insert">+      x' = case compare px x of</pre>
+<pre class="diffpre insert">+             EQ -&gt; x</pre>
+<pre class="diffpre insert">+             GT -&gt; x + 0.2</pre>
+<pre class="diffpre insert">+             LT -&gt; x - 0.2</pre>
+<pre class="diffpre insert">+      y' = case compare py y of</pre>
+<pre class="diffpre insert">+             EQ -&gt; y</pre>
+<pre class="diffpre insert">+             GT -&gt; y + 0.2</pre>
+<pre class="diffpre insert">+             LT -&gt; y - 0.2</pre>
+<pre class="diffpre insert">+    Position (V2 x' y')</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+drawEntity :: V2 Double -&gt; Tile -&gt; IO ()</pre>
+<pre class="diffpre context"> drawEntity (V2 x y) (Tile t a) = do</pre>
+<pre class="diffpre delete">-  A.setCursorPosition x y</pre>
+<pre class="diffpre insert">+  A.setCursorPosition (floor x) (floor y)</pre>
+<pre class="diffpre context">   A.setSGR [A.Reset]</pre>
+<pre class="diffpre context">   A.setSGR a</pre>
+<pre class="diffpre context">   putStr [t]</pre>
+</div>
+</div>
+<h1 id="changes-from-02-to-03"><a name="patch03"></a> Changes from 02 to 03</h1>
+<p>(<a href="#top">go to to top</a>)</p>
+<div class="wrapper">
+<h2 class=".diffh2">
+Lib02.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre delete">--- src/Lib02.hs</pre>
+<pre class="diffpre insert">+++ src/Lib03.hs</pre>
+<pre class="diffpre info">@@ -10,15 +10,18 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE TypeApplications #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> {-</pre>
+<pre class="diffpre delete">-   Same as 01 but the Pet components move towards the player on each move</pre>
+<pre class="diffpre insert">+   Queue for events</pre>
+<pre class="diffpre insert">+   Key press checking happens in own loop</pre>
+<pre class="diffpre insert">+   Pet components update on each tick, not very roguelike but e.g. could be used for animation etc that happens between turns</pre>
+<pre class="diffpre context"> -}</pre>
+<pre class="diffpre delete">-module Lib02</pre>
+<pre class="diffpre insert">+module Lib03</pre>
+<pre class="diffpre context">     ( someFunc</pre>
+<pre class="diffpre context">     ) where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import           Protolude</pre>
+<pre class="diffpre context"> import           Apecs as Ap</pre>
+<pre class="diffpre context"> import           Linear ( V2(..) )</pre>
+<pre class="diffpre insert">+import qualified Control.Concurrent.STM.TBMQueue as TBQ</pre>
+<pre class="diffpre context"> import qualified System.Console.ANSI as A</pre>
+<pre class="diffpre context"> import qualified System.IO as IO</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -38,6 +41,11 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> Ap.makeWorld "World" [''Position, ''Pet, ''Player, ''Tile]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+data Event</pre>
+<pre class="diffpre insert">+  = EvtQuit</pre>
+<pre class="diffpre insert">+  | EvtTick</pre>
+<pre class="diffpre insert">+  | EvtMovePlayer Double Double</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> someFunc :: IO ()</pre>
+<pre class="diffpre context"> someFunc = do</pre>
+<pre class="diffpre info">@@ -46,7 +54,15 @@</pre>
+<pre class="diffpre context">   IO.hSetBuffering stdout IO.NoBuffering</pre>
+<pre class="diffpre context">   w &lt;- initWorld</pre>
+<pre class="diffpre context">   playerE &lt;- Ap.runSystem initialise w</pre>
+<pre class="diffpre delete">-  runGame playerE w</pre>
+<pre class="diffpre insert">+  q &lt;- atomically $ TBQ.newTBMQueue 50</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  void . forkIO . forever $ do</pre>
+<pre class="diffpre insert">+    threadDelay 60000</pre>
+<pre class="diffpre insert">+    atomically $ TBQ.writeTBMQueue q EvtTick</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  void . forkIO . forever $ getPlayerKeys q</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  runGame q playerE w</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> initialise :: System World Ap.Entity</pre>
+<pre class="diffpre info">@@ -56,8 +72,25 @@</pre>
+<pre class="diffpre context">   Ap.newEntity (Position 7, Player, Tile '@' [A.SetColor A.Foreground A.Vivid A.Green])</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-runGame :: Entity -&gt; World -&gt; IO ()</pre>
+<pre class="diffpre delete">-runGame playerE world = do</pre>
+<pre class="diffpre insert">+getPlayerKeys :: TBQ.TBMQueue Event -&gt; IO ()</pre>
+<pre class="diffpre insert">+getPlayerKeys q = do</pre>
+<pre class="diffpre insert">+  e' &lt;-</pre>
+<pre class="diffpre insert">+    getKey &gt;&gt;= \case</pre>
+<pre class="diffpre insert">+      "q" -&gt; pure . Just $ EvtQuit</pre>
+<pre class="diffpre insert">+      "k" -&gt; pure . Just $ EvtMovePlayer (-1) 0 -- "Move:up"</pre>
+<pre class="diffpre insert">+      "j" -&gt; pure . Just $ EvtMovePlayer 1 0 -- "Move:down"</pre>
+<pre class="diffpre insert">+      "l" -&gt; pure . Just $ EvtMovePlayer 0 1 -- "Move:right"</pre>
+<pre class="diffpre insert">+      "h" -&gt; pure . Just $ EvtMovePlayer 0 (-1) -- "Move:left"</pre>
+<pre class="diffpre insert">+      _   -&gt; pure Nothing</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  case e' of</pre>
+<pre class="diffpre insert">+    Nothing -&gt; pass</pre>
+<pre class="diffpre insert">+    Just e -&gt; atomically . TBQ.writeTBMQueue q $ e</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runGame :: TBQ.TBMQueue Event -&gt; Entity -&gt; World -&gt; IO ()</pre>
+<pre class="diffpre insert">+runGame q playerE world = do</pre>
+<pre class="diffpre context">   A.hideCursor</pre>
+<pre class="diffpre context">   go</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -74,29 +107,17 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">       Ap.runSystem systemDraw world</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-      (stop, move) &lt;-</pre>
+<pre class="diffpre delete">-        (liftIO getKey) &gt;&gt;= \case</pre>
+<pre class="diffpre delete">-          "q" -&gt; pure (True, Nothing)</pre>
+<pre class="diffpre delete">-          "k" -&gt; pure (False, Just (-1, 0)) -- "Move:up"</pre>
+<pre class="diffpre delete">-          "j" -&gt; pure (False, Just (1, 0)) -- "Move:down"</pre>
+<pre class="diffpre delete">-          "l" -&gt; pure (False, Just (0, 1)) -- "Move:right"</pre>
+<pre class="diffpre delete">-          "h" -&gt; pure (False, Just (0, -1)) -- "Move:left"</pre>
+<pre class="diffpre delete">-          _   -&gt; pure (False, Just (0, 0))</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-      if not stop</pre>
+<pre class="diffpre delete">-        then do</pre>
+<pre class="diffpre delete">-          case move of</pre>
+<pre class="diffpre insert">+      atomically (TBQ.readTBMQueue q) &gt;&gt;= \case</pre>
+<pre class="diffpre context">             Nothing -&gt; pass</pre>
+<pre class="diffpre delete">-            Just (dx, dy) -&gt; do</pre>
+<pre class="diffpre insert">+        Just EvtQuit -&gt; pass</pre>
+<pre class="diffpre insert">+        Just (EvtMovePlayer dx dy) -&gt; do</pre>
+<pre class="diffpre context">               -- Move the player</pre>
+<pre class="diffpre context">               Ap.runSystem (systemMovePlayer dx dy) world</pre>
+<pre class="diffpre insert">+          go</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-              -- Move the pets</pre>
+<pre class="diffpre insert">+        Just EvtTick -&gt; do</pre>
+<pre class="diffpre context">               Ap.runSystem (systemMovePets playerE) world</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context">           go</pre>
+<pre class="diffpre delete">-        else</pre>
+<pre class="diffpre delete">-          pass</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> systemDraw :: System World ()</pre>
+</div>
+</div>
+<h1 id="changes-from-03-to-04"><a name="patch04"></a> Changes from 03 to 04</h1>
+<p>(<a href="#top">go to to top</a>)</p>
+<div class="wrapper">
+<h2 class=".diffh2">
+Lib03.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre delete">--- src/Lib03.hs</pre>
+<pre class="diffpre insert">+++ src/Lib04.hs</pre>
+<pre class="diffpre info">@@ -10,11 +10,10 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE TypeApplications #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> {-</pre>
+<pre class="diffpre delete">-   Queue for events</pre>
+<pre class="diffpre delete">-   Key press checking happens in own loop</pre>
+<pre class="diffpre delete">-   Pet components update on each tick, not very roguelike but e.g. could be used for animation etc that happens between turns</pre>
+<pre class="diffpre insert">+  Cats keep their distance from the dogs</pre>
+<pre class="diffpre insert">+  Using cfold</pre>
+<pre class="diffpre context"> -}</pre>
+<pre class="diffpre delete">-module Lib03</pre>
+<pre class="diffpre insert">+module Lib04</pre>
+<pre class="diffpre context">     ( someFunc</pre>
+<pre class="diffpre context">     ) where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -31,15 +30,20 @@</pre>
+<pre class="diffpre context"> data Tile = Tile Char [A.SGR] deriving Show</pre>
+<pre class="diffpre context"> instance Component Tile where type Storage Tile = Ap.Map Tile</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre context"> data Pet = Pet</pre>
+<pre class="diffpre context"> instance Component Pet where type Storage Pet = Ap.Map Pet</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+data Dog = Dog</pre>
+<pre class="diffpre insert">+instance Component Dog where type Storage Dog = Ap.Map Dog</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+data Cat = Cat</pre>
+<pre class="diffpre insert">+instance Component Cat where type Storage Cat = Ap.Map Cat</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> data Player = Player</pre>
+<pre class="diffpre context"> instance Component Player where type Storage Player = Unique Player</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-Ap.makeWorld "World" [''Position, ''Pet, ''Player, ''Tile]</pre>
+<pre class="diffpre insert">+Ap.makeWorld "World" [''Position, ''Pet, ''Cat, ''Dog, ''Player, ''Tile]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Event</pre>
+<pre class="diffpre context">   = EvtQuit</pre>
+<pre class="diffpre info">@@ -67,8 +71,9 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> initialise :: System World Ap.Entity</pre>
+<pre class="diffpre context"> initialise = do</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 20 17), Pet, Tile 'c' [])</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 5 3), Pet, Tile 'd' [])</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 20 17), Pet, Cat, Tile 'c' [])</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 36 7), Pet, Cat, Tile 'c' [])</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 5 3), Pet, Dog, Tile 'd' [])</pre>
+<pre class="diffpre context">   Ap.newEntity (Position 7, Player, Tile '@' [A.SetColor A.Foreground A.Vivid A.Green])</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -117,6 +122,7 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">         Just EvtTick -&gt; do</pre>
+<pre class="diffpre context">           Ap.runSystem (systemMovePets playerE) world</pre>
+<pre class="diffpre insert">+          Ap.runSystem systemCatsAvoidDogs world</pre>
+<pre class="diffpre context">           go</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre info">@@ -149,6 +155,41 @@</pre>
+<pre class="diffpre context">     Position (V2 x' y')</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+systemCatsAvoidDogs :: System World ()</pre>
+<pre class="diffpre insert">+systemCatsAvoidDogs = do</pre>
+<pre class="diffpre insert">+  -- Get the dogs</pre>
+<pre class="diffpre insert">+  --dog :: [(Position, Dog)] &lt;- Ap.cfold (flip (:)) mempty</pre>
+<pre class="diffpre insert">+  dogs &lt;- Ap.cfold (\a (_ :: Dog, Position v) -&gt; v : a) mempty</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  -- Cheating as we know there is only one dog. This could be change to avoid the closest one</pre>
+<pre class="diffpre insert">+  case dogs of</pre>
+<pre class="diffpre insert">+    [V2 px py] -&gt;</pre>
+<pre class="diffpre insert">+      -- Move each of the cats to be at least a distance of five (5 ^ 2 = 25) away from the dog</pre>
+<pre class="diffpre insert">+      cmap $ \(Position (V2 x y), Cat) -&gt;</pre>
+<pre class="diffpre insert">+        if euclideanDistance2 (px, py) (x, y) &lt; 25</pre>
+<pre class="diffpre insert">+          then do</pre>
+<pre class="diffpre insert">+            let</pre>
+<pre class="diffpre insert">+              x' = case compare px x of</pre>
+<pre class="diffpre insert">+                     EQ -&gt; x</pre>
+<pre class="diffpre insert">+                     GT -&gt; x - 0.4</pre>
+<pre class="diffpre insert">+                     LT -&gt; x + 0.4</pre>
+<pre class="diffpre insert">+              y' = case compare py y of</pre>
+<pre class="diffpre insert">+                     EQ -&gt; y</pre>
+<pre class="diffpre insert">+                     GT -&gt; y - 0.4</pre>
+<pre class="diffpre insert">+                     LT -&gt; y + 0.4</pre>
+<pre class="diffpre insert">+            Position (V2 x' y')</pre>
+<pre class="diffpre insert">+          else</pre>
+<pre class="diffpre insert">+            Position (V2 x y)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    _ -&gt;</pre>
+<pre class="diffpre insert">+      pass</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+-- ^ Square of the Euclidean distance between two points</pre>
+<pre class="diffpre insert">+euclideanDistance2 :: (Double, Double) -&gt; (Double, Double) -&gt; Double</pre>
+<pre class="diffpre insert">+euclideanDistance2 (ax, ay) (bx, by) = (bx - ax) ^ 2 + (by - ay) ^ 2</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> drawEntity :: V2 Double -&gt; Tile -&gt; IO ()</pre>
+<pre class="diffpre context"> drawEntity (V2 x y) (Tile t a) = do</pre>
+<pre class="diffpre context">   A.setCursorPosition (floor x) (floor y)</pre>
+</div>
+</div>
+<h1 id="changes-from-04-to-05"><a name="patch05"></a> Changes from 04 to 05</h1>
+<p>(<a href="#top">go to to top</a>)</p>
+<div class="wrapper">
+<h2 class=".diffh2">
+/stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input
+</h2>
+<div class="file-diff">
+<pre class="diffpre delete">--- src/Lib04.hs</pre>
+<pre class="diffpre insert">+++ src/Lib05.hs</pre>
+<pre class="diffpre info">@@ -10,24 +10,22 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE TypeApplications #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> {-</pre>
+<pre class="diffpre delete">-  Cats keep their distance from the dogs</pre>
+<pre class="diffpre delete">-  Using cfold</pre>
+<pre class="diffpre insert">+  Gloss version of 04</pre>
+<pre class="diffpre context"> -}</pre>
+<pre class="diffpre delete">-module Lib04</pre>
+<pre class="diffpre insert">+module Lib05</pre>
+<pre class="diffpre context">     ( someFunc</pre>
+<pre class="diffpre context">     ) where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import           Protolude</pre>
+<pre class="diffpre context"> import           Apecs as Ap</pre>
+<pre class="diffpre insert">+import qualified Apecs.Gloss as Ag</pre>
+<pre class="diffpre context"> import           Linear ( V2(..) )</pre>
+<pre class="diffpre delete">-import qualified Control.Concurrent.STM.TBMQueue as TBQ</pre>
+<pre class="diffpre delete">-import qualified System.Console.ANSI as A</pre>
+<pre class="diffpre delete">-import qualified System.IO as IO</pre>
+<pre class="diffpre insert">+import qualified System.Exit as Ex</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-newtype Position = Position (V2 Double) deriving Show</pre>
+<pre class="diffpre insert">+newtype Position = Position (V2 Float) deriving Show</pre>
+<pre class="diffpre context"> instance Component Position where type Storage Position = Ap.Map Position</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-data Tile = Tile Char [A.SGR] deriving Show</pre>
+<pre class="diffpre insert">+data Tile = Tile Char Ag.Picture deriving Show</pre>
+<pre class="diffpre context"> instance Component Tile where type Storage Tile = Ap.Map Tile</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Pet = Pet</pre>
+<pre class="diffpre info">@@ -43,97 +41,86 @@</pre>
+<pre class="diffpre context"> instance Component Player where type Storage Player = Unique Player</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-Ap.makeWorld "World" [''Position, ''Pet, ''Cat, ''Dog, ''Player, ''Tile]</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-data Event</pre>
+<pre class="diffpre delete">-  = EvtQuit</pre>
+<pre class="diffpre delete">-  | EvtTick</pre>
+<pre class="diffpre delete">-  | EvtMovePlayer Double Double</pre>
+<pre class="diffpre insert">+-- NB add the camera component</pre>
+<pre class="diffpre insert">+Ap.makeWorld "World" [''Position, ''Pet, ''Cat, ''Dog, ''Player, ''Tile, ''Ag.Camera]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> someFunc :: IO ()</pre>
+<pre class="diffpre context"> someFunc = do</pre>
+<pre class="diffpre delete">-  IO.hSetEcho stdin False</pre>
+<pre class="diffpre delete">-  IO.hSetBuffering stdin IO.NoBuffering</pre>
+<pre class="diffpre delete">-  IO.hSetBuffering stdout IO.NoBuffering</pre>
+<pre class="diffpre context">   w &lt;- initWorld</pre>
+<pre class="diffpre context">   playerE &lt;- Ap.runSystem initialise w</pre>
+<pre class="diffpre delete">-  q &lt;- atomically $ TBQ.newTBMQueue 50</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-  void . forkIO . forever $ do</pre>
+<pre class="diffpre delete">-    threadDelay 60000</pre>
+<pre class="diffpre delete">-    atomically $ TBQ.writeTBMQueue q EvtTick</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-  void . forkIO . forever $ getPlayerKeys q</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-  runGame q playerE w</pre>
+<pre class="diffpre insert">+  Ap.runSystem (runGame playerE) w</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> initialise :: System World Ap.Entity</pre>
+<pre class="diffpre context"> initialise = do</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 20 17), Pet, Cat, Tile 'c' [])</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 36 7), Pet, Cat, Tile 'c' [])</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 5 3), Pet, Dog, Tile 'd' [])</pre>
+<pre class="diffpre delete">-  Ap.newEntity (Position 7, Player, Tile '@' [A.SetColor A.Foreground A.Vivid A.Green])</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 200 170), Pet, Cat, Tile 'c' $ Ag.color Ag.yellow triangle)</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 360 70), Pet, Cat, Tile 'c' $ Ag.color Ag.yellow triangle)</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 50 30), Pet, Dog, Tile 'd' $ Ag.color Ag.red diamond)</pre>
+<pre class="diffpre insert">+  Ap.newEntity (Position 7, Player, Tile '@' $ Ag.color Ag.green circle)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-getPlayerKeys :: TBQ.TBMQueue Event -&gt; IO ()</pre>
+<pre class="diffpre delete">-getPlayerKeys q = do</pre>
+<pre class="diffpre delete">-  e' &lt;-</pre>
+<pre class="diffpre delete">-    getKey &gt;&gt;= \case</pre>
+<pre class="diffpre delete">-      "q" -&gt; pure . Just $ EvtQuit</pre>
+<pre class="diffpre delete">-      "k" -&gt; pure . Just $ EvtMovePlayer (-1) 0 -- "Move:up"</pre>
+<pre class="diffpre delete">-      "j" -&gt; pure . Just $ EvtMovePlayer 1 0 -- "Move:down"</pre>
+<pre class="diffpre delete">-      "l" -&gt; pure . Just $ EvtMovePlayer 0 1 -- "Move:right"</pre>
+<pre class="diffpre delete">-      "h" -&gt; pure . Just $ EvtMovePlayer 0 (-1) -- "Move:left"</pre>
+<pre class="diffpre delete">-      _   -&gt; pure Nothing</pre>
+<pre class="diffpre insert">+runGame :: Entity -&gt; System World ()</pre>
+<pre class="diffpre insert">+runGame playerE =</pre>
+<pre class="diffpre insert">+  Ag.play</pre>
+<pre class="diffpre insert">+    (Ag.InWindow "Demo 04" (220, 360) (10, 10))</pre>
+<pre class="diffpre insert">+    Ag.black</pre>
+<pre class="diffpre insert">+    20</pre>
+<pre class="diffpre insert">+    systemDraw</pre>
+<pre class="diffpre insert">+    handleEvent</pre>
+<pre class="diffpre insert">+    step</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  case e' of</pre>
+<pre class="diffpre delete">-    Nothing -&gt; pass</pre>
+<pre class="diffpre delete">-    Just e -&gt; atomically . TBQ.writeTBMQueue q $ e</pre>
+<pre class="diffpre insert">+  where</pre>
+<pre class="diffpre insert">+    step :: Float -&gt; System World ()</pre>
+<pre class="diffpre insert">+    step _ = do</pre>
+<pre class="diffpre insert">+      systemMovePets playerE</pre>
+<pre class="diffpre insert">+      systemCatsAvoidDogs</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+handleEvent :: Ag.Event -&gt; System World ()</pre>
+<pre class="diffpre insert">+handleEvent (Ag.EventKey k Ag.Down _ _) = do</pre>
+<pre class="diffpre insert">+  let dist = 20</pre>
+<pre class="diffpre insert">+  move &lt;-</pre>
+<pre class="diffpre insert">+    case k of</pre>
+<pre class="diffpre insert">+      (Ag.SpecialKey Ag.KeyLeft) -&gt; pure . Just $ (-dist, 0)</pre>
+<pre class="diffpre insert">+      (Ag.SpecialKey Ag.KeyRight) -&gt; pure . Just $ (dist, 0)</pre>
+<pre class="diffpre insert">+      (Ag.SpecialKey Ag.KeyUp) -&gt; pure . Just $ (0, dist)</pre>
+<pre class="diffpre insert">+      (Ag.SpecialKey Ag.KeyDown) -&gt; pure . Just $ (0, -dist)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-runGame :: TBQ.TBMQueue Event -&gt; Entity -&gt; World -&gt; IO ()</pre>
+<pre class="diffpre delete">-runGame q playerE world = do</pre>
+<pre class="diffpre delete">-  A.hideCursor</pre>
+<pre class="diffpre delete">-  go</pre>
+<pre class="diffpre insert">+      (Ag.Char 'h') -&gt; pure . Just $ (-dist, 0)</pre>
+<pre class="diffpre insert">+      (Ag.Char 'l') -&gt; pure . Just $ (dist, 0)</pre>
+<pre class="diffpre insert">+      (Ag.Char 'i') -&gt; pure . Just $ (0, dist)</pre>
+<pre class="diffpre insert">+      (Ag.Char 'j') -&gt; pure . Just $ (0, -dist)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  A.setSGR [A.Reset]</pre>
+<pre class="diffpre delete">-  A.clearScreen</pre>
+<pre class="diffpre delete">-  A.showCursor</pre>
+<pre class="diffpre insert">+      (Ag.Char 'q') -&gt; liftIO Ex.exitSuccess</pre>
+<pre class="diffpre insert">+      (Ag.SpecialKey Ag.KeyEsc) -&gt; liftIO Ex.exitSuccess</pre>
+<pre class="diffpre insert">+      _ -&gt; pure Nothing</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-  where</pre>
+<pre class="diffpre delete">-    go :: IO ()</pre>
+<pre class="diffpre delete">-    go = do</pre>
+<pre class="diffpre delete">-      A.setSGR [A.Reset]</pre>
+<pre class="diffpre delete">-      A.clearScreen</pre>
+<pre class="diffpre delete">-      A.setCursorPosition 0 0</pre>
+<pre class="diffpre insert">+  case move of</pre>
+<pre class="diffpre insert">+    Nothing -&gt;</pre>
+<pre class="diffpre insert">+      pass</pre>
+<pre class="diffpre insert">+    Just (dx, dy) -&gt;</pre>
+<pre class="diffpre insert">+      cmap $ \(Position p, Player) -&gt; Position (p + V2 dx dy)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-      Ap.runSystem systemDraw world</pre>
+<pre class="diffpre insert">+handleEvent _ = pass</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-      atomically (TBQ.readTBMQueue q) &gt;&gt;= \case</pre>
+<pre class="diffpre delete">-        Nothing -&gt; pass</pre>
+<pre class="diffpre delete">-        Just EvtQuit -&gt; pass</pre>
+<pre class="diffpre delete">-        Just (EvtMovePlayer dx dy) -&gt; do</pre>
+<pre class="diffpre delete">-          -- Move the player</pre>
+<pre class="diffpre delete">-          Ap.runSystem (systemMovePlayer dx dy) world</pre>
+<pre class="diffpre delete">-          go</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-        Just EvtTick -&gt; do</pre>
+<pre class="diffpre delete">-          Ap.runSystem (systemMovePets playerE) world</pre>
+<pre class="diffpre delete">-          Ap.runSystem systemCatsAvoidDogs world</pre>
+<pre class="diffpre delete">-          go</pre>
+<pre class="diffpre insert">+systemDraw :: System World Ag.Picture</pre>
+<pre class="diffpre insert">+systemDraw =</pre>
+<pre class="diffpre insert">+  Ag.foldDraw $ \(Tile _ pic, pos) -&gt; translate' pos . Ag.scale 10 10 $ pic</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+triangle :: Ag.Picture</pre>
+<pre class="diffpre insert">+triangle = Ag.Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-systemDraw :: System World ()</pre>
+<pre class="diffpre delete">-systemDraw =</pre>
+<pre class="diffpre delete">-  cmapM_ $ \(Position p, t@Tile {}) -&gt; liftIO $ drawEntity p t</pre>
+<pre class="diffpre insert">+diamond :: Ag.Picture</pre>
+<pre class="diffpre insert">+diamond = Ag.Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+circle :: Ag.Picture</pre>
+<pre class="diffpre insert">+circle = Ag.ThickCircle 0.5 0.2</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-systemMovePlayer :: Double -&gt; Double -&gt; System World ()</pre>
+<pre class="diffpre delete">-systemMovePlayer dx dy =</pre>
+<pre class="diffpre delete">-  cmap $ \(Position p, Player) -&gt; Position (p + V2 dx dy)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+translate' :: Position -&gt; Ag.Picture -&gt; Ag.Picture</pre>
+<pre class="diffpre insert">+translate' (Position (V2 x y)) = Ag.translate x y</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> systemMovePets :: Entity -&gt; System World ()</pre>
+<pre class="diffpre info">@@ -146,37 +133,36 @@</pre>
+<pre class="diffpre context">     let</pre>
+<pre class="diffpre context">       x' = case compare px x of</pre>
+<pre class="diffpre context">              EQ -&gt; x</pre>
+<pre class="diffpre delete">-             GT -&gt; x + 0.2</pre>
+<pre class="diffpre delete">-             LT -&gt; x - 0.2</pre>
+<pre class="diffpre insert">+             GT -&gt; x + 2</pre>
+<pre class="diffpre insert">+             LT -&gt; x - 2</pre>
+<pre class="diffpre context">       y' = case compare py y of</pre>
+<pre class="diffpre context">              EQ -&gt; y</pre>
+<pre class="diffpre delete">-             GT -&gt; y + 0.2</pre>
+<pre class="diffpre delete">-             LT -&gt; y - 0.2</pre>
+<pre class="diffpre insert">+             GT -&gt; y + 2</pre>
+<pre class="diffpre insert">+             LT -&gt; y - 2</pre>
+<pre class="diffpre context">     Position (V2 x' y')</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> systemCatsAvoidDogs :: System World ()</pre>
+<pre class="diffpre context"> systemCatsAvoidDogs = do</pre>
+<pre class="diffpre context">   -- Get the dogs</pre>
+<pre class="diffpre delete">-  --dog :: [(Position, Dog)] &lt;- Ap.cfold (flip (:)) mempty</pre>
+<pre class="diffpre context">   dogs &lt;- Ap.cfold (\a (_ :: Dog, Position v) -&gt; v : a) mempty</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   -- Cheating as we know there is only one dog. This could be change to avoid the closest one</pre>
+<pre class="diffpre context">   case dogs of</pre>
+<pre class="diffpre context">     [V2 px py] -&gt;</pre>
+<pre class="diffpre delete">-      -- Move each of the cats to be at least a distance of five (5 ^ 2 = 25) away from the dog</pre>
+<pre class="diffpre insert">+      -- Move each of the cats to be at least a distance of 50 from the dog</pre>
+<pre class="diffpre context">       cmap $ \(Position (V2 x y), Cat) -&gt;</pre>
+<pre class="diffpre delete">-        if euclideanDistance2 (px, py) (x, y) &lt; 25</pre>
+<pre class="diffpre insert">+        if euclideanDistance2 (px, py) (x, y) &lt; 2500</pre>
+<pre class="diffpre context">           then do</pre>
+<pre class="diffpre context">             let</pre>
+<pre class="diffpre context">               x' = case compare px x of</pre>
+<pre class="diffpre context">                      EQ -&gt; x</pre>
+<pre class="diffpre delete">-                     GT -&gt; x - 0.4</pre>
+<pre class="diffpre delete">-                     LT -&gt; x + 0.4</pre>
+<pre class="diffpre insert">+                     GT -&gt; x - 4</pre>
+<pre class="diffpre insert">+                     LT -&gt; x + 4</pre>
+<pre class="diffpre context">               y' = case compare py y of</pre>
+<pre class="diffpre context">                      EQ -&gt; y</pre>
+<pre class="diffpre delete">-                     GT -&gt; y - 0.4</pre>
+<pre class="diffpre delete">-                     LT -&gt; y + 0.4</pre>
+<pre class="diffpre insert">+                     GT -&gt; y - 4</pre>
+<pre class="diffpre insert">+                     LT -&gt; y + 4</pre>
+<pre class="diffpre context">             Position (V2 x' y')</pre>
+<pre class="diffpre context">           else</pre>
+<pre class="diffpre context">             Position (V2 x y)</pre>
+<pre class="diffpre info">@@ -186,22 +172,5 @@</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> -- ^ Square of the Euclidean distance between two points</pre>
+<pre class="diffpre delete">-euclideanDistance2 :: (Double, Double) -&gt; (Double, Double) -&gt; Double</pre>
+<pre class="diffpre insert">+euclideanDistance2 :: (Float, Float) -&gt; (Float, Float) -&gt; Float</pre>
+<pre class="diffpre context"> euclideanDistance2 (ax, ay) (bx, by) = (bx - ax) ^ 2 + (by - ay) ^ 2</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-drawEntity :: V2 Double -&gt; Tile -&gt; IO ()</pre>
+<pre class="diffpre delete">-drawEntity (V2 x y) (Tile t a) = do</pre>
+<pre class="diffpre delete">-  A.setCursorPosition (floor x) (floor y)</pre>
+<pre class="diffpre delete">-  A.setSGR [A.Reset]</pre>
+<pre class="diffpre delete">-  A.setSGR a</pre>
+<pre class="diffpre delete">-  putStr [t]</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">--- | https://stackoverflow.com/questions/23068218/haskell-read-raw-keyboard-input</pre>
+<pre class="diffpre delete">-getKey :: IO [Char]</pre>
+<pre class="diffpre delete">-getKey = reverse &lt;$&gt; getKey' ""</pre>
+<pre class="diffpre delete">-  where getKey' chars = do</pre>
+<pre class="diffpre delete">-          char &lt;- IO.getChar</pre>
+<pre class="diffpre delete">-          more &lt;- IO.hReady stdin</pre>
+<pre class="diffpre delete">-          (if more then getKey' else return) (char:chars)</pre>
+</div>
+</div>
+<h1 id="changes-from-05-to-06"><a name="patch06"></a> Changes from 05 to 06</h1>
+<p>(<a href="#top">go to to top</a>)</p>
+<div class="wrapper">
+<h2 class=".diffh2">
+Lib05.hs
+</h2>
+<div class="file-diff">
+<pre class="diffpre delete">--- src/Lib05.hs</pre>
+<pre class="diffpre insert">+++ src/Lib06.hs</pre>
+<pre class="diffpre info">@@ -10,22 +10,26 @@</pre>
+<pre class="diffpre context"> {-# LANGUAGE TypeApplications #-}</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> {-</pre>
+<pre class="diffpre delete">-  Gloss version of 04</pre>
+<pre class="diffpre insert">+  Gloss version of 05</pre>
+<pre class="diffpre insert">+  arch:   yay -S sdl2 sdl2_mixer sdl2_ttf sdl2_image</pre>
+<pre class="diffpre insert">+  ubuntu: apt-get install libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libsdl2-image-dev</pre>
+<pre class="diffpre context"> -}</pre>
+<pre class="diffpre delete">-module Lib05</pre>
+<pre class="diffpre insert">+module Lib06</pre>
+<pre class="diffpre context">     ( someFunc</pre>
+<pre class="diffpre context">     ) where</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> import           Protolude</pre>
+<pre class="diffpre delete">-import           Apecs as Ap</pre>
+<pre class="diffpre delete">-import qualified Apecs.Gloss as Ag</pre>
+<pre class="diffpre delete">-import           Linear (V2(..))</pre>
+<pre class="diffpre delete">-import qualified System.Exit as Ex</pre>
+<pre class="diffpre insert">+import           Apecs as Ap hiding (($=))</pre>
+<pre class="diffpre insert">+import           Foreign.C.Types (CInt (..))</pre>
+<pre class="diffpre insert">+import           Linear (V2 (..), V4 (..) )</pre>
+<pre class="diffpre insert">+import qualified SDL</pre>
+<pre class="diffpre insert">+import           SDL (($=))</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> newtype Position = Position (V2 Float) deriving Show</pre>
+<pre class="diffpre context"> instance Component Position where type Storage Position = Ap.Map Position</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-data Tile = Tile Char Ag.Picture deriving Show</pre>
+<pre class="diffpre insert">+newtype Tile = Tile SDL.Texture</pre>
+<pre class="diffpre context"> instance Component Tile where type Storage Tile = Ap.Map Tile</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> data Pet = Pet</pre>
+<pre class="diffpre info">@@ -40,60 +44,118 @@</pre>
+<pre class="diffpre context"> data Player = Player</pre>
+<pre class="diffpre context"> instance Component Player where type Storage Player = Unique Player</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+newtype Exiting = Exiting Bool</pre>
+<pre class="diffpre insert">+instance Semigroup Exiting where (&lt;&gt;) = \(Exiting a) (Exiting b) -&gt; Exiting (a || b)</pre>
+<pre class="diffpre insert">+instance Monoid Exiting where mempty = Exiting False</pre>
+<pre class="diffpre insert">+instance Component Exiting where type Storage Exiting = Global Exiting</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> -- NB add the camera component</pre>
+<pre class="diffpre delete">-Ap.makeWorld "World" [''Position, ''Pet, ''Cat, ''Dog, ''Player, ''Tile, ''Ag.Camera]</pre>
+<pre class="diffpre insert">+Ap.makeWorld "World" [''Position, ''Pet, ''Cat, ''Dog, ''Player, ''Tile, ''Exiting]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> someFunc :: IO ()</pre>
+<pre class="diffpre context"> someFunc = do</pre>
+<pre class="diffpre insert">+  -- Initialise SDL</pre>
+<pre class="diffpre insert">+  SDL.initialize [SDL.InitVideo]</pre>
+<pre class="diffpre insert">+  SDL.HintRenderScaleQuality $= SDL.ScaleNearest</pre>
+<pre class="diffpre insert">+  --SDL window</pre>
+<pre class="diffpre insert">+  window &lt;- SDL.createWindow "Example 05" SDL.defaultWindow</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  --SDL renderer</pre>
+<pre class="diffpre insert">+  renderer &lt;-</pre>
+<pre class="diffpre insert">+      SDL.createRenderer window (-1)</pre>
+<pre class="diffpre insert">+        SDL.RendererConfig</pre>
+<pre class="diffpre insert">+         { SDL.rendererType = SDL.AcceleratedVSyncRenderer</pre>
+<pre class="diffpre insert">+         , SDL.rendererTargetTexture = False</pre>
+<pre class="diffpre insert">+         }</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre context">   w &lt;- initWorld</pre>
+<pre class="diffpre delete">-  playerE &lt;- Ap.runSystem initialise w</pre>
+<pre class="diffpre delete">-  Ap.runSystem (runGame playerE) w</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre insert">+  playerE &lt;- Ap.runSystem (initialise renderer) w</pre>
+<pre class="diffpre insert">+  SDL.showWindow window</pre>
+<pre class="diffpre insert">+  runGame playerE renderer window w</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-initialise :: System World Ap.Entity</pre>
+<pre class="diffpre delete">-initialise = do</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 200 170), Pet, Cat, Tile 'c' $ Ag.color Ag.yellow triangle)</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 360 70), Pet, Cat, Tile 'c' $ Ag.color Ag.yellow triangle)</pre>
+<pre class="diffpre delete">-  void $ Ap.newEntity (Position (V2 50 30), Pet, Dog, Tile 'd' $ Ag.color Ag.red diamond)</pre>
+<pre class="diffpre delete">-  Ap.newEntity (Position 7, Player, Tile '@' $ Ag.color Ag.green circle)</pre>
+<pre class="diffpre insert">+  Ap.runWith w $ Ap.cmapM_ (\(Tile t) -&gt; SDL.destroyTexture t)</pre>
+<pre class="diffpre insert">+  SDL.destroyRenderer renderer</pre>
+<pre class="diffpre insert">+  SDL.destroyWindow window</pre>
+<pre class="diffpre insert">+  SDL.quit</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-runGame :: Entity -&gt; System World ()</pre>
+<pre class="diffpre delete">-runGame playerE =</pre>
+<pre class="diffpre delete">-  Ag.play</pre>
+<pre class="diffpre delete">-    (Ag.InWindow "Demo 04" (220, 360) (10, 10))</pre>
+<pre class="diffpre delete">-    Ag.black</pre>
+<pre class="diffpre delete">-    20</pre>
+<pre class="diffpre delete">-    systemDraw</pre>
+<pre class="diffpre delete">-    handleEvent</pre>
+<pre class="diffpre delete">-    step</pre>
+<pre class="diffpre insert">+initialise :: SDL.Renderer -&gt; System World Ap.Entity</pre>
+<pre class="diffpre insert">+initialise windowRenderer = do</pre>
+<pre class="diffpre insert">+  -- sprites from: https://opengameart.org/content/dog-sprites</pre>
+<pre class="diffpre insert">+  cat' &lt;- liftIO $ SDL.loadBMP "resources/cat2.bmp"</pre>
+<pre class="diffpre insert">+  dog' &lt;- liftIO $ SDL.loadBMP "resources/dog2.bmp"</pre>
+<pre class="diffpre insert">+  mer' &lt;- liftIO $ SDL.loadBMP "resources/mer.bmp"</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  cat &lt;- SDL.createTextureFromSurface windowRenderer cat'</pre>
+<pre class="diffpre insert">+  dog &lt;- SDL.createTextureFromSurface windowRenderer dog'</pre>
+<pre class="diffpre insert">+  mer &lt;- SDL.createTextureFromSurface windowRenderer mer'</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  void $ Ap.set Ap.global (Exiting False)</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 200 170), Pet, Cat, Tile cat)</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 360 70), Pet, Cat, Tile cat)</pre>
+<pre class="diffpre insert">+  void $ Ap.newEntity (Position (V2 50 30), Pet, Dog, Tile  dog)</pre>
+<pre class="diffpre insert">+  Ap.newEntity (Position 7, Player, Tile mer)</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+runGame :: Entity -&gt; SDL.Renderer -&gt; SDL.Window -&gt; World -&gt; IO ()</pre>
+<pre class="diffpre insert">+runGame playerE renderer window world = do</pre>
+<pre class="diffpre insert">+  payload &lt;- map SDL.eventPayload &lt;$&gt; SDL.pollEvents</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+  unless (SDL.QuitEvent `elem` payload) $ do</pre>
+<pre class="diffpre insert">+    Ap.runSystem (systemHandlePayloads payload) world</pre>
+<pre class="diffpre insert">+    Ap.runSystem step world</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    -- Set the background colour and clear the screen</pre>
+<pre class="diffpre insert">+    SDL.rendererDrawColor renderer $= V4 0 0 0 0</pre>
+<pre class="diffpre insert">+    SDL.clear renderer</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    -- Render the world</pre>
+<pre class="diffpre insert">+    runSystem (systemDraw renderer) world</pre>
+<pre class="diffpre insert">+    SDL.present renderer</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    -- User wants to exit?</pre>
+<pre class="diffpre insert">+    (Exiting exiting) &lt;- Ap.runWith world $ Ap.get Ap.global</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+    unless exiting $ do</pre>
+<pre class="diffpre insert">+      SDL.delay 30</pre>
+<pre class="diffpre insert">+      runGame playerE renderer window world</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   where</pre>
+<pre class="diffpre delete">-    step :: Float -&gt; System World ()</pre>
+<pre class="diffpre delete">-    step _ = do</pre>
+<pre class="diffpre insert">+    step :: System World ()</pre>
+<pre class="diffpre insert">+    step = do</pre>
+<pre class="diffpre context">       systemMovePets playerE</pre>
+<pre class="diffpre context">       systemCatsAvoidDogs</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-handleEvent :: Ag.Event -&gt; System World ()</pre>
+<pre class="diffpre delete">-handleEvent (Ag.EventKey k Ag.Down _ _) = do</pre>
+<pre class="diffpre insert">+systemHandlePayloads :: [SDL.EventPayload] -&gt; System World ()</pre>
+<pre class="diffpre insert">+systemHandlePayloads payload = traverse_ systemHandlePayload payload</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+systemHandlePayload :: SDL.EventPayload -&gt; System World ()</pre>
+<pre class="diffpre insert">+systemHandlePayload (SDL.KeyboardEvent ev) = do</pre>
+<pre class="diffpre context">   let dist = 20</pre>
+<pre class="diffpre context">   move &lt;-</pre>
+<pre class="diffpre delete">-    case k of</pre>
+<pre class="diffpre delete">-      (Ag.SpecialKey Ag.KeyLeft) -&gt; pure . Just $ (-dist, 0)</pre>
+<pre class="diffpre delete">-      (Ag.SpecialKey Ag.KeyRight) -&gt; pure . Just $ (dist, 0)</pre>
+<pre class="diffpre delete">-      (Ag.SpecialKey Ag.KeyUp) -&gt; pure . Just $ (0, dist)</pre>
+<pre class="diffpre delete">-      (Ag.SpecialKey Ag.KeyDown) -&gt; pure . Just $ (0, -dist)</pre>
+<pre class="diffpre insert">+    case SDL.keyboardEventKeyMotion ev of</pre>
+<pre class="diffpre insert">+      SDL.Pressed -&gt; do</pre>
+<pre class="diffpre insert">+        let code = SDL.keysymKeycode $ SDL.keyboardEventKeysym ev</pre>
+<pre class="diffpre insert">+        case code of</pre>
+<pre class="diffpre insert">+          SDL.KeycodeLeft -&gt; pure . Just $ (-dist, 0)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeRight -&gt; pure . Just $ (dist, 0)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeUp -&gt; pure . Just $ (0, -dist)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeDown -&gt; pure . Just $ (0, dist)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-      (Ag.Char 'h') -&gt; pure . Just $ (-dist, 0)</pre>
+<pre class="diffpre delete">-      (Ag.Char 'l') -&gt; pure . Just $ (dist, 0)</pre>
+<pre class="diffpre delete">-      (Ag.Char 'i') -&gt; pure . Just $ (0, dist)</pre>
+<pre class="diffpre delete">-      (Ag.Char 'j') -&gt; pure . Just $ (0, -dist)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeH -&gt; pure . Just $ (-dist, 0)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeL -&gt; pure . Just $ (dist, 0)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeI -&gt; pure . Just $ (0, -dist)</pre>
+<pre class="diffpre insert">+          SDL.KeycodeJ -&gt; pure . Just $ (0, dist)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-      (Ag.Char 'q') -&gt; liftIO Ex.exitSuccess</pre>
+<pre class="diffpre delete">-      (Ag.SpecialKey Ag.KeyEsc) -&gt; liftIO Ex.exitSuccess</pre>
+<pre class="diffpre insert">+          SDL.KeycodeQ  -&gt; Ap.set Ap.global (Exiting True) &gt;&gt; pure Nothing</pre>
+<pre class="diffpre insert">+          SDL.KeycodeEscape -&gt; Ap.set Ap.global (Exiting True) &gt;&gt; pure Nothing</pre>
+<pre class="diffpre insert">+</pre>
+<pre class="diffpre insert">+          _ -&gt; pure Nothing</pre>
+<pre class="diffpre context">       _ -&gt; pure Nothing</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context">   case move of</pre>
+<pre class="diffpre info">@@ -102,25 +164,18 @@</pre>
+<pre class="diffpre context">     Just (dx, dy) -&gt;</pre>
+<pre class="diffpre context">       cmap $ \(Position p, Player) -&gt; Position (p + V2 dx dy)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-handleEvent _ = pass</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-systemDraw :: System World Ag.Picture</pre>
+<pre class="diffpre delete">-systemDraw =</pre>
+<pre class="diffpre delete">-  Ag.foldDraw $ \(Tile _ pic, pos) -&gt; translate' pos . Ag.scale 10 10 $ pic</pre>
+<pre class="diffpre delete">-</pre>
+<pre class="diffpre delete">-triangle :: Ag.Picture</pre>
+<pre class="diffpre delete">-triangle = Ag.Line [(0,0),(-0.5,-1),(0.5,-1),(0,0)]</pre>
+<pre class="diffpre insert">+systemHandlePayload _ =</pre>
+<pre class="diffpre insert">+  pass</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-diamond :: Ag.Picture</pre>
+<pre class="diffpre delete">-diamond = Ag.Line [(-1,0),(0,-1),(1,0),(0,1),(-1,0)]</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-circle :: Ag.Picture</pre>
+<pre class="diffpre delete">-circle = Ag.ThickCircle 0.5 0.2</pre>
+<pre class="diffpre insert">+toCIntV2 :: V2 Float -&gt; V2 CInt</pre>
+<pre class="diffpre insert">+toCIntV2 (V2 x y) = V2 (CInt $ floor x) (CInt $ floor y)</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre delete">-translate' :: Position -&gt; Ag.Picture -&gt; Ag.Picture</pre>
+<pre class="diffpre delete">-translate' (Position (V2 x y)) = Ag.translate x y</pre>
+<pre class="diffpre insert">+systemDraw :: SDL.Renderer -&gt; System World ()</pre>
+<pre class="diffpre insert">+systemDraw renderer =</pre>
+<pre class="diffpre insert">+  Ap.cmapM_ $ \(Tile tileTexture, Position v2) -&gt;</pre>
+<pre class="diffpre insert">+    SDL.copy renderer tileTexture Nothing (Just $ SDL.Rectangle (SDL.P . toCIntV2 $ v2) (V2 20 20))</pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> </pre>
+<pre class="diffpre context"> systemMovePets :: Entity -&gt; System World ()</pre>
+</div>
+</div>
+
+
+        </div>
+        <div id="footer">
+            Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-78428674-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </body>
+</html>
