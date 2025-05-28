@@ -1633,7 +1633,7 @@ The code is modular and clear, making it easy to extend.</p>
 <div class="tip">
 <p>💡 Lowering is the process of transforming a complex AST into a simpler form</p>
 </div>
-<p>Real-world compilers often perform optimisations, desugaring, bytecode generation, etc during lowering. In our pipeline, lowering simply erases all type and position annotations.</p>
+<p>Real-world compilers often perform optimisations, desugaring, etc during lowering. In our pipeline, lowering simply erases all type and position annotations.</p>
 <p>Including a lowering phase mirrors a full compiler architecture and sets the stage for REPL features such as runtime type queries.</p>
 <p>Since the AST has already passed every type check, removing annotations <strong>cannot introduce runtime errors</strong>.</p>
 <p>In GHC, types are erased before code generation, our lowering step follows the same approach.</p>
