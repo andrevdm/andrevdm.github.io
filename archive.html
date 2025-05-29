@@ -6,8 +6,71 @@
         <title>Andre's Blog</title>
         <link rel="stylesheet" type="text/css" href="./css/default.css" />
         <link rel="stylesheet" type="text/css" href="./css/syntax.css" />
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
     </head>
     <body>
+      <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js"></script>
+
+      <script>
+         window.addEventListener("load", function () {
+           window.cookieconsent.initialise({
+             palette: {
+               popup: { background: "#000" },
+               button: { background: "#f1d600" }
+             },
+             type: "opt-in", // require explicit consent
+             content: {
+               message: "We use cookies for analytics. Do you accept?",
+               allow: "Allow",
+               deny: "Decline",
+               link: "Learn more",
+               href: "/privacy"
+             },
+             onInitialise: function (status) {
+               if (status === 'allow') enableAnalytics();
+             },
+             onStatusChange: function (status) {
+               if (status === 'allow') enableAnalytics();
+             }
+           });
+         });
+
+         function enableAnalytics() {
+           // 1. Load GA4 script
+           const gaScript = document.createElement('script');
+           gaScript.async = true;
+           gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-SQSMGYG3MH";
+           document.head.appendChild(gaScript);
+
+           // 2. Configure GA4 + Consent Mode
+           const inlineScript = document.createElement('script');
+           inlineScript.innerHTML = `
+             window.dataLayer = window.dataLayer || [];
+             function gtag(){dataLayer.push(arguments);}
+
+             // Optional: Google Consent Mode defaults (deny until allowed)
+             gtag('consent', 'default', {
+               'ad_storage': 'denied',
+               'analytics_storage': 'denied'
+             });
+
+             // Now grant consent, since user clicked "Allow"
+             gtag('consent', 'update', {
+               'ad_storage': 'granted',
+               'analytics_storage': 'granted'
+             });
+
+             gtag('js', new Date());
+             gtag('config', 'G-SQSMGYG3MH');
+           `;
+           document.head.appendChild(inlineScript);
+         }
+       </script>
+
+
+
+
       <div id="bodyInner">
         <div id="header">
             <div id="logo">
@@ -43,16 +106,6 @@
 
 
       <script src="./js/site.js"></script>
-
-      <!-- Google tag (gtag.js) -->
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQSMGYG3MH"></script>
-      <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-SQSMGYG3MH');
-      </script>
 
     </body>
 </html>
