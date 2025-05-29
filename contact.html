@@ -37,13 +37,11 @@
          });
 
          function enableAnalytics() {
-           // 1. Load GA4 script
            const gaScript = document.createElement('script');
            gaScript.async = true;
            gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-SQSMGYG3MH";
            document.head.appendChild(gaScript);
 
-           // 2. Configure GA4 + Consent Mode
            const inlineScript = document.createElement('script');
            inlineScript.innerHTML = `
              window.dataLayer = window.dataLayer || [];

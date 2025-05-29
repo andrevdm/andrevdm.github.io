@@ -37,13 +37,11 @@
          });
 
          function enableAnalytics() {
-           // 1. Load GA4 script
            const gaScript = document.createElement('script');
            gaScript.async = true;
            gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-SQSMGYG3MH";
            document.head.appendChild(gaScript);
 
-           // 2. Configure GA4 + Consent Mode
            const inlineScript = document.createElement('script');
            inlineScript.innerHTML = `
              window.dataLayer = window.dataLayer || [];
@@ -88,6 +86,11 @@
 
             <h2>Blog Posts</h2>
 <ul class="post-list">
+    
+        <li>
+            <a href="./posts/2025-05-29-simple-hm-in-practice.html">Simple Hindley-Milner in Practice</a><br />
+            <span class="post-date">May 29, 2025</span>
+        </li>
     
         <li>
             <a href="./posts/2025-05-27-bollama-tui-for-ollama.html">Bollama - Simple Ollama TUI</a><br />
